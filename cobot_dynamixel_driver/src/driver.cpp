@@ -11,7 +11,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 //#include "test_dynamixel/Goal.h"
-#include "test_dynamixel/get_motor_number.h"
+#include "cobot_dynamixel_driver/get_motor_number.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 
@@ -66,7 +66,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
   }
 }
 
-bool get_motor_number(test_dynamixel::get_motor_number::Request  &req, test_dynamixel::get_motor_number::Response &res){
+bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res){
   res.num = (short)cJoint::get_joints().size();
   return true;
 }
@@ -76,9 +76,9 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "driver");
   ros::NodeHandle n;
-  ros::Publisher pub = n.advertise<sensor_msgs::JointState>("test_dynamixel/joint_states", 1000);
-  ros::Subscriber sub = n.subscribe("test_dynamixel/goal", 1000, control_callback);
-  ros::ServiceServer service = n.advertiseService("test_dynamixel/get_motor_number", get_motor_number);
+  ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
+  ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
+  ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
   ros::Rate loop_rate(15);
   int fake_joints = 0;
   {
