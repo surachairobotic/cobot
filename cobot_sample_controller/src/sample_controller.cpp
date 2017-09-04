@@ -9,7 +9,7 @@ void move_trajectory(cControl &control);
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "sample_controller");
+  ros::init(argc, argv, "cobot_sample_controller");
   cControl control("arm", "tool0");
   control.init();
   
@@ -31,10 +31,13 @@ bool create_trajectory(cControl &control){
     
   start_pose.position.y-= 0.1;
   end_pose.orientation.w = 1.0;
-  end_pose.position.x = 0.28;
+  end_pose.position.x = start_pose.position.x;
+  end_pose.position.y = start_pose.position.y - 0.5;
+  end_pose.position.z = start_pose.position.z;
+/*  end_pose.position.x = 0.28;
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
-  
+*/  
   bool b = control.plan_line(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
@@ -57,7 +60,8 @@ void print_trajectory(cControl &control){
   }
   for(int i=0;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
-    const geometry_msgs::Pose pose = control.joints_to_pose(p.positions);
+    const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
+    const std::vector<double> velo = control.get_cartesian_velocity(p.positions, p.velocities );
     printf("point [%d]  time : %lf\n", i, p.time_from_start.toSec() );
     printf("q :");
     if( fp )
@@ -88,11 +92,18 @@ void print_trajectory(cControl &control){
     printf("\nxyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
     printf("quart : %.3lf %.3lf %.3lf %.3lf\n"
       , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+    printf("\nvelo : ");
+    for(int i=0;i<velo.size();i++)
+      printf(" %.3lf", velo[i]);
     printf("\n");
-    if( fp )
-      fprintf(fp, " %lf %lf %lf %lf %lf %lf %lf\n"
+    if( fp ){
+      fprintf(fp, " %lf %lf %lf %lf %lf %lf %lf"
         , pose.position.x, pose.position.y, pose.position.z
         , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+      for(int i=0;i<velo.size();i++)
+        fprintf(fp, " %lf", velo[i]);
+      fprintf(fp, "\n");
+    }
     
   }
   if(fp)

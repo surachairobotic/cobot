@@ -53,7 +53,9 @@ public:
   
   const geometry_msgs::Pose get_current_pose();
   const std::vector<double> get_current_joints();
-  const geometry_msgs::Pose joints_to_pose(const std::vector<double> &joints);
+  const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
+  const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
+    , const std::vector<double> &joint_velo);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
 };
 

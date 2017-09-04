@@ -167,13 +167,29 @@ const geometry_msgs::Pose cControl::get_current_pose(){
 }
 
 
-const geometry_msgs::Pose cControl::joints_to_pose(const std::vector<double> &joints){
-  kinematic_state->setJointGroupPositions(joint_model_group, joints);
+const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<double> &joint_pos){
+  kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
   const Eigen::Affine3d &end_effector_state = kinematic_state->getGlobalLinkTransform(end_effector_name);
   geometry_msgs::Pose pose;
   tf::poseEigenToMsg(end_effector_state, pose);
   return pose;
 }
 
-
+const std::vector<double> cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
+  , const std::vector<double> &joint_velo){
+  kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
+  Eigen::MatrixXd jacobian;
+  Eigen::Vector3d reference_point_position(0.0,0.0,0.0);
+  kinematic_state->getJacobian(joint_model_group, kinematic_state->getLinkModel(end_effector_name),
+                             reference_point_position,
+                             jacobian);
+  Eigen::VectorXd dq(joint_velo.size()), dx;
+  for(int i=dq.size()-1;i>=0;i--)
+    dq(i) = joint_velo[i];
+  dx = jacobian * dq;
+  std::vector<double> dx2(dx.size());
+  for(int i=dx2.size()-1;i>=0;i--)
+    dx2[i] = dx(i);
+  return dx2;
+}
 
