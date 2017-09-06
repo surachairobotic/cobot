@@ -223,6 +223,7 @@ std::vector<cJoint> &cJoint::init(){
       if (dxl_comm_result != COMM_SUCCESS ){
         if( j==0 ){
           if( dxl_comm_result==COMM_RX_TIMEOUT ){
+            ROS_INFO("ping timeout\n");
             break;
           }
           packetHandler->printTxRxResult(dxl_comm_result);

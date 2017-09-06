@@ -75,6 +75,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   std_msgs
 # )
 
+add_message_files(
+  FILES
+  Goal.msg
+)
+
 add_service_files(
   FILES
   get_motor_number.srv
