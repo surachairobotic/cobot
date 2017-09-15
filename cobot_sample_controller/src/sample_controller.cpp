@@ -12,10 +12,12 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cobot_sample_controller");
   cControl control("arm", "tool0");
   control.init();
-  
+
   try{
     if( create_trajectory(control) ){
-      print_trajectory(control);
+      print_trajectory(control, "traj_original.txt");
+      control.replan_velocity( 0.2, 0.2);
+      print_trajectory(control, "traj_const_velo.txt");
       move_trajectory(control);
     }
   }
@@ -28,7 +30,7 @@ int main(int argc, char **argv)
 bool create_trajectory(cControl &control){
   geometry_msgs::Pose start_pose = control.get_current_pose()
     , end_pose = start_pose;
-    
+
   start_pose.position.y-= 0.1;
   end_pose.orientation.w = 1.0;
   end_pose.position.x = start_pose.position.x;
@@ -37,7 +39,7 @@ bool create_trajectory(cControl &control){
 /*  end_pose.position.x = 0.28;
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
-*/  
+*/
   bool b = control.plan_line(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
@@ -49,9 +51,9 @@ bool create_trajectory(cControl &control){
 }
 
 
-void print_trajectory(cControl &control){
+void print_trajectory(cControl &control, const char *file_name){
   const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
-  FILE *fp = fopen("traj.txt", "wt");
+  FILE *fp = fopen(file_name, "wt");
   if( !fp ){
     ROS_ERROR("Cannot create file 'traj.txt'\n");
   }
@@ -104,7 +106,7 @@ void print_trajectory(cControl &control){
         fprintf(fp, " %lf", velo[i]);
       fprintf(fp, "\n");
     }
-    
+
   }
   if(fp)
     fclose(fp);
@@ -136,4 +138,3 @@ void move_trajectory(cControl &control){
   }
   printf("move_traj end\n");
 }
-

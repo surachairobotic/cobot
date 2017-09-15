@@ -26,7 +26,7 @@ private:
   ros::Publisher pub_goal;
   ros::Subscriber sub_joints;
   sensor_msgs::JointState joint_state, goal;
-  
+
   robot_model_loader::RobotModelLoader robot_model_loader;
   robot_model::RobotModelPtr kinematic_model;
   robot_state::RobotStatePtr kinematic_state;
@@ -46,11 +46,12 @@ public:
   bool plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step=0.002);
   bool plan_line(const geometry_msgs::Pose &p2, double step=0.002);
   bool plan_line(std::vector< geometry_msgs::Pose > &waypoints, double step=0.002);
-  
+  void replan_velocity(double velo, double acc);
+
   void move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo);
   void move_velo(const std::vector<double> &joint_velo);
-  
-  
+
+
   const geometry_msgs::Pose get_current_pose();
   const std::vector<double> get_current_joints();
   const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);

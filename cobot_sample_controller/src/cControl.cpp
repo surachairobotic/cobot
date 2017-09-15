@@ -6,6 +6,7 @@
 //#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#define POW2(x) ((x)*(x))
 
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
     :spinner(1), group_name(_group_name), end_effector_name(_end_effector_name)
@@ -18,13 +19,13 @@ void cControl::init(){
   kinematic_model = robot_model_loader.getModel();
   kinematic_state = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
   joint_model_group = kinematic_model->getJointModelGroup (group_name);
-  
-  
+
+
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("test_dynamixel/goal", 1000);
 /*  sub_joints = n.subscribe("joint_states", 10
     , &cControl::joint_states_callback, this);
-  
+
   ros::Rate r(10);
   ROS_INFO("waiting for joint_states ...\n");
   while (ros::ok()){
@@ -193,3 +194,80 @@ const std::vector<double> cControl::get_cartesian_velocity(const std::vector<dou
   return dx2;
 }
 
+void cControl::replan_velocity(double velo, double acc){
+  if( acc<=0.0 || velo<=0.0){
+    ROS_ERROR("Invalid acc or velo : %.3lf, %.3lf\n", acc, velo);
+    return;
+  }
+  struct tCartesianPose{
+    geometry_msgs::Pose pose;
+    geometry_msgs::Twist velocity;
+  };
+  double dis_all = 0.0;
+  std::vector<tCartesianPose> traj_car;
+  trajectory_msgs::JointTrajectory traj = &trajectory.joint_trajectory;
+  traj_car.resize(traj.points.size());
+  tCartesianPose &tc0 = traj_car[0];
+  for(int i=0;i<traj.points.size();i++){
+    const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
+    tCartesianPose &tc = traj_car[i];
+    tc.pose = control.get_cartesian_position(p.positions);
+    std::vector<double> velo = control.get_cartesian_velocity(p.positions, p.velocities );
+    tc.velocity.linear.x = velo[0];
+    tc.velocity.linear.y = velo[1];
+    tc.velocity.linear.z = velo[2];
+    tc.velocity.angular.x = velo[3];
+    tc.velocity.angular.y = velo[4];
+    tc.velocity.angular.z = velo[5];
+
+    if( i > 0 )
+      dis_all+= sqrt(POW2(tc.pose.position.x - tc0.pose.position.x) +
+        POW2(tc.pose.position.y - tc0.pose.position.y) +
+        POW2(tc.pose.position.z - tc0.pose.position.z));
+  }
+  if( dis_all==0.0 ){
+    ROS_ERROR("Trajectory distance is 0\n");
+    return;
+  }
+  double t_acc = velo / acc,              // time used to accelerate to target velocity
+    dis_acc = 0.5 * acc * POW2(t_acc);    // distance used to accelerate to target velocity
+  double dis_end_acc, dis_start_dec, t_start_dec;
+  if( dis_all < dis_acc * 2 ){
+    ROS_WARN("Velocity will not reach the target velocity because the acceleration is too small\n");
+    dis_end_acc = dis_start_dec = dis_all * 0.5;
+    t_start_dec = sqrt(2 * dis_end_acc / acc);
+  }
+  else{
+    dis_end_acc = dis_acc;
+    dis_start_dec = dis_all - dis_acc;
+    t_start_dec = velo / acc + (dis_all - *2dis_acc) / velo;
+  }
+
+  double dis = 0.0;
+  for(int i=1;i<traj.points.size();i++){
+    double v, t;
+    tCartesianPose &tc = traj_car[i];
+    dis+= sqrt(POW2(tc.pose.position.x - tc0.pose.position.x) +
+      POW2(tc.pose.position.y - tc0.pose.position.y) +
+      POW2(tc.pose.position.z - tc0.pose.position.z));
+    if( dis < dis_end_acc ){
+      t = sqrt( 2 * dis / acc );   // s = 0.5*a*t^2
+      v = acc * t;
+    }
+    else if( dis > dis_start_dec){
+      t = sqrt( 2 * (dis_all - dis) / acc );
+      v = acc * t;
+      t+= t_start_dec;
+    }
+    else{
+      v = velo;
+      t = velo / acc + (dis - dis_acc) / velo;
+    }
+    double vj = sqrt( POW2(tc.velocity.linear.x)+POW2(tc.velocity.linear.y)+POW2(tc.velocity.linear.z) ),
+      ratio = v / vj;
+    for(int j=traj.velocities.size()-1;j>=0;j--){
+      traj.points[i].velocities[j]*= ratio;
+    }
+    traj.points[i].time_from_start.fromSec(t);
+  }
+}
