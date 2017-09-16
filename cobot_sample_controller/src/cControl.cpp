@@ -205,14 +205,13 @@ void cControl::replan_velocity(double velo, double acc){
   };
   double dis_all = 0.0;
   std::vector<tCartesianPose> traj_car;
-  trajectory_msgs::JointTrajectory traj = &trajectory.joint_trajectory;
+  trajectory_msgs::JointTrajectory &traj = trajectory.joint_trajectory;
   traj_car.resize(traj.points.size());
-  tCartesianPose &tc0 = traj_car[0];
   for(int i=0;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
     tCartesianPose &tc = traj_car[i];
-    tc.pose = control.get_cartesian_position(p.positions);
-    std::vector<double> velo = control.get_cartesian_velocity(p.positions, p.velocities );
+    tc.pose = get_cartesian_position(p.positions);
+    std::vector<double> velo = get_cartesian_velocity(p.positions, p.velocities );
     tc.velocity.linear.x = velo[0];
     tc.velocity.linear.y = velo[1];
     tc.velocity.linear.z = velo[2];
@@ -221,35 +220,39 @@ void cControl::replan_velocity(double velo, double acc){
     tc.velocity.angular.z = velo[5];
 
     if( i > 0 )
-      dis_all+= sqrt(POW2(tc.pose.position.x - tc0.pose.position.x) +
-        POW2(tc.pose.position.y - tc0.pose.position.y) +
-        POW2(tc.pose.position.z - tc0.pose.position.z));
+      dis_all+= sqrt(
+        POW2(tc.pose.position.x - traj_car[i-1].pose.position.x) +
+        POW2(tc.pose.position.y - traj_car[i-1].pose.position.y) +
+        POW2(tc.pose.position.z - traj_car[i-1].pose.position.z));
   }
   if( dis_all==0.0 ){
     ROS_ERROR("Trajectory distance is 0\n");
     return;
   }
   double t_acc = velo / acc,              // time used to accelerate to target velocity
-    dis_acc = 0.5 * acc * POW2(t_acc);    // distance used to accelerate to target velocity
+    dis_acc = 0.5 * acc * POW2(t_acc),    // distance used to accelerate to target velocity
+    t_all;
   double dis_end_acc, dis_start_dec, t_start_dec;
   if( dis_all < dis_acc * 2 ){
     ROS_WARN("Velocity will not reach the target velocity because the acceleration is too small\n");
     dis_end_acc = dis_start_dec = dis_all * 0.5;
     t_start_dec = sqrt(2 * dis_end_acc / acc);
+    t_all = t_start_dec * 2;
   }
   else{
     dis_end_acc = dis_acc;
     dis_start_dec = dis_all - dis_acc;
-    t_start_dec = velo / acc + (dis_all - *2dis_acc) / velo;
+    t_start_dec = t_acc + (dis_all - 2*dis_acc) / velo;
+    t_all = t_start_dec + t_acc;
   }
 
   double dis = 0.0;
   for(int i=1;i<traj.points.size();i++){
     double v, t;
-    tCartesianPose &tc = traj_car[i];
-    dis+= sqrt(POW2(tc.pose.position.x - tc0.pose.position.x) +
-      POW2(tc.pose.position.y - tc0.pose.position.y) +
-      POW2(tc.pose.position.z - tc0.pose.position.z));
+    tCartesianPose &tc = traj_car[i], &tc1 = traj_car[i-1];
+    dis+= sqrt(POW2(tc.pose.position.x - tc1.pose.position.x) +
+      POW2(tc.pose.position.y - tc1.pose.position.y) +
+      POW2(tc.pose.position.z - tc1.pose.position.z));
     if( dis < dis_end_acc ){
       t = sqrt( 2 * dis / acc );   // s = 0.5*a*t^2
       v = acc * t;
@@ -257,15 +260,15 @@ void cControl::replan_velocity(double velo, double acc){
     else if( dis > dis_start_dec){
       t = sqrt( 2 * (dis_all - dis) / acc );
       v = acc * t;
-      t+= t_start_dec;
+      t = t_all - t;
     }
     else{
       v = velo;
       t = velo / acc + (dis - dis_acc) / velo;
     }
     double vj = sqrt( POW2(tc.velocity.linear.x)+POW2(tc.velocity.linear.y)+POW2(tc.velocity.linear.z) ),
-      ratio = v / vj;
-    for(int j=traj.velocities.size()-1;j>=0;j--){
+      ratio = fabs(vj) < 0.0001 ? 0 : v / vj;
+    for(int j=traj.points[i].velocities.size()-1;j>=0;j--){
       traj.points[i].velocities[j]*= ratio;
     }
     traj.points[i].time_from_start.fromSec(t);

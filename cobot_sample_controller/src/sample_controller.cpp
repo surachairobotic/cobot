@@ -4,7 +4,7 @@
 
 
 bool create_trajectory(cControl &control);
-void print_trajectory(cControl &control);
+void print_trajectory(cControl &control, const char *file_name);
 void move_trajectory(cControl &control);
 
 int main(int argc, char **argv)
@@ -16,9 +16,9 @@ int main(int argc, char **argv)
   try{
     if( create_trajectory(control) ){
       print_trajectory(control, "traj_original.txt");
-      control.replan_velocity( 0.2, 0.2);
+      control.replan_velocity( 0.2, 0.3);
       print_trajectory(control, "traj_const_velo.txt");
-      move_trajectory(control);
+//      move_trajectory(control);
     }
   }
   catch(int my_error){}
@@ -65,7 +65,7 @@ void print_trajectory(cControl &control, const char *file_name){
     const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
     const std::vector<double> velo = control.get_cartesian_velocity(p.positions, p.velocities );
     printf("point [%d]  time : %lf\n", i, p.time_from_start.toSec() );
-    printf("q :");
+    printf("angle :");
     if( fp )
         fprintf(fp, "%lf", p.time_from_start.toSec());
     for(int j=0;j<p.positions.size();j++){
@@ -73,13 +73,13 @@ void print_trajectory(cControl &control, const char *file_name){
       if( fp )
         fprintf(fp, " %lf", p.positions[j]);
     }
-    printf("\ndq :");
+    printf("\nangular velo :");
     for(int j=0;j<p.velocities.size();j++){
       printf(" %.3lf", p.velocities[j]);
       if( fp )
         fprintf(fp, " %lf", p.velocities[j]);
     }
-    printf("\nddq :");
+    printf("\nangular acc :");
     for(int j=0;j<p.accelerations.size();j++){
       printf(" %.3lf", p.accelerations[j]);
       if( fp )
@@ -118,7 +118,7 @@ void move_trajectory(cControl &control){
   ros::Rate r(100);
   for(int i=0;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
-    printf("move %d\n", i);
+    printf("waypoint %d\n", i);
     control.move_pos_velo(p.positions, p.velocities);
     bool b_reach;
     do{
