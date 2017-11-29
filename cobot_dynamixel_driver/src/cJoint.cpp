@@ -211,11 +211,11 @@ std::vector<cJoint> &cJoint::init(){
     ROS_ERROR("Press any key to terminate...\n");
     throw 0;
   }
-  
-  // ping 
+
+  // ping
   int num_joint = 0;
   uint8_t dxl_error;
-  
+
   for(;num_joint<250;num_joint++){
     int j = 3;
     for(;j>=0;j--){
@@ -265,7 +265,7 @@ std::vector<cJoint> &cJoint::init(){
       throw 0;
     }
   }*/
-  
+
   joints.clear();
   for(int i=0;i<num_joint;i++){
     int id = i+1;
@@ -274,7 +274,7 @@ std::vector<cJoint> &cJoint::init(){
     std::stringstream ss;
     ss << "joint_" << (i + 1);
     j.name = ss.str();
-    
+
 //    printf("[%d] : torque enable\n", id);
     j.write1b( P_TORQUE_ENABLE, 0 );
 //    printf("[%d] : max torque\n", id);
@@ -289,13 +289,13 @@ std::vector<cJoint> &cJoint::init(){
     j.write2b( P_CCW_ANGLE_LIMIT, 0 );
 //    printf("[%d] : torque enable\n", id);
     j.write1b( P_TORQUE_ENABLE, 1 );
-    
+
     if (group_read->addParam(id, P_PRESENT_POSITION, 6) != true){
       ROS_ERROR("[ID:%03d] grou_read addparam failed", id);
       throw 0;
     }
 //    printf("[%d] : end\n", id);
-    
+
   }
   mode = MODE_VELOCITY_CONTROL;
   return joints;
@@ -303,7 +303,7 @@ std::vector<cJoint> &cJoint::init(){
 
 void cJoint::sync_velo(){
   uint8_t velo_lh[2];
-  
+
   if( mode!=MODE_VELOCITY_CONTROL ){
     change_mode(MODE_VELOCITY_CONTROL);
   }
@@ -332,7 +332,7 @@ void cJoint::sync_velo(){
     int ccw_limit = joints[i].read2b(P_CCW_ANGLE_LIMIT);
     int torque_control = joints[i].read1b(P_TORQUE_CONTROL_MODE);
     int torque_enable = joints[i].read1b(P_TORQUE_ENABLE);
-    
+
     printf("[%d] sent_goal_velo : %d\ngoal_velo : %d\n  CW : %d\n  CCW : %d\n  TORQUE_CONTROL : %d\n  TORQUE_ENABLE : %d\n"
       , joints[i].get_id(), joints[i].goal_velo, goal_velo, cw_limit, ccw_limit, torque_control, torque_enable );
   }*/
@@ -388,7 +388,7 @@ void cJoint::sync_read(){
 
 void cJoint::change_mode(int _mode){
   if( mode==_mode ){
-    ROS_WARN("same cotrol mode : %d / %d\n", _mode, mode); 
+    ROS_WARN("same cotrol mode : %d / %d\n", _mode, mode);
     return;
   }
   for(int i=0;i<joints.size();i++){
@@ -411,7 +411,7 @@ void cJoint::change_mode(int _mode){
       ROS_ERROR("cJoint::change_mode() : invalid mode %d\n", mode);
     }
   }
-  ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode); 
+  ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;
 }
 
@@ -444,4 +444,3 @@ bool cJoint::is_all_reaching_pos() {
   }
   return true;
 }
-

@@ -9,16 +9,16 @@ import math
 ADDR = {'MODEL_NUMBER'    : [0, 2]
   ,'ID'                   : [7, 1]
   ,'RETURN_DELAY_TIME'    : [9, 1]
-  ,'CW_ANGLE_LIMIT'       : [36, 1]
-  ,'CCW_ANGLE_LIMIT'      : [40, 1]
+  ,'TORQUE_LIMIT'         : [30, 2]
+  ,'CW_ANGLE_LIMIT'       : [36, 4]
+  ,'CCW_ANGLE_LIMIT'      : [40, 4]
   ,'TORQUE_ENABLE'        : [562, 1]
-  ,'GOAL_POSITION'        : [596, 1]
-  ,'GOAL_VELOCITY'        : [600, 1]
-  ,'TORQUE_LIMIT'         : [30, 1]
-  ,'PRESENT_POSITION'     : [611, 1]
-  ,'PRESENT_VELOCITY'     : [615, 1]
-  ,'PRESENT_CURRENT'      : [621, 1]
-  ,'PRESENT_INPUT_VOLTAGE': [623, 1]
+  ,'GOAL_POSITION'        : [596, 4]
+  ,'GOAL_VELOCITY'        : [600, 4]
+  ,'PRESENT_POSITION'     : [611, 4]
+  ,'PRESENT_VELOCITY'     : [615, 4]
+  ,'PRESENT_CURRENT'      : [621, 2]
+  ,'PRESENT_INPUT_VOLTAGE': [623, 2]
   ,'PRESENT_TEMPERATURE'  : [625, 1]
 }
 
@@ -53,67 +53,11 @@ JOINT_INFO = [
   }
 ]
 
-class cJoint:
-  def __init__(self, _id):
-    self.id = _id
-    if _id>=len(JOINT_INFO):
-      raise Exception('joint id is larger than JOIN_INFO : ' + str(_id))
-    self.info = JOINT_INFO[_id-1]
-    self.velo2val = 60 * self.info['gear_ratio'] / (2*math.pi)
-    self.goal_pos = 0
-    self.goal_velo = 0
-    self.pos_val = 0
-    self.velo_val = 0
-    self.current_val = 0
-  
-  def velo2val(self, velo):
-    if fabs(velo) > self.info['velo_max']:
-      raise Exception('[ID %d]too large velocity : %f' % (self.id, velo))
-    return velo * self.velo2val
-    
-  def pos2val(self, pos):
-    return pos * self.info['angle2val']
-    
-  def set_goal_velo(self, rad_per_sec):
-    self.goal_velo = self.velo2val(rad_per_sec)
+MODE_POSITION_CONTROL = 0
+MODE_VELOCITY_CONTROL = 1
+MODE_TORQUE_CONTROL = 2
 
-  def set_goal_pos_velo(self, pos, velo):
-    self.goal_pos = self.pos2val(pos)
-    self.goal_velo = self.velo2val(velo)
-
-
-  def get_pos(self):
-    return self.pos_val / self.info['angle2val']
-    
-  def get_velo():
-    return self.velo_val / self.velo2val
-    
-  def get_current():
-    return self.current_val;
-
-  
-  def write1b(self, addr, val):
-    cnt = 5
-    while cnt>0:
-      dynamixel.write1ByteTxRx(portHandler, PROTOCOL_VERSION, self.id, addr, val)
-      dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
-      dxl_error = dynamixel.getLastRxPacketError(portHandler, PROTOCOL_VERSION)
-      if dxl_comm_result != COMM_SUCCESS:
-        print(dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
-        print(('[ID %d] : ' % (self.id)) + dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
-      elif dxl_error != 0:
-        print(('[ID %d] : ' % (self.id)) + dynamixel.getRxPacketError(PROTOCOL_VERSION, dxl_error))
-      else:
-        return;
-      cnt-=1
-    raise '[ID %d] : write1b failed : addr = %d' % (self.id, addr))
-
-  
-  def write1b(addr, val):
-    
-  void write2b(int addr, int val);
-  int read1b(int addr);
-  int read2b(int addr);
+mode = None
 
 
 # Protocol version
@@ -132,9 +76,122 @@ group_write_velo = None
 group_write_pos_velo = None
 group_read = None
 
+
+class cJoint:
+  def __init__(self, _id):
+    global group_read, JOINT_INFO
+    self.id = _id
+    if _id>=len(JOINT_INFO):
+      raise Exception('joint id is larger than JOIN_INFO : ' + str(_id))
+    self.info = JOINT_INFO[_id-1]
+    self.velo2val = 60 * self.info['gear_ratio'] / (2*math.pi)
+    self.goal_pos = 0
+    self.goal_velo = 0
+    self.pos_val = 0
+    self.velo_val = 0
+    self.current_val = 0
+
+    self.model = self.read('MODEL_NUMBER')
+    if self.model!=self.info['model_number']:
+      raise Exception('[ID %d] model number does not match : %d, %d' % (_id, self.model, self.info['model_number']))
+    self.name = 'joint_' + str(_id)
+    self.write( 'TORQUE_ENABLE', 0 )
+    self.write( 'TORQUE_LIMIT', self.info['torque_max'] )
+    self.write( 'CW_ANGLE_LIMIT', self.info['angle_min'] * self.info['angle2val'] )
+    self.write( 'CCW_ANGLE_LIMIT', self.info['angle_max'] * self.info['angle2val'] )
+    self.write( 'TORQUE_ENABLE', 1 )
+
+    # Add parameter storage for Dynamixel#1 present position value
+    dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupBulkReadAddParam(group_read, _id
+      , ADDR['PRESENT_POSITION'][0]
+      , ADDR['PRESENT_POSITION'][1] + ADDR['PRESENT_VELOCITY'][1] + ADDR['PRESENT_CURRENT'][1] \
+       + ADDR['PRESENT_INPUT_VOLTAGE'][1] + ADDR['PRESENT_TEMPERATURE'][1])).value
+    if dxl_addparam_result != 1:
+      raise Exception('[ID:%03d] groupBulkRead addparam failed' % (DXL1_ID))
+
+  def velo2val(self, velo):
+    if fabs(velo) > self.info['velo_max']:
+      raise Exception('[ID %d]too large velocity : %f' % (self.id, velo))
+    return velo * self.velo2val
+
+  def pos2val(self, pos):
+    return pos * self.info['angle2val']
+
+  def set_goal_velo(self, rad_per_sec):
+    self.goal_velo = self.velo2val(rad_per_sec)
+
+  def set_goal_pos_velo(self, pos, velo):
+    self.goal_pos = self.pos2val(pos)
+    self.goal_velo = self.velo2val(velo)
+
+
+  def get_pos(self):
+    return self.pos_val / self.info['angle2val']
+
+  def get_velo():
+    return self.velo_val / self.velo2val
+
+  def get_current():
+    return self.current_val;
+
+  def write(self, param, val):
+    global ADDR
+    [addr, n_byte] = ADDR[param]
+    if n_byte==1:
+      cb_write = dynamixel.write1ByteTxRx
+    elif n_byte==2:
+      cb_write = dynamixel.write2ByteTxRx
+    elif n_byte==4:
+      cb_write = dynamixel.write4ByteTxRx
+    else:
+      raise Exception('write() failed : byte = %d' % (n_byte))
+
+    cnt = 5
+    while cnt>0:
+      #dynamixel.write1ByteTxRx(portHandler, PROTOCOL_VERSION, self.id, addr, val)
+      cb_write(portHandler, PROTOCOL_VERSION, self.id, addr, val)
+      dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
+      dxl_error = dynamixel.getLastRxPacketError(portHandler, PROTOCOL_VERSION)
+      if dxl_comm_result != COMM_SUCCESS:
+        print(('[ID %d] : ' % (self.id)) + dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
+      elif dxl_error != 0:
+        print(('[ID %d] : ' % (self.id)) + dynamixel.getRxPacketError(PROTOCOL_VERSION, dxl_error))
+      else:
+        return
+      cnt-=1
+    raise '[ID %d] : write1b failed : addr = %d' % (self.id, addr))
+
+  def read(self, param):
+    global ADDR
+    [addr, n_byte] = ADDR[param]
+    if n_byte==1:
+      cb_read = dynamixel.read1ByteTxRx
+    elif n_byte==2:
+      cb_read = dynamixel.read2ByteTxRx
+    elif n_byte==4:
+      cb_read = dynamixel.read4ByteTxRx
+    else:
+      raise Exception('read() failed : byte = %d' % (n_byte))
+    val = cb_read(portHandler, PROTOCOL_VERSION, self.id, addr)
+    dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
+    dxl_error = dynamixel.getLastRxPacketError(portHandler, PROTOCOL_VERSION)
+    if dxl_comm_result != COMM_SUCCESS:
+      print(('[ID %d] : ' % (self.id)) + dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
+    elif dxl_error != 0:
+      print(('[ID %d] : ' % (self.id)) + dynamixel.getRxPacketError(PROTOCOL_VERSION, dxl_error))
+    return val
+
+
 def init():
+  global joints, portHandler, DEVICENAME, BAUDRATE, PROTOCOL_VERSION, mode, MODE_VELOCITY_CONTROL
   portHandler = dynamixel.portHandler(DEVICENAME.encode('utf-8'))
   dynamixel.packetHandler()
+  group_write_velo = dynamixel.groupSyncWrite(portHandler, PROTOCOL_VERSION
+    , ADDR['GOAL_VELOCITY'][0], ADDR['GOAL_VELOCITY'][1])
+  group_write_pos_velo = dynamixel.groupSyncWrite(portHandler, PROTOCOL_VERSION
+    , ADDR['GOAL_POSITION'][0], ADDR['GOAL_POSITION'][1] + ADDR['GOAL_VELOCITY'][1])
+  group_read = dynamixel.groupBulkRead(portHandler, PROTOCOL_VERSION)
+
   # Open port
   if dynamixel.openPort(portHandler):
     print("Succeeded to open the port!")
@@ -146,8 +203,8 @@ def init():
     print("Succeeded to change the baudrate!")
   else:
     raise Exception('Failed to change the baudrate!')
-  
-  
+
+
   num_joint = 0
   for i in range(250):
     b_ok = False
@@ -164,64 +221,70 @@ def init():
 
   if num_joint==0:
     raise Exception("no motor found\n")
-  
+
   print('motor num : ' + str(num_joint))
 
   joints = []
   for i in range(num_joint):
     joints.append(cJoint(i+1))
-    
-    
-    
-    joints.push_back(cJoint(i+1));
-    cJoint &j = joints[joints.size()-1];
-    int id = j.read1b(P_ID);
-    if( id!=i+1 ){
-      ROS_ERROR("id does not match : %d / %d", id, i+1);
-      throw 0;
-    }
-    int model = j.read1b(P_MODEL_NUMBER);
-    
-    std::stringstream ss;
-    ss << "joint_" << (id);
-    j.name = ss.str();
-    
-    j.write1b( P_TORQUE_ENABLE, 0 );
-    
-#define MODEL_H42_20_S300_R      51200
-#define MODEL_H54_100_S500_R     53768
-#define MODEL_H54_200_S500_R     54024
+    j = joints[-1]
+    _id = j.read('ID');
+    if _id!=i+1:
+      raise Exception("id does not match : %d / %d" %(_id, i+1))
+  mode = MODE_VELOCITY_CONTROL
+  return joints
 
-    switch( model ){
-      case MODEL_H42_20_S300_R:
-        j.write2b( P_TORQUE_LIMIT, TORQUE_LIMIT );
-        break;
-      case MODEL_H42_20_S300_R:
-        j.write2b( P_TORQUE_LIMIT, TORQUE_LIMIT );
-        break;
-      case MODEL_H42_20_S300_R:
-        j.write2b( P_TORQUE_LIMIT, TORQUE_LIMIT );
-        break;
-      default:
-        ROS_ERROR("[ID:%03d] invalid model number : %d", id, model);
-        throw 0;
-    }
-    else if( 
-    j.write2b( P_TORQUE_LIMIT, TORQUE_LIMIT );
-    j.write2b( P_CW_ANGLE_LIMIT, 0);
-    j.write2b( P_CCW_ANGLE_LIMIT, 0 );
-    j.write1b( P_TORQUE_ENABLE, 1 );
-    
-    if (group_read->addParam(id, P_PRESENT_POSITION, 13) != true){
-      ROS_ERROR("[ID:%03d] grou_read addparam failed", id);
+
+def sync_velo():
+  global mode, MODE_VELOCITY_CONTROL, joints, ADDR, group_write_velo, portHandler, PROTOCOL_VERSION, COMM_SUCCESS
+  [addr, n_byte] = ADDR['GOAL_VELOCITY']
+  if mode!=MODE_VELOCITY_CONTROL:
+    change_mode(MODE_VELOCITY_CONTROL)
+  for j in joints:
+    dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupSyncWriteAddParam(group_write_velo, j.id, j.goal_velo, n_byte)).value
+    if dxl_addparam_result != 1:
+      raise Exception("[ID:%03d] groupSyncWrite addparam failed" % (j.id))
+
+  # Syncwrite goal position
+  dynamixel.groupSyncWriteTxPacket(group_write_velo)
+  dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
+  if dxl_comm_result != COMM_SUCCESS:
+    raise Exception(dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
+
+  # Clear syncwrite parameter storage
+  dynamixel.groupSyncWriteClearParam(group_write_velo)
+
+
+
+def sync_pos_velo():
+    global mode, MODE_POSITION_CONTROL, joints, ADDR, group_write_pos_velo, portHandler, PROTOCOL_VERSION, COMM_SUCCESS
+  if mode!=MODE_POSITION_CONTROL:
+    change_mode(MODE_POSITION_CONTROL)
+  for j in joints:
+    ###########################
+    dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupSyncWriteAddParam(group_write_pos_velo, j.id, j.goal_pos, n_byte)).value
+    if dxl_addparam_result != 1:
+      raise Exception("[ID:%03d] groupSyncWrite addparam failed" % (j.id))
+
+    bool dxl_addparam_result = false;
+    lh[0] = DXL_LOBYTE(j.goal_pos);
+    lh[1] = DXL_HIBYTE(j.goal_pos);
+    lh[2] = DXL_LOBYTE(j.goal_velo);
+    lh[3] = DXL_HIBYTE(j.goal_velo);
+    dxl_addparam_result = group_write_pos_velo->addParam(j.id, lh);
+    if (dxl_addparam_result != true){
+      ROS_ERROR("[ID:%03d] group_write_pos_velo addparam failed", j.id);
       throw 0;
     }
-//    printf("[%d] : end\n", id);
-    
   }
-  mode = MODE_VELOCITY_CONTROL;
-  return joints;
+  int dxl_comm_result = group_write_pos_velo->txPacket();
+  if (dxl_comm_result != COMM_SUCCESS){
+    packetHandler->printTxRxResult(dxl_comm_result);
+    throw 0;
+  }
+  group_write_pos_velo->clearParam();
+}
+
+
 
 init()
-
-
