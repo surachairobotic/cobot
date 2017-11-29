@@ -138,7 +138,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  /opt/DynamixelSDK-3.4.7/c++/include
+  /opt/DynamixelSDK/c++/include/dynamixel_sdk
+#  /opt/DynamixelSDK-3.4.7/c++/include
 )
 
 ## Declare a C++ library
@@ -172,17 +173,29 @@ include_directories(
 # )
 
 
+#add_library(cobot_dynamixel_sdk
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_bulk_read.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/packet_handler.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_bulk_write.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/port_handler.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_sync_read.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_sync_write.cpp 
+#  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk_linux/port_handler_linux.cpp
+#)
 add_library(cobot_dynamixel_sdk
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_bulk_read.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/packet_handler.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_bulk_write.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/port_handler.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_sync_read.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_sync_write.cpp 
-  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk_linux/port_handler_linux.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
 )
+
 add_library(cobot_joint
   src/cJoint.cpp
 )
