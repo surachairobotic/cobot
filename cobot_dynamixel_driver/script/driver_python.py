@@ -5,9 +5,13 @@ import os
 import dynamixel_functions as dynamixel                     # Uses Dynamixel SDK library
 import math
 
+MODE_POSITION_CONTROL = 3
+MODE_VELOCITY_CONTROL = 1
+MODE_TORQUE_CONTROL = 0
 
 ADDR = {'MODEL_NUMBER'    : [0, 2]
   ,'ID'                   : [7, 1]
+  ,'OPERATING_MODE'       : [11,1]
   ,'RETURN_DELAY_TIME'    : [9, 1]
   ,'TORQUE_LIMIT'         : [30, 2]
   ,'CW_ANGLE_LIMIT'       : [36, 4]
@@ -53,11 +57,6 @@ JOINT_INFO = [
   }
 ]
 
-MODE_POSITION_CONTROL = 0
-MODE_VELOCITY_CONTROL = 1
-MODE_TORQUE_CONTROL = 2
-
-mode = None
 
 
 # Protocol version
@@ -70,11 +69,15 @@ COMM_SUCCESS                = 0                             # Communication Succ
 COMM_TX_FAIL                = -1001                         # Communication Tx Failed
 
 
+mode = None
 joints = []
 portHandler = None
 group_write_velo = None
 group_write_pos_velo = None
 group_read = None
+group_read_len = ADDR['PRESENT_POSITION'][0]
+, ADDR['PRESENT_POSITION'][1] + ADDR['PRESENT_VELOCITY'][1] + ADDR['PRESENT_CURRENT'][1] \
+ + ADDR['PRESENT_INPUT_VOLTAGE'][1] + ADDR['PRESENT_TEMPERATURE'][1]
 
 
 class cJoint:
@@ -104,8 +107,7 @@ class cJoint:
     # Add parameter storage for Dynamixel#1 present position value
     dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupBulkReadAddParam(group_read, _id
       , ADDR['PRESENT_POSITION'][0]
-      , ADDR['PRESENT_POSITION'][1] + ADDR['PRESENT_VELOCITY'][1] + ADDR['PRESENT_CURRENT'][1] \
-       + ADDR['PRESENT_INPUT_VOLTAGE'][1] + ADDR['PRESENT_TEMPERATURE'][1])).value
+      , group_read_len)).value
     if dxl_addparam_result != 1:
       raise Exception('[ID:%03d] groupBulkRead addparam failed' % (DXL1_ID))
 
@@ -231,7 +233,7 @@ def init():
     _id = j.read('ID');
     if _id!=i+1:
       raise Exception("id does not match : %d / %d" %(_id, i+1))
-  mode = MODE_VELOCITY_CONTROL
+  change_mode(MODE_VELOCITY_CONTROL)
   return joints
 
 
@@ -257,34 +259,63 @@ def sync_velo():
 
 
 def sync_pos_velo():
-    global mode, MODE_POSITION_CONTROL, joints, ADDR, group_write_pos_velo, portHandler, PROTOCOL_VERSION, COMM_SUCCESS
+  global mode, MODE_POSITION_CONTROL, joints, ADDR, group_write_pos_velo, portHandler, PROTOCOL_VERSION, COMM_SUCCESS
   if mode!=MODE_POSITION_CONTROL:
     change_mode(MODE_POSITION_CONTROL)
   for j in joints:
     ###########################
     dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupSyncWriteAddParam(group_write_pos_velo, j.id, j.goal_pos, n_byte)).value
     if dxl_addparam_result != 1:
-      raise Exception("[ID:%03d] groupSyncWrite addparam failed" % (j.id))
+      raise Exception("[ID:%03d] groupSyncWrite addparam pos failed" % (j.id))
+    dxl_addparam_result = ctypes.c_ubyte(dynamixel.groupSyncWriteAddParam(group_write_pos_velo, j.id, j.goal_velo, n_byte)).value
+    if dxl_addparam_result != 1:
+      raise Exception("[ID:%03d] groupSyncWrite addparam velo failed" % (j.id))
 
-    bool dxl_addparam_result = false;
-    lh[0] = DXL_LOBYTE(j.goal_pos);
-    lh[1] = DXL_HIBYTE(j.goal_pos);
-    lh[2] = DXL_LOBYTE(j.goal_velo);
-    lh[3] = DXL_HIBYTE(j.goal_velo);
-    dxl_addparam_result = group_write_pos_velo->addParam(j.id, lh);
-    if (dxl_addparam_result != true){
-      ROS_ERROR("[ID:%03d] group_write_pos_velo addparam failed", j.id);
-      throw 0;
-    }
-  }
-  int dxl_comm_result = group_write_pos_velo->txPacket();
-  if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
-  }
-  group_write_pos_velo->clearParam();
-}
+  # Syncwrite goal position
+  dynamixel.groupSyncWriteTxPacket(group_write_pos_velo)
+  dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
+  if dxl_comm_result != COMM_SUCCESS:
+    raise Exception(dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
 
+  # Clear syncwrite parameter storage
+  dynamixel.groupSyncWriteClearParam(group_write_pos_velo)
+
+
+def sync_read():
+  global joints, ADDR, group_read, portHandler, PROTOCOL_VERSION, COMM_SUCCESS
+
+  # Bulkread present position and moving status
+  dynamixel.groupBulkReadTxRxPacket(group_read)
+  dxl_comm_result = dynamixel.getLastTxRxResult(portHandler, PROTOCOL_VERSION)
+  if dxl_comm_result != COMM_SUCCESS:
+    raise Exception(dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result))
+
+
+  for j in joints:
+    # Check if groupbulkread data of Dynamixel#1 is available
+    dxl_getdata_result = ctypes.c_ubyte(dynamixel.groupBulkReadIsAvailable(group_read, j.id, ADDR['PRESENT_POSITION'][0], group_read_len)).value
+    if dxl_getdata_result != 1:
+      raise Exception("[ID:%03d] groupBulkRead getdata failed" % (j.id))
+
+    # Get Dynamixel#1 present position value
+    j.pos_val = dynamixel.groupSyncReadGetData(group_read, j.id, ADDR['PRESENT_POSITION'][0], ADDR['PRESENT_POSITION'][1])
+    j.velo_val = dynamixel.groupSyncReadGetData(group_read, j.id, ADDR['PRESENT_VELOCITY'][0], ADDR['PRESENT_VELOCITY'][1])
+    j.current_val = dynamixel.groupSyncReadGetData(group_read, j.id, ADDR['PRESENT_CURRENT'][0], ADDR['PRESENT_CURRENT'][1])
+
+
+def change_mode(_mode):
+  global mode, joints, MODE_POSITION_CONTROL, MODE_VELOCITY_CONTROL, MODE_TORQUE_CONTROL
+  if mode==_mode:
+    print("same cotrol mode : %d / %d" % (mode))
+    return
+  if _mode!=MODE_POSITION_CONTROL and _mode!=MODE_VELOCITY_CONTROL and _mode!=MODE_TORQUE_CONTROL:
+    raise Exception("invalid cotrol mode : %d / %d" % (mode))
+  for j in joints:
+    j.write( 'TORQUE_ENABLE', 0)
+    j.write( 'OPERATING_MODE', _mode)
+    j.write( 'TORQUE_ENABLE', 1)
+  print("control mode has been changed from %d to %d\n" % (mode, _mode))
+  mode = _mode;
 
 
 init()
