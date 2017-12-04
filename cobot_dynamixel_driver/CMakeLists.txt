@@ -9,11 +9,14 @@ add_compile_options(-std=c++11 -g -O0)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   message_generation
   roscpp
   rospy
   std_msgs
 )
+
+find_package(TinyXML REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -127,6 +130,8 @@ catkin_package(
     rospy
     std_msgs
 #  DEPENDS system_lib
+  DEPENDS
+      TinyXML
 )
 
 ###########
@@ -140,6 +145,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   /opt/DynamixelSDK/c++/include/dynamixel_sdk
 #  /opt/DynamixelSDK-3.4.7/c++/include
+  ${TinyXML_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -209,6 +215,7 @@ add_executable(cobot_dynamixel_driver src/driver.cpp)
 target_link_libraries(cobot_dynamixel_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${TinyXML_LIBRARIES}
   cobot_joint
 )
 #############

@@ -64,6 +64,9 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
         , (int)cJoint::get_joints().size());
     }
   }
+  catch(const std::string &err){
+    ROS_ERROR(err.c_str());
+  }
 }
 
 bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res){

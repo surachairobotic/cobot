@@ -15,6 +15,11 @@ private:
   int pos, velo, load;
   std::string name;
   
+  // xml
+  std::string motor_name;
+  int motor_model_number;
+  double cw_angle_limit, ccw_angle_limit, torque_limit, velo_limit, acc_limit, gear_ratio;
+
   static dynamixel::PacketHandler *packetHandler;
   static dynamixel::PortHandler *portHandler;
   static dynamixel::GroupSyncWrite *group_write_velo, *group_write_pos_velo;
@@ -28,6 +33,8 @@ private:
   void write2b(int addr, int val);
   int read1b(int addr);
   int read2b(int addr);
+
+  static void load_settings();
 
 public:
   cJoint();
