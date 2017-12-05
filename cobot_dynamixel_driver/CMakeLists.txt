@@ -203,11 +203,12 @@ add_library(cobot_dynamixel_sdk
 )
 
 add_library(cobot_joint
-  src/cJoint.cpp
+  src/cJoint_pro.cpp
 )
 
 target_link_libraries(cobot_joint
   ${catkin_LIBRARIES}
+  ${TinyXML_LIBRARIES}
   cobot_dynamixel_sdk
 )
 
@@ -215,7 +216,6 @@ add_executable(cobot_dynamixel_driver src/driver.cpp)
 target_link_libraries(cobot_dynamixel_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${TinyXML_LIBRARIES}
   cobot_joint
 )
 #############
