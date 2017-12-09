@@ -16,23 +16,24 @@
 #include <sstream>
 #include "cobot_dynamixel_driver/cJoint.h"
 
+enum eADDR{
+  P_RETURN_DELAY_TIME,
+  P_CW_ANGLE_LIMIT,
+  P_CCW_ANGLE_LIMIT,
+  P_MAX_TORQUE,
+  P_TORQUE_ENABLE,
+  P_GOAL_POSITION,
+  P_GOAL_VELOCITY,
+  P_GOAL_ACCELERATION,
+  P_TORQUE_LIMIT,
+  P_PRESENT_POSITION,
+  P_PRESENT_VELOCITY,
+  P_PRESENT_LOAD,
+  P_PRESENT_INPUT_VOLTAGE,
+  P_PRESENT_TEMPERATURE
+};
 
-// Control table address
-#define P_RETURN_DELAY_TIME   5
-#define P_CW_ANGLE_LIMIT      6
-#define P_CCW_ANGLE_LIMIT     8
-#define P_MAX_TORQUE          14
-#define P_TORQUE_ENABLE       24
-#define P_GOAL_POSITION       30
-#define P_MOVING_SPEED        32
-#define P_TORQUE_LIMIT        34
-#define P_PRESENT_POSITION    36
-#define P_PRESENT_SPEED       38
-#define P_PRESENT_LOAD        40
-#define P_MOVING              46
-#define P_TORQUE_CONTROL_MODE 70
-#define P_GOAL_TORQUE         71
-
+int ADDR[32][2] = {{0}};
 
 // Protocol version
 #define PROTOCOL_VERSION                1.0                 // See which protocol version is used in the Dynamixel
@@ -47,11 +48,29 @@
 dynamixel::PacketHandler *cJoint::packetHandler = NULL;
 dynamixel::PortHandler *cJoint::portHandler = NULL;
 dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write_pos_velo = NULL;
-dynamixel::GroupBulkRead *cJoint::group_read = NULL;
+dynamixel::GroupSyncRead *cJoint::group_read = NULL;
 std::vector<cJoint> cJoint::joints;
 int cJoint::mode = -1;
 
-cJoint::cJoint():id(0),goal_pos(0.0),load(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){}
+
+cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
+
+  motor_model_number = 0;
+  cw_angle_limit = 0;
+  ccw_angle_limit = 360;
+  torque_limit = 900;
+  velocity_limit = 2 * M_PI;
+  acceleration_limit = 2 * M_PI;
+  current_max = 5000;
+  rad2val = 0;
+  velo2val = 0;
+  position_value = 0;
+  gear_ratio = 1;
+  input_voltage = 0;
+  temperature = 0;
+  load = 0;
+}
+
 cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
 inline int velo2val(double velo){
@@ -112,6 +131,25 @@ double cJoint::get_load() const {
 }
 
 
+void cJoint::write(int addr, int val){
+  int cnt = 5;
+  do{
+    uint8_t dxl_error = 0;
+    int dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, id, addr, val, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS){
+      packetHandler->printTxRxResult(dxl_comm_result);
+    }
+    else if (dxl_error != 0){
+      packetHandler->printRxPacketError(dxl_error);
+    }
+    else{
+      return;
+    }
+  }
+  while(cnt-->=0);
+  throw 0;
+}
+/*
 void cJoint::write1b(int addr, int val){
   int cnt = 5;
   do{
@@ -178,7 +216,7 @@ int cJoint::read2b(int addr){
   }
   return val;
 }
-
+*/
 void cJoint::print_data() const {
   ROS_INFO("[%d] : pos = %d, velo = %d, load = %d\n", id, pos, velo, load);
 }
@@ -188,11 +226,41 @@ void cJoint::print_data() const {
 /// static ///
 
 std::vector<cJoint> &cJoint::init(){
+
+  ADDR[P_RETURN_DELAY_TIME][0] = 5;
+  ADDR[P_RETURN_DELAY_TIME][1] = 1;
+  ADDR[P_CW_ANGLE_LIMIT][0] = 6;
+  ADDR[P_CW_ANGLE_LIMIT][1] = 2;
+  ADDR[P_CCW_ANGLE_LIMIT][0] = 8;
+  ADDR[P_CCW_ANGLE_LIMIT][1] = 2;
+  ADDR[P_MAX_TORQUE][0] = 14;
+  ADDR[P_MAX_TORQUE][1] = 2;
+  ADDR[P_TORQUE_ENABLE][0] = 24;
+  ADDR[P_TORQUE_ENABLE][1] = 1;
+  ADDR[P_GOAL_POSITION][0] = 30;
+  ADDR[P_GOAL_POSITION][1] = 2;
+  ADDR[P_GOAL_VELOCITY][0] = 32;
+  ADDR[P_GOAL_VELOCITY][1] = 2;
+  ADDR[P_GOAL_ACCELERATION][0] = 73;
+  ADDR[P_GOAL_ACCELERATION][1] = 1;
+  ADDR[P_TORQUE_LIMIT][0] = 34;
+  ADDR[P_TORQUE_LIMIT][1] = 2;
+  ADDR[P_PRESENT_POSITION][0] = 36;
+  ADDR[P_PRESENT_POSITION][1] = 2;
+  ADDR[P_PRESENT_VELOCITY][0] = 38;
+  ADDR[P_PRESENT_VELOCITY][1] = 2;
+  ADDR[P_PRESENT_LOAD][0] = 40;
+  ADDR[P_PRESENT_LOAD][1] = 2;
+  ADDR[P_PRESENT_INPUT_VOLTAGE][0] = 42;
+  ADDR[P_PRESENT_INPUT_VOLTAGE][1] = 1;
+  ADDR[P_PRESENT_TEMPERATURE][0] = 43;
+  ADDR[P_PRESENT_TEMPERATURE][1] = 1;
+
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
-  group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler, P_MOVING_SPEED, 2);
+  group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler, P_GOAL_VELOCITY, 2);
   group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler, P_GOAL_POSITION, 4);
-  group_read = new dynamixel::GroupBulkRead(portHandler, packetHandler);
+  group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler);
   // Open port
   if (portHandler->openPort()){
     ROS_INFO("Succeeded to open the port!\n");

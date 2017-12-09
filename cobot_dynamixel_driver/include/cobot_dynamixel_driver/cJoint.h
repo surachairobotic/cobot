@@ -5,14 +5,14 @@
 #include <vector>
 
 
-#define MODE_POSITION_CONTROL 0
+#define MODE_POSITION_CONTROL 3
 #define MODE_VELOCITY_CONTROL 1
-#define MODE_TORQUE_CONTROL 2
+#define MODE_TORQUE_CONTROL 0
 
 class cJoint{
 private:
   int id, goal_pos, goal_velo, goal_torque;
-  int pos, velo, current, input_voltage, temperature;
+  int pos, velo, current, input_voltage, temperature, load;
   double rad2val, velo2val;
   std::string name;
   
