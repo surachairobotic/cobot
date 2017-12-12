@@ -14,26 +14,9 @@
 #include <assert.h>
 #include <iostream>
 #include <sstream>
+#include <tinyxml.h>
 #include "cobot_dynamixel_driver/cJoint.h"
 
-enum eADDR{
-  P_RETURN_DELAY_TIME,
-  P_CW_ANGLE_LIMIT,
-  P_CCW_ANGLE_LIMIT,
-  P_MAX_TORQUE,
-  P_TORQUE_ENABLE,
-  P_GOAL_POSITION,
-  P_GOAL_VELOCITY,
-  P_GOAL_ACCELERATION,
-  P_TORQUE_LIMIT,
-  P_PRESENT_POSITION,
-  P_PRESENT_VELOCITY,
-  P_PRESENT_LOAD,
-  P_PRESENT_INPUT_VOLTAGE,
-  P_PRESENT_TEMPERATURE
-};
-
-int ADDR[32][2] = {{0}};
 
 // Protocol version
 #define PROTOCOL_VERSION                1.0                 // See which protocol version is used in the Dynamixel
@@ -45,13 +28,8 @@ int ADDR[32][2] = {{0}};
 #define DXL_MOVING_STATUS_THRESHOLD     10                  // Dynamixel moving status threshold
 //const double M_PI = 3.14159265359;
 
-dynamixel::PacketHandler *cJoint::packetHandler = NULL;
-dynamixel::PortHandler *cJoint::portHandler = NULL;
-dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write_pos_velo = NULL;
-dynamixel::GroupSyncRead *cJoint::group_read = NULL;
-std::vector<cJoint> cJoint::joints;
-int cJoint::mode = -1;
-
+#define group_read group_read_bulk
+int group_read_size = 0;
 
 cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
 
@@ -69,20 +47,41 @@ cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),go
   input_voltage = 0;
   temperature = 0;
   load = 0;
+  acc2val = 0;
 }
 
 cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
-inline int velo2val(double velo){
+inline int f_velo2val(double velo){
   const double RAD2VAL = (1023.0 * 60) / (2 * M_PI * 117.07);
   int v = velo * RAD2VAL;
   if( v > 1023 || v < -1023 ){
-    ROS_WARN("velo2val() : invalid goal velo : %.3lf / val = %d\n", velo, v);
-    throw 0;
+    //ROS_ERROR("velo2val() : invalid goal velo : %.3lf / val = %d\n", velo, v);
+    //throw 0;
+    mythrow(std::string("velo2val() : invalid goal velo : ") + tostr(velo) + " / val : " + tostr(v));
   }
   return v >= 0 ? v : 1024 - v;
 }
 
+inline int f_acc2val(double acc){
+  const double ACC2VAL = 180.0 / (8.583 * M_PI);
+  int val = acc * ACC2VAL;
+  if( val<0 || val>254 ){
+    mythrow(std::string("acc2val() : invalid acc val : ") + tostr(acc) + " / val = " + tostr(val));
+  }
+  return val;
+}
+
+inline double f_val2velo(int val){
+  const double VAL2RAD = (2 * M_PI * 117.07) / (1023.0 * 60);
+
+  if( val<0 || val>=2047){
+    mythrow(std::string("val2velo() : invalid velo val : ") + tostr(val));
+  }
+  return (val<1024 ? val : 1024-val) * VAL2RAD;
+}
+
+/*
 inline int pos2val(double pos){
   const double RAD2VAL = 4095.0 / (2*M_PI); // M_PI / (180.0 * 0.088);
   int p = pos * RAD2VAL;
@@ -92,14 +91,65 @@ inline int pos2val(double pos){
   }
   return p;
 }
+*/
+
+void cJoint::load_settings(const char *xml_file){
+  joints.clear();
+  TiXmlDocument doc(xml_file);
+  if( doc.LoadFile() ){
+    for(TiXmlNode *p=doc.FirstChild();p!=0;p=p->NextSibling()){
+      if( p->Type()==TiXmlNode::TINYXML_ELEMENT && strcmp( "joints", p->Value())==0 ){
+        for(TiXmlNode *p_joint=p->FirstChild();p_joint!=0;p_joint=p_joint->NextSibling()){
+          if( strcmp( "joint", p_joint->Value())!=0 )
+            continue;
+          cJoint j(joints.size() + 1);
+          TiXmlNode *p_motor = p_joint->FirstChild("motor");
+          if( !p_motor ){
+            throw std::string("No motor found in joint node : ") + tostr(j.get_id());
+          }
+          j.motor_name = get_attr( p_motor, "name", "value");
+          j.motor_model_number = mystof(get_attr( p_motor, "model_number", "value"));
+          j.position_value = mystof(get_attr( p_motor, "position_value", "value"));
+          j.rad2val = j.position_value / (2*M_PI);
+          j.gear_ratio = mystof(get_attr( p_motor, "gear_ratio", "value"))
+              * mystof(get_attr( p_joint, "gear_ratio", "value"));
+//          j.velo2val = 60.0 * j.gear_ratio / (2*M_PI); // val = rpm * gear_ratio
+          j.cw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
+              * M_PI / 180.0 * j.rad2val; // deg -> rad
+          j.ccw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))
+              * M_PI / 180.0 * j.rad2val;
+          j.torque_limit = mystof(get_attr( p_motor, "torque_limit", "value"));
+          j.velocity_limit = f_velo2val( mystof(get_attr( p_motor, "velocity_limit", "value"))
+              * M_PI / 180.0 );
+          j.acceleration_limit = f_acc2val( mystof(get_attr( p_motor, "acceleration_limit", "value"))
+              * M_PI / 180.0 );
+          //j.current_max = mystof(get_attr( p_motor, "current_max", "value"));
+          if( j.cw_angle_limit >= j.ccw_angle_limit ){
+            throw std::string(" joint ") + tostr(joints.size()) + " : cw is smaller than ccw : "
+                + tostr(j.cw_angle_limit) + " , " + tostr(j.ccw_angle_limit);
+          }
+
+          if (group_read_bulk->addParam(j.id, ADDR[P_PRESENT_POSITION][0], group_read_size) != true){
+            mythrow(std::string("grou_read_bulk addparam failed : id = ") + tostr(j.id));
+          }
+          joints.push_back(j);
+        }
+      }
+    }
+  }
+  else{
+    throw std::string("cannot load xml file : ") + xml_file;
+  }
+}
+
 
 void cJoint::set_goal_velo(double rad_per_sec){
-  goal_velo = velo2val(rad_per_sec);
+  goal_velo = f_velo2val(rad_per_sec);
 }
 
 void cJoint::set_goal_pos_velo(double _pos, double _velo){
-  goal_pos = pos2val(_pos);
-  goal_velo = velo2val(_velo);
+  goal_pos = _pos * rad2val;
+  goal_velo = f_velo2val(_velo);
 //  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
 }
 
@@ -131,94 +181,104 @@ double cJoint::get_load() const {
 }
 
 
-void cJoint::write(int addr, int val){
-  int cnt = 5;
+void cJoint::write(const int param, const int val){
+  int addr = ADDR[param][0];
+  int n_bytes = ADDR[param][1];
+  int cnt = 1;
+
   do{
     uint8_t dxl_error = 0;
-    int dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, id, addr, val, &dxl_error);
+    int dxl_comm_result;
+    if( n_bytes==1 )
+      dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, id, addr, (uint8_t)val, &dxl_error);
+    else if(n_bytes==2 )
+      dxl_comm_result = packetHandler->write2ByteTxRx(portHandler, id, addr, (uint16_t)val, &dxl_error);
+    else
+      throw std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
     if (dxl_comm_result != COMM_SUCCESS){
-      packetHandler->printTxRxResult(dxl_comm_result);
+      ROS_ERROR("write() comm : id = %d, param = %d, addr = %d, n = %d, val = %d", id, param, addr, n_bytes, val);
+      ROS_ERROR("%s" , packetHandler->getTxRxResult(dxl_comm_result));
+      //mythrow(packetHandler->getTxRxResult(dxl_comm_result));
     }
     else if (dxl_error != 0){
-      packetHandler->printRxPacketError(dxl_error);
+      ROS_ERROR("write() error : id = %d, param = %d, addr = %d, n = %d, val = %d", id, param, addr, n_bytes, val);
+      ROS_ERROR("%s" , packetHandler->getRxPacketError(dxl_error));
+    //  mythrow(packetHandler->getRxPacketError(dxl_error));
     }
     else{
       return;
     }
   }
-  while(cnt-->=0);
-  throw 0;
-}
-/*
-void cJoint::write1b(int addr, int val){
-  int cnt = 5;
-  do{
-    uint8_t dxl_error = 0;
-    int dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, id, addr, val, &dxl_error);
-    if (dxl_comm_result != COMM_SUCCESS){
-      packetHandler->printTxRxResult(dxl_comm_result);
-    }
-    else if (dxl_error != 0){
-      packetHandler->printRxPacketError(dxl_error);
-    }
-    else{
-      return;
-    }
-  }
-  while(cnt-->=0);
-  throw 0;
+  while(--cnt>0);
+  mythrow("write() failed");
 }
 
-void cJoint::write2b(int addr, int val){
-  int cnt = 5;
-  do{
-    uint8_t dxl_error = 0;
-    int dxl_comm_result = packetHandler->write2ByteTxRx(portHandler, id, addr, val, &dxl_error);
-    if (dxl_comm_result != COMM_SUCCESS){
-      packetHandler->printTxRxResult(dxl_comm_result);
-    }
-    else if (dxl_error != 0){
-      packetHandler->printRxPacketError(dxl_error);
-    }
-    else{
-      return;
-    }
-  }
-  while(cnt-->=0);
-  throw 0;
-}
 
-int cJoint::read1b(int addr){
-  uint8_t dxl_error = 0, val;
-  int dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, id, addr, &val, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
-  }
-  else if (dxl_error != 0){
-    packetHandler->printRxPacketError(dxl_error);
-    throw 1;
-  }
-  return val;
-}
-
-int cJoint::read2b(int addr){
+int cJoint::read(const int param){
+  int addr = ADDR[param][0];
+  int n_bytes = ADDR[param][1];
   uint8_t dxl_error = 0;
-  uint16_t val;
-  int dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, id, addr, &val, &dxl_error);
+  int dxl_comm_result, val;
+  if( n_bytes==1 ){
+    uint8_t val2;
+    dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, id, addr, &val2, &dxl_error);
+    val = val2;
+  }
+  else if( n_bytes==2 ){
+    uint16_t val2;
+    dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, id, addr, &val2, &dxl_error);
+    val = val2;
+  }
+  else{
+    throw std::string("cJoint::read() : invalid n_bytes : param = ") + tostr(param);
+  }
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
+    ROS_ERROR("read() comm : id = %d, param = %d, addr = %d, n = %d", id, param, addr, n_bytes);
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   else if (dxl_error != 0){
-    packetHandler->printRxPacketError(dxl_error);
-    throw 1;
+    ROS_ERROR("read() error : id = %d, param = %d, addr = %d, n = %d", id, param, addr, n_bytes);
+    mythrow(packetHandler->getRxPacketError(dxl_error));
   }
   return val;
 }
-*/
+
 void cJoint::print_data() const {
   ROS_INFO("[%d] : pos = %d, velo = %d, load = %d\n", id, pos, velo, load);
+}
+
+
+void cJoint::setup(){
+  int model = read(P_MODEL_NUMBER);
+  if( model!=motor_model_number ){
+    throw std::string("model number does not match : ") + tostr(model)
+    + " / " + tostr(motor_model_number);
+  }
+  int id = read(P_ID);
+  if( id!=this->id ){
+    throw std::string("id does not match : ") + tostr(id) + " / " + tostr(this->id);
+  }
+  name = std::string("joint_") + tostr(id);
+  write( P_TORQUE_ENABLE, 0 );
+  write( P_TORQUE_CONTROL_MODE, 0 );
+  write( P_TORQUE_LIMIT, torque_limit );
+  write( P_MAX_TORQUE, torque_limit );
+  write( P_CW_ANGLE_LIMIT, 0);//cw_angle_limit);
+  write( P_CCW_ANGLE_LIMIT, 0);//ccw_angle_limit );
+  write( P_TORQUE_ENABLE, 1 );
+
+  int val;
+  ROS_INFO("%s", name.c_str());
+  val = read(P_TORQUE_CONTROL_MODE);
+  ROS_INFO(" TORQUE_CONTROL_MODE : %d", val);
+  val = read(P_TORQUE_LIMIT);
+  ROS_INFO(" TORQUE_LIMIT : %d", val);
+  val = read(P_MAX_TORQUE);
+  ROS_INFO(" MAX_TORQUE : %d", val);
+  val = read(P_CW_ANGLE_LIMIT);
+  ROS_INFO(" CW_ANGLE_LIMIT : %d", val);
+  val = read(P_CCW_ANGLE_LIMIT);
+  ROS_INFO(" CCW_ANGLE_LIMIT : %d\n", val);
 }
 
 
@@ -227,6 +287,10 @@ void cJoint::print_data() const {
 
 std::vector<cJoint> &cJoint::init(){
 
+  ADDR[P_MODEL_NUMBER][0] = 0;
+  ADDR[P_MODEL_NUMBER][1] = 2;
+  ADDR[P_ID][0] = 3;
+  ADDR[P_ID][1] = 1;
   ADDR[P_RETURN_DELAY_TIME][0] = 5;
   ADDR[P_RETURN_DELAY_TIME][1] = 1;
   ADDR[P_CW_ANGLE_LIMIT][0] = 6;
@@ -243,6 +307,8 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_GOAL_VELOCITY][1] = 2;
   ADDR[P_GOAL_ACCELERATION][0] = 73;
   ADDR[P_GOAL_ACCELERATION][1] = 1;
+  ADDR[P_GOAL_TORQUE][0] = 71;
+  ADDR[P_GOAL_TORQUE][1] = 2;
   ADDR[P_TORQUE_LIMIT][0] = 34;
   ADDR[P_TORQUE_LIMIT][1] = 2;
   ADDR[P_PRESENT_POSITION][0] = 36;
@@ -255,19 +321,27 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_INPUT_VOLTAGE][1] = 1;
   ADDR[P_PRESENT_TEMPERATURE][0] = 43;
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
-
+  ADDR[P_TORQUE_CONTROL_MODE][0] = 70;
+  ADDR[P_TORQUE_CONTROL_MODE][1] = 1;
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
-  group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler, P_GOAL_VELOCITY, 2);
-  group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler, P_GOAL_POSITION, 4);
-  group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler);
+  group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_VELOCITY][0], ADDR[P_GOAL_VELOCITY][1]);
+  group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_POSITION][1]);
+  group_read_bulk = new dynamixel::GroupBulkRead(portHandler, packetHandler);
+  group_read_size = ADDR[P_PRESENT_TEMPERATURE][0] + ADDR[P_PRESENT_TEMPERATURE][1]
+    - ADDR[P_PRESENT_POSITION][0];
+
+  load_settings("/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/settings_mx64.xml");
+
+
   // Open port
   if (portHandler->openPort()){
     ROS_INFO("Succeeded to open the port!\n");
   }
   else{
-    ROS_ERROR("Failed to open the port!\n");
-    throw 0;
+    mythrow("Failed to open the port!\n");
   }
 
   // Set port baudrate
@@ -275,9 +349,7 @@ std::vector<cJoint> &cJoint::init(){
     ROS_INFO("Succeeded to change the baudrate!\n");
   }
   else{
-    ROS_ERROR("Failed to change the baudrate!\n");
-    ROS_ERROR("Press any key to terminate...\n");
-    throw 0;
+    mythrow("Failed to change the baudrate!\n");
   }
 
   // ping
@@ -294,16 +366,14 @@ std::vector<cJoint> &cJoint::init(){
             ROS_INFO("ping timeout\n");
             break;
           }
-          packetHandler->printTxRxResult(dxl_comm_result);
-          ROS_ERROR("Fail to ping : %d , motor_num : %d\n", dxl_comm_result, num_joint);
-          throw 0;
+          ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+          mythrow(std::string("Fail to ping 1 : ") + tostr(num_joint));
         }
       }
       else if( dxl_error != 0 ){
         if( j==0 ){
-          packetHandler->printRxPacketError(dxl_error);
-          ROS_ERROR("Fail to ping 2 : %d , motor_num : %d\n", dxl_error, num_joint);
-          throw 0;
+          ROS_ERROR("%s", packetHandler->getRxPacketError(dxl_error));
+          mythrow(std::string("Fail to ping 2 : ") + tostr(num_joint));
         }
       }
       else
@@ -313,8 +383,7 @@ std::vector<cJoint> &cJoint::init(){
       break;
   }
   if( num_joint==0 ){
-    ROS_WARN("no motor found\n");
-    throw 0;
+    mythrow("no motor found\n");
   }
   ROS_INFO("motor num : %d\n", num_joint);
 /*  int dxl_comm_result = packetHandler->broadcastPing(portHandler,id_list);
@@ -333,7 +402,7 @@ std::vector<cJoint> &cJoint::init(){
       throw 0;
     }
   }*/
-
+  /*
   joints.clear();
   for(int i=0;i<num_joint;i++){
     int id = i+1;
@@ -364,6 +433,12 @@ std::vector<cJoint> &cJoint::init(){
     }
 //    printf("[%d] : end\n", id);
 
+  }*/
+  for(int i=joints.size()-1;i>=num_joint;i--){
+    joints.pop_back();
+  }
+  for(int i=0;i<joints.size();i++){
+    joints[i].setup();
   }
   mode = MODE_VELOCITY_CONTROL;
   return joints;
@@ -442,14 +517,17 @@ void cJoint::sync_read(){
 
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
-    bool dxl_getdata_result = group_read->isAvailable(j.get_id(), P_PRESENT_POSITION, 6);
+    bool dxl_getdata_result = group_read->isAvailable(j.get_id()
+        , ADDR[P_PRESENT_POSITION][0], group_read_size);
     if (dxl_getdata_result != true){
       ROS_ERROR("[ID:%03d] group_read getdata failed", joints[i].get_id());
       throw 0;
     }
-    j.pos = group_read->getData(j.get_id(), P_PRESENT_POSITION, 2);
-    j.velo = group_read->getData(j.get_id(), P_PRESENT_SPEED, 2);
-    j.load = group_read->getData(j.get_id(), P_PRESENT_LOAD, 2);
+    j.pos = group_read->getData(j.get_id(), ADDR[P_PRESENT_POSITION][0], ADDR[P_PRESENT_POSITION][1]);
+    j.velo = group_read->getData(j.get_id(), ADDR[P_PRESENT_VELOCITY][0], ADDR[P_PRESENT_VELOCITY][1]);
+    j.load = group_read->getData(j.get_id(), ADDR[P_PRESENT_LOAD][0], ADDR[P_PRESENT_LOAD][1]);
+    j.input_voltage = group_read->getData(j.get_id(), ADDR[P_PRESENT_INPUT_VOLTAGE][0], ADDR[P_PRESENT_INPUT_VOLTAGE][1]);
+    j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
   }
 }
 
@@ -462,53 +540,27 @@ void cJoint::change_mode(int _mode){
   for(int i=0;i<joints.size();i++){
     switch(_mode){
     case MODE_POSITION_CONTROL:
-      joints[i].write2b( P_CW_ANGLE_LIMIT, 0);
-      joints[i].write2b( P_CCW_ANGLE_LIMIT, 4095);
-      joints[i].write1b( P_TORQUE_CONTROL_MODE, 0);
+//      joints[i].write( P_TORQUE_ENABLE, 0 );
+      joints[i].write( P_CW_ANGLE_LIMIT, 0);
+      joints[i].write( P_CCW_ANGLE_LIMIT, 4095);
+      usleep(200000); // <- dont know why but need to prevent 'there is no status packet' error
+      joints[i].write( P_TORQUE_CONTROL_MODE, 0);
+//      joints[i].write( P_TORQUE_ENABLE, 1 );
       break;
     case MODE_VELOCITY_CONTROL:
-      joints[i].write2b( P_CW_ANGLE_LIMIT, 0);
-      joints[i].write2b( P_CCW_ANGLE_LIMIT, 0);
-      joints[i].write2b( P_MOVING_SPEED, 0);
-      joints[i].write1b( P_TORQUE_CONTROL_MODE, 0);
+      joints[i].write( P_CW_ANGLE_LIMIT, 0);
+      joints[i].write( P_CCW_ANGLE_LIMIT, 0);
+      joints[i].write( P_GOAL_VELOCITY, 0);
+      joints[i].write( P_TORQUE_CONTROL_MODE, 0);
       break;
     case MODE_TORQUE_CONTROL:
-      joints[i].write1b( P_TORQUE_CONTROL_MODE, 1);
+      joints[i].write( P_TORQUE_CONTROL_MODE, 1);
       break;
     default:
       ROS_ERROR("cJoint::change_mode() : invalid mode %d\n", mode);
     }
   }
-  ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
+  ROS_INFO("control mode changed from %d to %d\n", mode, _mode);
   mode = _mode;
 }
 
-void cJoint::terminate(){
-  if( group_write_velo ){
-    delete group_write_velo;
-    group_write_velo = NULL;
-  }
-  if( group_read ){
-    delete group_read;
-    group_read = NULL;
-  }
-  if( packetHandler && portHandler ){
-    for(int i=0;i<joints.size();i++){
-      joints[i].write1b( P_TORQUE_ENABLE, 0 );
-    }
-    portHandler->closePort();
-    portHandler = NULL;
-    packetHandler = NULL;
-  }
-  ROS_INFO("joints terminated\n");
-}
-
-bool cJoint::is_all_reaching_pos() {
-  const int EPS_POS = 3, EPS_VELO = 3;
-  for(int i=joints.size()-1;i>=0;i--){
-    const cJoint &j = joints[i];
-    if( abs(j.pos-j.goal_pos) > EPS_POS/* || abs(j.velo) > EPS_VELO*/ )
-      return false;
-  }
-  return true;
-}

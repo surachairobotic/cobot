@@ -1,3 +1,6 @@
+
+#include "cobot_dynamixel_driver/common.h"
+
 #ifdef __linux__
 #include <unistd.h>
 #include <fcntl.h>
@@ -14,8 +17,6 @@
 #include "cobot_dynamixel_driver/get_motor_number.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
-
-
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
 /*  if( msg->header.frame_id!="/base_link" ){
@@ -65,7 +66,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
     }
   }
   catch(const std::string &err){
-    ROS_ERROR(err.c_str());
+    ROS_ERROR("%s", err.c_str());
   }
 }
 
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
         joint_state.effort[i] = j.get_load();
       }
       for(int i=joints.size();i<joint_num;i++){
-        joint_state.name[i] = std::string("joint_") + std::to_string(i + 1);
+        joint_state.name[i] = std::string("joint_") + tostr(i + 1);
         joint_state.position[i] = 0;
         joint_state.velocity[i] = 0;
         joint_state.effort[i] = 0;
@@ -128,7 +129,10 @@ int main(int argc, char **argv)
     }
   }
   catch(int err){
-  
+  }
+  catch(const std::string &err){
+    printf("error\n");
+    ROS_ERROR("%s", err.c_str());
   }
   cJoint::terminate();
   return 0;

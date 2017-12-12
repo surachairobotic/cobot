@@ -19,5 +19,5 @@
       <current_max value="8250" />
     </motor>
     <gear_ratio value="1" />
-  <joint>
+  </joint>
 </joints>

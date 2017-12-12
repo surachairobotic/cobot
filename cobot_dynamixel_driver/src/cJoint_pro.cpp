@@ -51,29 +51,6 @@
 #define P_OPERATION_MODE      11
 */
 
-enum eADDR{
-  P_MODEL_NUMBER,
-  P_ID,
-  P_OPERATING_MODE,
-  P_RETURN_DELAY_TIME,
-  P_CW_ANGLE_LIMIT,
-  P_CCW_ANGLE_LIMIT,
-  P_VELOCITY_LIMIT,
-  P_ACCELERATION_LIMIT,
-  P_TORQUE_ENABLE,
-  P_GOAL_POSITION,
-  P_GOAL_VELOCITY,
-  P_GOAL_ACCELERATION,
-  P_TORQUE_LIMIT,
-  P_PRESENT_POSITION,
-  P_PRESENT_VELOCITY,
-  P_PRESENT_CURRENT,
-  P_PRESENT_INPUT_VOLTAGE,
-  P_PRESENT_TEMPERATURE
-};
-
-int ADDR[32][2] = {{0}};
-
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
@@ -85,13 +62,7 @@ int ADDR[32][2] = {{0}};
 #define DXL_MOVING_STATUS_THRESHOLD     20                  // Dynamixel moving status threshold
 //const double M_PI = 3.14159265359;
 
-dynamixel::PacketHandler *cJoint::packetHandler = NULL;
-dynamixel::PortHandler *cJoint::portHandler = NULL;
-dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write_pos_velo = NULL;
-dynamixel::GroupSyncRead *cJoint::group_read = NULL;
-//dynamixel::GroupBulkRead *cJoint::group_read = NULL;
-std::vector<cJoint> cJoint::joints;
-int cJoint::mode = -1;
+#define group_read group_read_sync
 
 cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
 
@@ -109,52 +80,21 @@ cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),go
   input_voltage = 0;
   temperature = 0;
   load = 0;
+  acc2val = 0;
 }
 
 cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
 
 
-template <typename T> std::string tostr(const T& t) {
-  std::ostringstream os;
-  os<<t;
-  return os.str();
-}
 
-
-std::string get_attr(TiXmlNode *parent, const char *child_name, const char *attr){
-  TiXmlNode *child = parent->FirstChild(child_name);
-  if( !child ){
-    throw std::string("Node '") + child_name + "' does not exist";
-  }
-  TiXmlElement* pe = child->ToElement();
-  const std::string *val = pe->Attribute(std::string(attr));
-  if( !val ){
-    throw std::string("Attribute '") + attr + "' in '" + child_name + "' does not exist";
-  }
-  return *val;
-}
-
-double mystof(const std::string &str){
-  for(int i=str.size()-1;i>=0;i--){
-    char c = str[i];
-    if( (c<'0' || c>'9') && c!='-' && c!='.' ){
-      throw std::string("stoi : invalid char : ") + str;
-    }
-  }
-  return atof(str.c_str());
-}
-
-
-
-void cJoint::load_settings(){
-  const char xml_file[] = "/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/test.xml";
+void cJoint::load_settings(const char *xml_file){
   joints.clear();
   TiXmlDocument doc(xml_file);
   if( doc.LoadFile() ){
     for(TiXmlNode *p=doc.FirstChild();p!=0;p=p->NextSibling()){
       if( p->Type()==TiXmlNode::TINYXML_ELEMENT && strcmp( "joints", p->Value())==0 ){
-        for(TiXmlNode *p_joint=p->FirstChild();p_joint!=0;p_joint->NextSibling()){
+        for(TiXmlNode *p_joint=p->FirstChild();p_joint!=0;p_joint=p_joint->NextSibling()){
           if( strcmp( "joint", p_joint->Value())!=0 )
             continue;
           cJoint j(joints.size());
@@ -413,7 +353,6 @@ void cJoint::setup(){
 /// static ///
 
 std::vector<cJoint> &cJoint::init(){
-  load_settings();
 
   ADDR[P_MODEL_NUMBER][0] = 0;
   ADDR[P_MODEL_NUMBER][1] = 2;
@@ -448,6 +387,8 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_TEMPERATURE][0] = 625;
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
 
+  load_settings("/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/settings_pro.xml");
+
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
   group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
@@ -455,7 +396,7 @@ std::vector<cJoint> &cJoint::init(){
   group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1]);
   group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler
-      , ADDR[P_GOAL_POSITION][0], 4+4+2+2+1);
+      , ADDR[P_PRESENT_POSITION][0], 4+4+2+2+1);
 //  group_read = new dynamixel::GroupBulkRead(portHandler, packetHandler);
   // Open port
   if (portHandler->openPort()){
@@ -633,32 +574,3 @@ void cJoint::change_mode(int _mode){
   mode = _mode;
 }
 
-void cJoint::terminate(){
-  if( group_write_velo ){
-    delete group_write_velo;
-    group_write_velo = NULL;
-  }
-  if( group_read ){
-    delete group_read;
-    group_read = NULL;
-  }
-  if( packetHandler && portHandler ){
-    for(int i=0;i<joints.size();i++){
-      joints[i].write( P_TORQUE_ENABLE, 0 );
-    }
-    portHandler->closePort();
-    portHandler = NULL;
-    packetHandler = NULL;
-  }
-  ROS_INFO("joints terminated\n");
-}
-
-bool cJoint::is_all_reaching_pos() {
-  const int EPS_POS = 3, EPS_VELO = 3;
-  for(int i=joints.size()-1;i>=0;i--){
-    const cJoint &j = joints[i];
-    if( abs(j.pos-j.goal_pos) > EPS_POS/* || abs(j.velo) > EPS_VELO*/ )
-      return false;
-  }
-  return true;
-}

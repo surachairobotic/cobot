@@ -212,20 +212,22 @@ add_library(cobot_dynamixel_sdk
 #  cobot_dynamixel_sdk
 #)
 
-add_executable(cobot_dynamixel_driver_pro src/driver.cpp src/cJoint_pro.cpp)
-target_link_libraries(cobot_dynamixel_driver
+add_executable(cobot_dynamixel_driver_pro src/driver.cpp src/cJoint_common.cpp src/cJoint_pro.cpp)
+target_link_libraries(cobot_dynamixel_driver_pro
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   ${TinyXML_LIBRARIES}
+  cobot_dynamixel_sdk
 #  cobot_joint
 )
 
 
-add_executable(cobot_dynamixel_driver_mx64 src/driver.cpp src/cJoint_mx64.cpp)
-target_link_libraries(cobot_dynamixel_driver
+add_executable(cobot_dynamixel_driver_mx64 src/driver.cpp src/cJoint_common.cpp src/cJoint_mx64.cpp)
+target_link_libraries(cobot_dynamixel_driver_mx64
   ${catkin_LIBRARIES}
   ${TinyXML_LIBRARIES}
   ${Boost_LIBRARIES}
+  cobot_dynamixel_sdk
 )
 #############
 ## Install ##
