@@ -464,7 +464,7 @@ void cJoint::sync_velo(){
   }
   int dxl_comm_result = group_write_velo->txPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
+    ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
     throw 0;
   }
   group_write_velo->clearParam();
@@ -502,7 +502,8 @@ void cJoint::sync_pos_velo(){
   }
   int dxl_comm_result = group_write_pos_velo->txPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
+    ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+    //packetHandler->printTxRxResult(dxl_comm_result);
     throw 0;
   }
   group_write_pos_velo->clearParam();
@@ -511,7 +512,8 @@ void cJoint::sync_pos_velo(){
 void cJoint::sync_read(){
   int dxl_comm_result = group_read->txRxPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
+    ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+    //packetHandler->printTxRxResult(dxl_comm_result);
     throw 0;
   }
 
