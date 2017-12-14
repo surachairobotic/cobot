@@ -32,7 +32,7 @@ bool create_trajectory(cControl &control){
     , end_pose = start_pose;
 
   start_pose.position.y-= 0.1;
-  end_pose.orientation.w = 1.0;
+//  end_pose.orientation.w = 1.0;
   end_pose.position.x = start_pose.position.x;
   end_pose.position.y = start_pose.position.y - 0.5;
   end_pose.position.z = start_pose.position.z;
@@ -40,7 +40,7 @@ bool create_trajectory(cControl &control){
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
 */
-  bool b = control.plan_line(start_pose, end_pose);
+  bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
   }
@@ -94,7 +94,7 @@ void print_trajectory(cControl &control, const char *file_name){
     printf("\nxyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
     printf("quart : %.3lf %.3lf %.3lf %.3lf\n"
       , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-    printf("\nvelo : ");
+    printf("velo : ");
     for(int i=0;i<velo.size();i++)
       printf(" %.3lf", velo[i]);
     printf("\n");
@@ -110,6 +110,15 @@ void print_trajectory(cControl &control, const char *file_name){
   }
   if(fp)
     fclose(fp);
+  {
+    printf("\nstart - end point\n");
+    const int ii[] = { 0, (int)traj.points.size()-1 };
+    for(int i=0;i<2;i++){
+      const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
+      const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
+      printf("xyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
+    }
+  }
 }
 
 

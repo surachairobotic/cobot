@@ -10,7 +10,9 @@
 
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
     :spinner(1), group_name(_group_name), end_effector_name(_end_effector_name)
-  ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description"){}
+  ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description")
+  ,joint_model_group(NULL)
+{}
 
 
 void cControl::init(){
@@ -75,10 +77,10 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p2){
   trajectory = plan.trajectory_;
   return true;
 }
-/*
+
 bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2){
   clear_trajectory();
-  move_group.setStartState(*move_group.getCurrentState());
+  move_group.setStartState(get_robot_state(p1));
   move_group.setPoseTarget(p2);
   if( !move_group.plan(plan) ){
     ROS_WARN("plan_p2p() : Could not compute plan successfully");
@@ -86,12 +88,19 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
   }
   trajectory = plan.trajectory_;
   return true;
-}*/
+}
 
 
 bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step){
-  move_group.setStartState(*move_group.getCurrentState());
-  return plan_line(p2, step);
+  std::vector< geometry_msgs::Pose > wp;
+  wp.push_back(p2);
+  move_group.setStartState(get_robot_state(p1));
+  return plan_line(wp, step);
+
+/*  //move_group.setStartState(*move_group.getCurrentState());
+  printf("%lf, %lf, %lf\n", p1.position.x, p1.position.y, p1.position.z);
+  move_group.setStartState(get_robot_state(p1));
+  return plan_line(p2, step);*/
 }
 
 bool cControl::plan_line(const geometry_msgs::Pose &p2, double step){
@@ -273,4 +282,14 @@ void cControl::replan_velocity(double velo, double acc){
     }
     traj.points[i].time_from_start.fromSec(t);
   }
+}
+
+robot_state::RobotState cControl::get_robot_state(const geometry_msgs::Pose &pose){
+  robot_state::RobotState robot_state(*move_group.getCurrentState());
+  robot_state.setToDefaultValues();
+  if( !robot_state.setFromIK(joint_model_group, pose, 5, 0.1) ){
+    ROS_ERROR("cControl::get_robot_state : setFromIK failed\n");
+    throw 0;
+  }
+  return robot_state;
 }

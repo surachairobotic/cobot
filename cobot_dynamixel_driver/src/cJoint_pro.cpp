@@ -202,10 +202,12 @@ void cJoint::write(const int param, const int val){
     else
       throw std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
     if (dxl_comm_result != COMM_SUCCESS){
-      packetHandler->printTxRxResult(dxl_comm_result);
+      ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+      //packetHandler->printTxRxResult(dxl_comm_result);
     }
     else if (dxl_error != 0){
-      packetHandler->printRxPacketError(dxl_error);
+      ROS_ERROR("%s", packetHandler->getRxPacketError(dxl_error));
+      //packetHandler->printRxPacketError(dxl_error);
     }
     else{
       return;
@@ -242,12 +244,14 @@ int cJoint::read(const int param){
   }
 
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
+    //ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   else if (dxl_error != 0){
-    packetHandler->printRxPacketError(dxl_error);
-    throw 1;
+    //packetHandler->printRxPacketError(dxl_error);
+    //throw 1;
+    mythrow(packetHandler->getRxPacketError(dxl_error));
   }
   return val;
 }
@@ -430,16 +434,18 @@ std::vector<cJoint> &cJoint::init(){
             ROS_INFO("ping timeout\n");
             break;
           }
-          packetHandler->printTxRxResult(dxl_comm_result);
+          //packetHandler->printTxRxResult(dxl_comm_result);
           ROS_ERROR("Fail to ping : %d , motor_num : %d\n", dxl_comm_result, num_joint);
-          throw 0;
+          mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+          //throw 0;
         }
       }
       else if( dxl_error != 0 ){
         if( j==0 ){
-          packetHandler->printRxPacketError(dxl_error);
+          //packetHandler->printRxPacketError(dxl_error);
           ROS_ERROR("Fail to ping 2 : %d , motor_num : %d\n", dxl_error, num_joint);
-          throw 0;
+          mythrow(packetHandler->getRxPacketError(dxl_error));
+          //throw 0;
         }
       }
       else{
@@ -502,8 +508,9 @@ void cJoint::sync_velo(){
   }
   int dxl_comm_result = group_write_velo->txPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   group_write_velo->clearParam();
 }
@@ -533,8 +540,9 @@ void cJoint::sync_pos_velo(){
   }
   int dxl_comm_result = group_write_pos_velo->txPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   group_write_pos_velo->clearParam();
 }
@@ -542,8 +550,9 @@ void cJoint::sync_pos_velo(){
 void cJoint::sync_read(){
   int dxl_comm_result = group_read->txRxPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    throw 0;
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
 
   for(int i=0;i<joints.size();i++){
