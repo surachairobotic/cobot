@@ -6,13 +6,15 @@
 //#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <eigen_conversions/eigen_msg.h>
 
+
 #define POW2(x) ((x)*(x))
 
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
     :spinner(1), group_name(_group_name), end_effector_name(_end_effector_name)
   ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description")
   ,joint_model_group(NULL)
-{}
+{
+}
 
 
 void cControl::init(){
@@ -24,7 +26,7 @@ void cControl::init(){
 
 
   ros::NodeHandle n;
-  pub_goal = n.advertise<sensor_msgs::JointState>("test_dynamixel/goal", 1000);
+  pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
 /*  sub_joints = n.subscribe("joint_states", 10
     , &cControl::joint_states_callback, this);
 

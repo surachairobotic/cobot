@@ -15,6 +15,8 @@
 #include <iostream>
 #include <sstream>
 #include <tinyxml.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_model/robot_model.h>
 #include "cobot_dynamixel_driver/cJoint.h"
 
 
@@ -26,7 +28,7 @@ dynamixel::GroupBulkRead *cJoint::group_read_bulk = NULL;
 std::vector<cJoint> cJoint::joints;
 int cJoint::ADDR[32][2] = {{0}};
 int cJoint::mode = -1;
-
+std::vector<std::string> cJoint::joint_names;
 
 std::string get_attr(TiXmlNode *parent, const char *child_name, const char *attr){
   TiXmlNode *child = parent->FirstChild(child_name);
@@ -91,4 +93,33 @@ bool cJoint::is_all_reaching_goal_pos() {
       return false;
   }
   return true;
+}
+
+std::string cJoint::get_joint_name(int id){
+  if( joint_names.empty() )
+    return std::string("joint_") + tostr(id);
+  else{
+    if( id<=0 || id>joint_names.size()){
+      mythrow(std::string("Invalid joint number : ") + tostr(id));
+    }
+    return joint_names[id-1];
+  }
+}
+
+void cJoint::load_joint_name(){
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+
+  robot_model::RobotModelPtr r = robot_model_loader.getModel();
+  ROS_INFO("Load joint name : ");
+  for(int i=0;i<r->getJointModelCount();i++){
+    const robot_state::JointModel *j = r->getJointModel(i);
+    const std::string name = j->getName();
+    if( name.size()==0 || (name[0]!='j' && name[0]!='J') )// name.compare("virtual_joint")==0 )
+      continue;
+    ROS_INFO(" - %s", name.c_str());
+    joint_names.push_back(name);
+  }
+  if( joint_names.empty() ){
+    mythrow("No joint found in robot model");
+  }
 }

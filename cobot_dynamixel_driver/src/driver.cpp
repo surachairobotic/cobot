@@ -28,6 +28,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
     if( msg->position.size() ){
       // pos & velo control
       if( msg->velocity.size() ){
+        ROS_INFO("cmd pos velo : %s = %lf , %lf", msg->name[0].c_str()
+          , msg->position[0], msg->velocity[0]);
         if( msg->name.size()!=msg->velocity.size() || msg->name.size()!=msg->position.size() ){
           throw -1;
         }
@@ -35,6 +37,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
           cJoint *j = cJoint::get_joint(std::string(msg->name[i]));
           if( j )
             j->set_goal_pos_velo((double)msg->position[i], (double)msg->velocity[i]);
+          //else
+          //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
         }
         cJoint::sync_pos_velo();
       }
@@ -47,6 +51,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
     }
     // velo control
     else if( msg->velocity.size() ){
+      ROS_INFO("cmd velo : %s = %lf", msg->name[0].c_str(), msg->velocity[0]);
       if( msg->name.size()!=msg->velocity.size() ){
         throw -1;
       }
@@ -54,6 +59,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
         cJoint *j = cJoint::get_joint(msg->name[i]);
         if( j )
           j->set_goal_velo(msg->velocity[i]);
+        //else
+        //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
       }
       cJoint::sync_velo();
     }
@@ -96,6 +103,11 @@ int main(int argc, char **argv)
     }
     fake_joints = f;
     ROS_INFO("fake joints : %d\n", fake_joints);
+    bool b = false;
+    nh.getParam("load_joint_name", b);
+    nh.deleteParam("load_joint_name");
+    if( b )
+      cJoint::load_joint_name();
   }
 
   try{
@@ -118,7 +130,7 @@ int main(int argc, char **argv)
         joint_state.effort[i] = j.get_load();
       }
       for(int i=joints.size();i<joint_num;i++){
-        joint_state.name[i] = std::string("joint_") + tostr(i + 1);
+        joint_state.name[i] = cJoint::get_joint_name(i+1);
         joint_state.position[i] = 0;
         joint_state.velocity[i] = 0;
         joint_state.effort[i] = 0;

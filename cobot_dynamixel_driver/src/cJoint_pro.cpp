@@ -337,7 +337,7 @@ void cJoint::setup(){
     throw std::string("model number does not match : ") + tostr(model)
     + " / " + tostr(motor_model_number);
   }
-  name = std::string("joint_") + tostr(id);
+  name = get_joint_name(id);
   write( P_TORQUE_ENABLE, 0 );
   write( P_TORQUE_LIMIT, torque_limit );
   write( P_CW_ANGLE_LIMIT, cw_angle_limit);

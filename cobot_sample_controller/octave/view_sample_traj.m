@@ -1,6 +1,6 @@
 clear all;
 
-s = load('../traj_original.txt');
+s = load('~/catkin_ws/traj_original.txt');
 
 t = s(:,1);
 q = s(:,2:7);

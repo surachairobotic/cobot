@@ -58,6 +58,7 @@ private:
   static std::vector<cJoint> joints;
   static int mode;
   static int ADDR[32][2];
+  static std::vector<std::string> joint_names;
 
 private:
   void write(const int param, const int val);
@@ -92,6 +93,8 @@ public:
   static void change_mode(int _mode);
   static void terminate();
   static bool is_all_reaching_goal_pos();
+  static void load_joint_name();
+  static std::string get_joint_name(int id);
   inline static std::vector<cJoint>& get_joints(){ return joints; }
   inline static cJoint* get_joint(std::string _name){
     for(int i=joints.size()-1;i>=0;i--){

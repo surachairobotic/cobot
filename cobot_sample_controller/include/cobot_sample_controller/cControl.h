@@ -35,6 +35,7 @@ private:
 private:
   void joint_states_callback(const sensor_msgs::JointState::ConstPtr& msg);
   void check_goal_state(const std::vector<double> &joints);
+  robot_state::RobotState get_robot_state(const geometry_msgs::Pose &pose);
 
 public:
   cControl(const std::string& _group_name, const std::string& _end_effector_name);
@@ -57,7 +58,6 @@ public:
   const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
   const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
     , const std::vector<double> &joint_velo);
-  robot_state::RobotState get_robot_state(const geometry_msgs::Pose &pose);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
 };
 

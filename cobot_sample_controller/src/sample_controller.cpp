@@ -18,7 +18,7 @@ int main(int argc, char **argv)
       print_trajectory(control, "traj_original.txt");
       control.replan_velocity( 0.2, 0.3);
       print_trajectory(control, "traj_const_velo.txt");
-//      move_trajectory(control);
+      move_trajectory(control);
     }
   }
   catch(int my_error){}
@@ -31,16 +31,15 @@ bool create_trajectory(cControl &control){
   geometry_msgs::Pose start_pose = control.get_current_pose()
     , end_pose = start_pose;
 
-  start_pose.position.y-= 0.1;
 //  end_pose.orientation.w = 1.0;
   end_pose.position.x = start_pose.position.x;
-  end_pose.position.y = start_pose.position.y - 0.5;
+  end_pose.position.y = start_pose.position.y + 0.15;
   end_pose.position.z = start_pose.position.z;
 /*  end_pose.position.x = 0.28;
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
 */
-  bool b = control.plan_p2p(start_pose, end_pose);
+  bool b = control.plan_line(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
   }
@@ -116,32 +115,53 @@ void print_trajectory(cControl &control, const char *file_name){
     for(int i=0;i<2;i++){
       const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
       const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
-      printf("xyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
+      printf("xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+        , pose.position.x, pose.position.y, pose.position.z
+        , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
     }
   }
 }
 
+bool reach_angle(double q1, double q2){
+  const double PI2 = 2 * M_PI;
+  while(q1 - q2 > PI2)
+    q2+= PI2;
+  while(q2 - q1 > PI2)
+    q1+= PI2;
+  return fabs(q1-q2) < 0.01;
+}
 
 void move_trajectory(cControl &control){
   const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
   ros::Rate r(100);
-  for(int i=0;i<traj.points.size();i++){
+  ros::Time t_start = ros::Time::now();
+  for(int i=1;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
     printf("waypoint %d\n", i);
+//    control.move_velo(p.velocities);
     control.move_pos_velo(p.positions, p.velocities);
     bool b_reach;
     do{
       r.sleep();
       const std::vector<double> cur_joints = control.get_current_joints();
       b_reach = true;
-      for(int j=cur_joints.size()-1;j>=0;j--){
-        if( fabs(cur_joints[j] - p.positions[j]) > 0.01 ){
+      for(int j=0;j>=0;j--){
+  //  for(int j=cur_joints.size()-1;j>=0;j--){
+        if( !reach_angle(cur_joints[j], p.positions[j]) ){
           b_reach = false;
           break;
         }
       }
       if( !ros::ok() )
         return;
+      ros::Time t = ros::Time::now();
+      if( (t-t_start).toSec() > 1.0 ){
+        for(int j=0;j<cur_joints.size();j++){
+          printf("joint [%d] : cur = %lf, tar = %lf, vel = %lf\n", j, cur_joints[j], p.positions[j]
+            , p.velocities[j]);
+        }
+        t_start = t;
+      }
     }
     while(!b_reach);
   }
