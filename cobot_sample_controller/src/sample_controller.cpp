@@ -17,8 +17,21 @@ int main(int argc, char **argv)
     if( create_trajectory(control) ){
       print_trajectory(control, "traj_original.txt");
       control.replan_velocity( 0.2, 0.3);
-      print_trajectory(control, "traj_const_velo.txt");
-      move_trajectory(control);
+//      print_trajectory(control, "traj_const_velo.txt");
+//      move_trajectory(control);
+
+      {
+        const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
+        printf("\nstart - end point\n");
+        const int ii[] = { 0, (int)traj.points.size()-1 };
+        for(int i=0;i<2;i++){
+          const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
+          const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
+          printf("xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+            , pose.position.x, pose.position.y, pose.position.z
+            , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+        }
+      }
     }
   }
   catch(int my_error){}
@@ -31,6 +44,7 @@ bool create_trajectory(cControl &control){
   geometry_msgs::Pose start_pose = control.get_current_pose()
     , end_pose = start_pose;
 
+  start_pose.position.y+= 0.01;
 //  end_pose.orientation.w = 1.0;
   end_pose.position.x = start_pose.position.x;
   end_pose.position.y = start_pose.position.y + 0.15;
@@ -39,7 +53,19 @@ bool create_trajectory(cControl &control){
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
 */
-  bool b = control.plan_line(start_pose, end_pose);
+  {
+    geometry_msgs::Pose &pose = start_pose;
+    printf("str xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+      , pose.position.x, pose.position.y, pose.position.z
+      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  }
+  {
+    geometry_msgs::Pose &pose = end_pose;
+    printf("end xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+      , pose.position.x, pose.position.y, pose.position.z
+      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  }
+  bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
   }

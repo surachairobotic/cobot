@@ -1,6 +1,6 @@
 clear all;
 
-s = load('~/catkin_ws/traj_original.txt');
+s = load('~/traj_original.txt');
 
 t = s(:,1);
 q = s(:,2:7);
@@ -13,8 +13,7 @@ o = s(:,23:26);
 dx = s(:,27:32);
 
 
-figure(1),subplot(3,1,1),plot(t,q(:,1),'*-',t,q(:,2),'*-',t,q(:,3),'*-',t,q(:,4),'*-',t,q(:,5),'*-',t,q(:,6),'*-');
-
+figure(1),subplot(3,1,1),plot(t,q(:,1),';j1;*-',t,q(:,2),';j2;*-',t,q(:,3),';j3;*-',t,q(:,4),';j4;*-',t,q(:,5),';j5;*-',t,q(:,6),';j6;*-');
 grid on;
 ylabel('angle(rad)');
 figure(1),subplot(3,1,2),plot(t,dq(:,1),'*-',t,dq(:,2),'*-',t,dq(:,3),'*-',t,dq(:,4),'*-',t,dq(:,5),'*-',t,dq(:,6),'*-');
@@ -25,7 +24,7 @@ grid on;
 ylabel('ang acc(rad/s2)');
 xlabel('time(s)');
 
-figure(3),subplot(3,1,1),plot(t,x(:,1),'*-',t,x(:,2),'*-',t,x(:,3),'*-');
+figure(3),subplot(3,1,1),plot(t,x(:,1),';x;*-',t,x(:,2),';y;*-',t,x(:,3),';z;*-');
 grid on;
 ylabel('xyz(m)');
 figure(3),subplot(3,1,2),plot(t,dx(:,1),'*-',t,dx(:,2),'*-',t,dx(:,3),'*-');

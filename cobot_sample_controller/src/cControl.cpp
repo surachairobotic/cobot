@@ -82,8 +82,37 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p2){
 
 bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2){
   clear_trajectory();
-  move_group.setStartState(get_robot_state(p1));
+  robot_state::RobotState rb = get_robot_state(p1);
+/*  {
+    const Eigen::Affine3d &end_effector_state = rb.getGlobalLinkTransform(end_effector_name);
+    geometry_msgs::Pose pose;
+    tf::poseEigenToMsg(end_effector_state, pose);
+    printf("start rb xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+      , pose.position.x, pose.position.y, pose.position.z
+      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  }*/
+  move_group.setStartState(rb);
   move_group.setPoseTarget(p2);
+  {
+    moveit_msgs::OrientationConstraint ocm;
+    ocm.link_name = "link_6";
+    ocm.header.frame_id = "base_link";
+    ocm.orientation.w = 1;
+/*    ocm.orientation.w = p1.orientation.w;
+    ocm.orientation.x = p1.orientation.x;
+    ocm.orientation.y = p1.orientation.y;
+    ocm.orientation.z = p1.orientation.z;*/
+    ocm.absolute_x_axis_tolerance = 0.1;
+    ocm.absolute_y_axis_tolerance = 0.1;
+    ocm.absolute_z_axis_tolerance = 0.1;
+    ocm.weight = 1.0;
+
+    moveit_msgs::Constraints con;
+    con.orientation_constraints.push_back(ocm);
+//    move_group.setPathConstraints(con);
+    move_group.setPlanningTime(60.0);
+  }
+
   if( !move_group.plan(plan) ){
     ROS_WARN("plan_p2p() : Could not compute plan successfully");
     return false;
@@ -288,8 +317,8 @@ void cControl::replan_velocity(double velo, double acc){
 
 robot_state::RobotState cControl::get_robot_state(const geometry_msgs::Pose &pose){
   robot_state::RobotState robot_state(*move_group.getCurrentState());
-  robot_state.setToDefaultValues();
-  if( !robot_state.setFromIK(joint_model_group, pose, 5, 0.1) ){
+//  robot_state.setToDefaultValues();
+  if( !robot_state.setFromIK(joint_model_group, pose, end_effector_name, 5, 0.1) ){
     ROS_ERROR("cControl::get_robot_state : setFromIK failed\n");
     throw 0;
   }
