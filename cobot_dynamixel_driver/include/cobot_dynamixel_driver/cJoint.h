@@ -89,7 +89,7 @@ public:
   static std::vector<cJoint> &init();
   static void sync_velo();
   static void sync_pos_velo();
-  static void sync_read();
+  static bool sync_read();
   static void change_mode(int _mode);
   static void terminate();
   static bool is_all_reaching_goal_pos();

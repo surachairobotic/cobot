@@ -1,5 +1,4 @@
 <launch>
-
   <arg name="debug" default="false" />
   <arg name="use_gui" default="false" />
   <include file="$(find affbot_urdf10)/launch/planning_context.launch">

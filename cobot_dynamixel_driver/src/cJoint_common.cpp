@@ -55,6 +55,28 @@ double mystof(const std::string &str){
 }
 
 
+cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
+
+  motor_model_number = 0;
+  cw_angle_limit = 0;
+  ccw_angle_limit = 360;
+  torque_limit = 900;
+  velocity_limit = 2 * M_PI;
+  acceleration_limit = 2 * M_PI;
+  current_max = 5000;
+  rad2val = 0;
+  velo2val = 0;
+  position_value = 0;
+  gear_ratio = 1;
+  input_voltage = 0;
+  temperature = 0;
+  load = 0;
+  acc2val = 0;
+}
+
+cJoint::cJoint(int _id):cJoint(){ id = _id; }
+
+
 void cJoint::terminate(){
   if( group_write_velo ){
     delete group_write_velo;

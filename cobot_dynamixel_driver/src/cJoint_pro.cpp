@@ -63,7 +63,9 @@
 //const double M_PI = 3.14159265359;
 
 #define group_read group_read_sync
+int group_read_size = 0;
 
+/*
 cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
 
   motor_model_number = 0;
@@ -84,7 +86,7 @@ cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),go
 }
 
 cJoint::cJoint(int _id):cJoint(){ id = _id; }
-
+*/
 
 
 
@@ -97,7 +99,7 @@ void cJoint::load_settings(const char *xml_file){
         for(TiXmlNode *p_joint=p->FirstChild();p_joint!=0;p_joint=p_joint->NextSibling()){
           if( strcmp( "joint", p_joint->Value())!=0 )
             continue;
-          cJoint j(joints.size());
+          cJoint j(joints.size() + 1);
           TiXmlNode *p_motor = p_joint->FirstChild("motor");
           if( !p_motor ){
             throw std::string("No motor found in joint node : ") + tostr(j.get_id());
@@ -160,16 +162,16 @@ void cJoint::set_goal_pos_velo(double _pos, double _velo){
 }
 
 double cJoint::get_pos() const {
-  if( pos < this->cw_angle_limit || pos > this->ccw_angle_limit ){
-    ROS_WARN("[%d] get_pos() : invalid pos val : %d\n", id, pos);
+/*  if( pos < this->cw_angle_limit || pos > this->ccw_angle_limit ){
+    ROS_ERROR("[%d] get_pos() : invalid pos val : %d\n", id, pos);
     throw 0;
-  }
+  }*/
   return pos / rad2val;
 }
 
 double cJoint::get_velo() const {
   if( velo < -this->velocity_limit || velo > this->velocity_limit ){
-    ROS_WARN("[%d] get_velo() : invalid velo val : %d\n", id, velo);
+    ROS_ERROR("[%d] get_velo() : invalid velo val : %d\n", id, velo);
     throw 0;
   }
   return velo / velo2val;
@@ -214,6 +216,7 @@ void cJoint::write(const int param, const int val){
     }
   }
   while(cnt-->=0);
+  ROS_ERROR("cJoint::write() : id = %d, param = %d, addr = %d, n_bytes = %d, val = %d", id, param, addr, n_bytes, val);
   throw std::string("cJoint::write() : failed");
 }
 
@@ -244,7 +247,7 @@ int cJoint::read(const int param){
   }
 
   if (dxl_comm_result != COMM_SUCCESS){
-    //ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+    ROS_ERROR("cJoint::read() : id = %d, param = %d, addr = %d, n_bytes = %d", id, param, addr, n_bytes);
     //packetHandler->printTxRxResult(dxl_comm_result);
     mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
@@ -390,7 +393,8 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_INPUT_VOLTAGE][1] = 2;
   ADDR[P_PRESENT_TEMPERATURE][0] = 625;
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
-
+  group_read_size = 4+4+2+2+1;
+  
   load_settings("/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/settings_pro.xml");
 
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
@@ -400,7 +404,7 @@ std::vector<cJoint> &cJoint::init(){
   group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1]);
   group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler
-      , ADDR[P_PRESENT_POSITION][0], 4+4+2+2+1);
+      , ADDR[P_PRESENT_POSITION][0], group_read_size);
 //  group_read = new dynamixel::GroupBulkRead(portHandler, packetHandler);
   // Open port
   if (portHandler->openPort()){
@@ -430,6 +434,7 @@ std::vector<cJoint> &cJoint::init(){
       int dxl_comm_result = packetHandler->ping(portHandler, num_joint + 1, &dxl_model_number, &dxl_error);
       if (dxl_comm_result != COMM_SUCCESS ){
         if( j==0 ){
+          j = -1;
           if( dxl_comm_result==COMM_RX_TIMEOUT ){
             ROS_INFO("ping timeout\n");
             break;
@@ -459,7 +464,7 @@ std::vector<cJoint> &cJoint::init(){
     ROS_WARN("no motor found\n");
     throw 0;
   }
-  ROS_INFO("motor num : %d\n", num_joint);
+  ROS_INFO("motor num founded : %d\n", num_joint);
 /*  int dxl_comm_result = packetHandler->broadcastPing(portHandler,id_list);
   if (dxl_comm_result != COMM_SUCCESS ){
     packetHandler->printTxRxResult(dxl_comm_result);
@@ -484,6 +489,7 @@ std::vector<cJoint> &cJoint::init(){
     joints[i].setup();
   }
   mode = MODE_VELOCITY_CONTROL;
+  ROS_INFO("motor num used : %d\n", (int)joints.size());
   return joints;
 }
 
@@ -532,9 +538,9 @@ void cJoint::sync_pos_velo(){
     lh[5] = DXL_HIBYTE(DXL_LOWORD(j.goal_velo));
     lh[6] = DXL_LOBYTE(DXL_HIWORD(j.goal_velo));
     lh[7] = DXL_HIBYTE(DXL_HIWORD(j.goal_velo));
-    dxl_addparam_result = group_write_pos_velo->addParam(j.id, lh);
+    dxl_addparam_result = group_write_pos_velo->addParam(j.get_id(), lh);
     if (dxl_addparam_result != true){
-      ROS_ERROR("[ID:%03d] group_write_pos_velo addparam failed", j.id);
+      ROS_ERROR("[ID:%03d] group_write_pos_velo addparam failed", j.get_id());
       throw 0;
     }
   }
@@ -547,19 +553,23 @@ void cJoint::sync_pos_velo(){
   group_write_pos_velo->clearParam();
 }
 
-void cJoint::sync_read(){
-  int dxl_comm_result = group_read->txRxPacket();
-  if (dxl_comm_result != COMM_SUCCESS){
-    //packetHandler->printTxRxResult(dxl_comm_result);
-    //throw 0;
-    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+bool cJoint::sync_read(){
+  for(int i=3;i>=0;i--){
+    int dxl_comm_result = group_read->txRxPacket();
+    if (dxl_comm_result != COMM_SUCCESS){
+      if( i==0 ){
+        ROS_WARN("%s", packetHandler->getTxRxResult(dxl_comm_result));
+        return false;
+      }
+    }
+    else
+      break;
   }
-
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
-    bool dxl_getdata_result = group_read->isAvailable(j.id, P_PRESENT_POSITION, 4+4+2+2+1);
+    bool dxl_getdata_result = group_read->isAvailable(j.get_id(), ADDR[P_PRESENT_POSITION][0], group_read_size);
     if (dxl_getdata_result != true){
-      ROS_ERROR("[ID:%03d] group_read getdata failed", joints[i].get_id());
+      ROS_ERROR("[ID:%03d] group_read getdata failed", j.get_id());
       throw 0;
     }
     j.pos = group_read->getData(j.get_id(), ADDR[P_PRESENT_POSITION][0], ADDR[P_PRESENT_POSITION][1]);
@@ -568,6 +578,7 @@ void cJoint::sync_read(){
     j.input_voltage = group_read->getData(j.get_id(), ADDR[P_PRESENT_INPUT_VOLTAGE][0], ADDR[P_PRESENT_INPUT_VOLTAGE][1]);
     j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
   }
+  return true;
 }
 
 
@@ -577,7 +588,9 @@ void cJoint::change_mode(int _mode){
     return;
   }
   for(int i=0;i<joints.size();i++){
+    joints[i].write( P_TORQUE_ENABLE, 0 );
     joints[i].write( P_OPERATING_MODE, _mode);
+    joints[i].write( P_TORQUE_ENABLE, 1 );
   }
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;

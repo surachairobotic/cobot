@@ -45,26 +45,31 @@ bool create_trajectory(cControl &control){
     , end_pose = start_pose;
 
   start_pose.position.y+= 0.01;
+  
 //  end_pose.orientation.w = 1.0;
-  end_pose.position.x = start_pose.position.x;
-  end_pose.position.y = start_pose.position.y + 0.15;
+  end_pose.position.x = start_pose.position.x + 0.15;
+  end_pose.position.y = start_pose.position.y;
   end_pose.position.z = start_pose.position.z;
 /*  end_pose.position.x = 0.28;
   end_pose.position.y = -0.7;
   end_pose.position.z = 1.0;
 */
-  {
-    geometry_msgs::Pose &pose = start_pose;
-    printf("str xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
-      , pose.position.x, pose.position.y, pose.position.z
-      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  if( !control.is_valid_pose(start_pose) ){
+    ROS_ERROR("Invalid start_pos : ");
+    cControl::print_pose(start_pose);
+    return false;
   }
-  {
-    geometry_msgs::Pose &pose = end_pose;
-    printf("end xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
-      , pose.position.x, pose.position.y, pose.position.z
-      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  if( !control.is_valid_pose(end_pose) ){
+    ROS_ERROR("Invalid end_pos : ");
+    cControl::print_pose(start_pose);
+    return false;
   }
+  
+  ROS_INFO("start pose : ");
+  cControl::print_pose(start_pose);
+  ROS_INFO("end pose : ");
+  cControl::print_pose(end_pose);
+
   bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");

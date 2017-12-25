@@ -59,6 +59,17 @@ public:
   const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
     , const std::vector<double> &joint_velo);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
+  inline bool is_valid_pose(const geometry_msgs::Pose &pose){
+    try{
+      get_robot_state(pose);
+    }
+    catch(int err){
+      return false;
+    }
+    return true;
+  }
+  
+  static void print_pose(const geometry_msgs::Pose &pose);
 };
 
 #endif

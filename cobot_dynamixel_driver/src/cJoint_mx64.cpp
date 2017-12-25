@@ -30,6 +30,7 @@
 #define group_read group_read_bulk
 int group_read_size = 0;
 
+/*
 cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
 
   motor_model_number = 0;
@@ -50,6 +51,7 @@ cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),go
 }
 
 cJoint::cJoint(int _id):cJoint(){ id = _id; }
+*/
 
 inline int f_velo2val(double velo){
   const double RAD2VAL = (1023.0 * 60) / (2 * M_PI * 117.07);
@@ -365,6 +367,7 @@ std::vector<cJoint> &cJoint::init(){
       int dxl_comm_result = packetHandler->ping(portHandler, num_joint + 1, &dxl_error);
       if (dxl_comm_result != COMM_SUCCESS ){
         if( j==0 ){
+          j = -1;
           if( dxl_comm_result==COMM_RX_TIMEOUT ){
             ROS_INFO("ping timeout\n");
             break;
@@ -382,7 +385,7 @@ std::vector<cJoint> &cJoint::init(){
       else
         break;
     }
-    if( j<=0 )
+    if( j<0 )
       break;
   }
   if( num_joint==0 ){
@@ -507,10 +510,12 @@ void cJoint::sync_pos_velo(){
   group_write_pos_velo->clearParam();
 }
 
-void cJoint::sync_read(){
+bool cJoint::sync_read(){
   int dxl_comm_result = group_read->txRxPacket();
   if (dxl_comm_result != COMM_SUCCESS){
-    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+    ROS_WARN("%s", packetHandler->getTxRxResult(dxl_comm_result));
+    return false;
+    //mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
 
   for(int i=0;i<joints.size();i++){
@@ -526,6 +531,7 @@ void cJoint::sync_read(){
     j.input_voltage = group_read->getData(j.get_id(), ADDR[P_PRESENT_INPUT_VOLTAGE][0], ADDR[P_PRESENT_INPUT_VOLTAGE][1]);
     j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
   }
+  return true;
 }
 
 

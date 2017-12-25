@@ -110,7 +110,7 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
     moveit_msgs::Constraints con;
     con.orientation_constraints.push_back(ocm);
 //    move_group.setPathConstraints(con);
-    move_group.setPlanningTime(60.0);
+    move_group.setPlanningTime(10.0);
   }
 
   if( !move_group.plan(plan) ){
@@ -323,4 +323,11 @@ robot_state::RobotState cControl::get_robot_state(const geometry_msgs::Pose &pos
     throw 0;
   }
   return robot_state;
+}
+
+
+void cControl::print_pose(const geometry_msgs::Pose &pose){
+  printf(" xyz : %.3lf %.3lf %.3lf, xyzw : %.3lf, %.3lf, %.3lf, %.3lf\n"
+      , pose.position.x, pose.position.y, pose.position.z
+      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
 }

@@ -90,7 +90,7 @@ int main(int argc, char **argv)
   ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
   ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
   ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
-  ros::Rate loop_rate(15);
+  ros::Rate loop_rate(10);
   int fake_joints = 0;
   {
     ros::NodeHandle nh("~");
@@ -115,27 +115,28 @@ int main(int argc, char **argv)
     ROS_INFO("running ...\n");
     int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
     while (ros::ok()){
-      sensor_msgs::JointState joint_state;
-      cJoint::sync_read();
-      joint_state.header.stamp = ros::Time::now();
-      joint_state.name.resize(joint_num);
-      joint_state.position.resize(joint_num);
-      joint_state.velocity.resize(joint_num);
-      joint_state.effort.resize(joint_num);
-      for(int i=joints.size()-1;i>=0;i--){
-        const cJoint &j = joints[i];
-        joint_state.name[i] = j.get_name();
-        joint_state.position[i] = j.get_pos();
-        joint_state.velocity[i] = j.get_velo();
-        joint_state.effort[i] = j.get_load();
+      if( cJoint::sync_read() ){
+        sensor_msgs::JointState joint_state;
+        joint_state.header.stamp = ros::Time::now();
+        joint_state.name.resize(joint_num);
+        joint_state.position.resize(joint_num);
+        joint_state.velocity.resize(joint_num);
+        joint_state.effort.resize(joint_num);
+        for(int i=joints.size()-1;i>=0;i--){
+          const cJoint &j = joints[i];
+          joint_state.name[i] = j.get_name();
+          joint_state.position[i] = j.get_pos();
+          joint_state.velocity[i] = j.get_velo();
+          joint_state.effort[i] = j.get_load();
+        }
+        for(int i=joints.size();i<joint_num;i++){
+          joint_state.name[i] = cJoint::get_joint_name(i+1);
+          joint_state.position[i] = 0;
+          joint_state.velocity[i] = 0;
+          joint_state.effort[i] = 0;
+        }
+        pub.publish(joint_state);
       }
-      for(int i=joints.size();i<joint_num;i++){
-        joint_state.name[i] = cJoint::get_joint_name(i+1);
-        joint_state.position[i] = 0;
-        joint_state.velocity[i] = 0;
-        joint_state.effort[i] = 0;
-      }
-      pub.publish(joint_state);
       ros::spinOnce();
       loop_rate.sleep();
     }
