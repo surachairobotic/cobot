@@ -94,9 +94,9 @@ inline int pos2val(double pos){
 }
 */
 
-void cJoint::load_settings(const char *xml_file){
+void cJoint::load_settings(const std::string &xml_file){
   joints.clear();
-  TiXmlDocument doc(xml_file);
+  TiXmlDocument doc(xml_file.c_str());
   if( doc.LoadFile() ){
     for(TiXmlNode *p=doc.FirstChild();p!=0;p=p->NextSibling()){
       if( p->Type()==TiXmlNode::TINYXML_ELEMENT && strcmp( "joints", p->Value())==0 ){
@@ -338,7 +338,7 @@ std::vector<cJoint> &cJoint::init(){
   group_read_size = ADDR[P_PRESENT_TEMPERATURE][0] + ADDR[P_PRESENT_TEMPERATURE][1]
     - ADDR[P_PRESENT_POSITION][0];
 
-  load_settings("/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/settings_mx64.xml");
+  load_settings(setting_file);
 
   // Open port
   if (portHandler->openPort()){

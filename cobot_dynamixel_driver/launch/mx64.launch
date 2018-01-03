@@ -4,5 +4,6 @@
     <remap from="cobot_dynamixel_driver/goal" to="goal"/>
     <param name="fake_joints" value="6"/>
     <param name="load_joint_name" value="true"/>
+    <param name="setting_file" value="$(find cobot_dynamixel_driver)/src/settings_mx64.xml" />
   </node>
 </launch>

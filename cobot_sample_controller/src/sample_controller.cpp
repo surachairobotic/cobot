@@ -137,6 +137,7 @@ void print_trajectory(cControl &control, const char *file_name){
   }
   if(fp)
     fclose(fp);
+    
   {
     printf("\nstart - end point\n");
     const int ii[] = { 0, (int)traj.points.size()-1 };

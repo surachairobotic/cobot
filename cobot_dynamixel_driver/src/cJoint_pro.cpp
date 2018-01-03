@@ -90,9 +90,9 @@ cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
 
 
-void cJoint::load_settings(const char *xml_file){
+void cJoint::load_settings(const std::string &xml_file){
   joints.clear();
-  TiXmlDocument doc(xml_file);
+  TiXmlDocument doc(xml_file.c_str());
   if( doc.LoadFile() ){
     for(TiXmlNode *p=doc.FirstChild();p!=0;p=p->NextSibling()){
       if( p->Type()==TiXmlNode::TINYXML_ELEMENT && strcmp( "joints", p->Value())==0 ){
@@ -396,7 +396,7 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
   group_read_size = 4+4+2+2+1;
   
-  load_settings("/home/tong/catkin_ws/src/cobot/cobot_dynamixel_driver/src/settings_pro.xml");
+  load_settings(setting_file);
 
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);

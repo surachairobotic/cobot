@@ -59,6 +59,7 @@ private:
   static int mode;
   static int ADDR[32][2];
   static std::vector<std::string> joint_names;
+  static std::string setting_file;
 
 private:
   void write(const int param, const int val);
@@ -69,7 +70,7 @@ private:
   int read1b(int addr);
   int read2b(int addr);*/
 
-  static void load_settings(const char *xml_file);
+  static void load_settings(const std::string &xml_file);
 
 public:
   cJoint();
@@ -95,6 +96,7 @@ public:
   static bool is_all_reaching_goal_pos();
   static void load_joint_name();
   static std::string get_joint_name(int id);
+  inline static void set_setting_file(const std::string &name){ setting_file = name; }
   inline static std::vector<cJoint>& get_joints(){ return joints; }
   inline static cJoint* get_joint(std::string _name){
     for(int i=joints.size()-1;i>=0;i--){

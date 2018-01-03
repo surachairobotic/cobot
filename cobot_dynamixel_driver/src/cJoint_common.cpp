@@ -29,6 +29,7 @@ std::vector<cJoint> cJoint::joints;
 int cJoint::ADDR[32][2] = {{0}};
 int cJoint::mode = -1;
 std::vector<std::string> cJoint::joint_names;
+std::string cJoint::setting_file;
 
 std::string get_attr(TiXmlNode *parent, const char *child_name, const char *attr){
   TiXmlNode *child = parent->FirstChild(child_name);

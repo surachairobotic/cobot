@@ -108,6 +108,15 @@ int main(int argc, char **argv)
     nh.deleteParam("load_joint_name");
     if( b )
       cJoint::load_joint_name();
+      
+    std::string setting_file;
+    nh.getParam("setting_file", setting_file);
+    nh.deleteParam("setting_file");
+    if( setting_file.size()==0 ){
+      ROS_ERROR("No setting_file name found\n");
+      return 0;
+    }
+    cJoint::set_setting_file(setting_file);
   }
 
   try{
