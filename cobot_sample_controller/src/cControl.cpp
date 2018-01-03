@@ -27,6 +27,19 @@ void cControl::init(){
 
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
+
+  {
+    ros::NodeHandle nh("~");
+    std::string dir;
+    nh.getParam("result_dir", dir);
+    nh.deleteParam("result_dir");
+    if( dir.size()==0 ){
+      ROS_ERROR("No result_dir found\n");
+      return 0;
+    }
+    cJoint::set_setting_file(setting_file);
+  }
+
 /*  sub_joints = n.subscribe("joint_states", 10
     , &cControl::joint_states_callback, this);
 
