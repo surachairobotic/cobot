@@ -15,7 +15,7 @@ class cControl{
 
 private:
   bool b_start_sub;
-  std::string group_name, end_effector_name;
+  std::string group_name, end_effector_name, result_dir;
   ros::NodeHandle node_handle;
   ros::AsyncSpinner spinner;
   moveit::planning_interface::MoveGroupInterface move_group;
