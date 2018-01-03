@@ -2,9 +2,10 @@
 #include "ros/ros.h"
 #include "cobot_sample_controller/cControl.h"
 
+std::string result_dir;
 
 bool create_trajectory(cControl &control);
-void print_trajectory(cControl &control, const char *file_name);
+void print_trajectory(cControl &control, const std::string &file_name);
 void move_trajectory(cControl &control);
 
 int main(int argc, char **argv)
@@ -12,12 +13,26 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cobot_sample_controller");
   cControl control("arm", "tool0");
   control.init();
+  
+  {
+    ros::NodeHandle nh("~");
+    std::string dir;
+    nh.getParam("result_dir", dir);
+    nh.deleteParam("result_dir");
+    if( dir.size()==0 ){
+      mythrow("No result_dir found\n");
+    }
+    result_dir = dir;
+    if( dir[dir.size()-1]!='/' )
+      result_dir+= '/';
+  }
+
 
   try{
     if( create_trajectory(control) ){
-      print_trajectory(control, "/home/tong/catkin_ws/temp/traj_original.txt");
+      print_trajectory(control, result_dir + "traj_original.txt");
       control.replan_velocity( 0.05, 0.3);
-      print_trajectory(control, "/home/tong/catkin_ws/temp/traj_const_velo.txt");
+      print_trajectory(control, result_dir + "traj_const_velo.txt");
       move_trajectory(control);
 
 /*      {
@@ -78,11 +93,11 @@ bool create_trajectory(cControl &control){
 }
 
 
-void print_trajectory(cControl &control, const char *file_name){
+void print_trajectory(cControl &control, const std::string &file_name){
   const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
-  FILE *fp = fopen(file_name, "wt");
+  FILE *fp = fopen(file_name.c_str(), "wt");
   if( !fp ){
-    ROS_ERROR("Cannot create file 'traj.txt'\n");
+    ROS_ERROR("Cannot create file result file : %s", file_name.c_str());
   }
   for(int i=0;i<traj.joint_names.size();i++){
     printf("joint : %s\n", traj.joint_names[i].c_str());

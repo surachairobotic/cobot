@@ -28,18 +28,6 @@ void cControl::init(){
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
 
-  {
-    ros::NodeHandle nh("~");
-    std::string dir;
-    nh.getParam("result_dir", dir);
-    nh.deleteParam("result_dir");
-    if( dir.size()==0 ){
-      ROS_ERROR("No result_dir found\n");
-      return 0;
-    }
-    cJoint::set_setting_file(setting_file);
-  }
-
 /*  sub_joints = n.subscribe("joint_states", 10
     , &cControl::joint_states_callback, this);
 
@@ -170,15 +158,13 @@ void cControl::check_goal_state(const std::vector<double> &joints){
   if( goal.name.empty() ){
     const trajectory_msgs::JointTrajectory &traj = get_trajectory();
     if( traj.joint_names.empty() ){
-      ROS_ERROR("cControl::check_goal_state() : trajectory not found\n");
-      throw 0;
+      mythrow("cControl::check_goal_state() : trajectory not found\n");
     }
     goal.name = traj.joint_names;
   }
   if( goal.name.size()!=joints.size() ){
-    ROS_ERROR("cControl::check_goal_state() : joint num does not match : %d / %d\n"
-      , (int)joints.size(), (int)goal.name.size());
-    throw 0;
+    mythrow(std::string("cControl::check_goal_state() : joint num does not match : ") + 
+      tostr((int)joints.size()) + " / " + tostr((int)goal.name.size()));
   }
 }
 
@@ -210,8 +196,7 @@ void cControl::move_velo(const std::vector<double> &joint_velo){
 const std::vector<double> cControl::get_current_joints(){
   moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
   if( !current_state ){
-    ROS_ERROR("cControl::get_current_joints() : cannot get robot state\n");
-    throw 0;
+    mythrow("cControl::get_current_joints() : cannot get robot state\n");
   }
   const robot_state::JointModelGroup *joint_model_group = current_state->getJointModelGroup(group_name);
   current_state->copyJointGroupPositions(joint_model_group, joints);
@@ -234,7 +219,6 @@ const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<dou
   geometry_msgs::Pose pose;
   tf::poseEigenToMsg(e, pose);
   if( pose.position.x<-10000 || pose.position.x>10000 ){
-    ROS_ERROR("cControl::get_cartesian_position() : invalid xyz\n");
     for(int i=0;i<4;i++){
       for(int j=0;j<4;j++){
         printf("%lf ", e.matrix()(i,j));
@@ -242,7 +226,7 @@ const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<dou
       printf("\n");
     }
     print_pose(pose);
-    throw 0;
+    mythrow("cControl::get_cartesian_position() : invalid xyz\n");
   }
   return pose;
 }
@@ -394,8 +378,7 @@ robot_state::RobotState cControl::get_robot_state(const geometry_msgs::Pose &pos
 //  robot_state.setToDefaultValues();
   if( !robot_state.setFromIK( joint_model_group
     , pose, end_effector_name, 5, 0.1) ){
-    ROS_ERROR("cControl::get_robot_state : setFromIK failed\n");
-    throw 0;
+    mythrow("cControl::get_robot_state : setFromIK failed\n");
   }
   return robot_state;
 }

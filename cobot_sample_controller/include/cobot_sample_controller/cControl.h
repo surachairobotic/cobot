@@ -11,6 +11,16 @@
 
 
 
+template <typename T> std::string tostr(const T& t) {
+  std::ostringstream os;
+  os<<t;
+  return os.str();
+}
+
+#define mythrow(str) throw std::string(str) + "\n " +  __FILE__ + ":" + tostr(__LINE__)
+
+
+
 class cControl{
 
 private:
