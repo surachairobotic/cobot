@@ -136,7 +136,8 @@ void cJoint::load_joint_name(){
   for(int i=0;i<r->getJointModelCount();i++){
     const robot_state::JointModel *j = r->getJointModel(i);
     const std::string name = j->getName();
-    if( name.size()==0 || (name[0]!='j' && name[0]!='J') )// name.compare("virtual_joint")==0 )
+    const robot_model::JointModel::JointType type = j->getType();
+    if( name.size()==0 || (name[0]!='j' && name[0]!='J') || type!=robot_model::JointModel::REVOLUTE )// name.compare("virtual_joint")==0 )
       continue;
     ROS_INFO(" - %s", name.c_str());
     joint_names.push_back(name);

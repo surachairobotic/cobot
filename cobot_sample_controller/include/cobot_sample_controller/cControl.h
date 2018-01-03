@@ -52,24 +52,17 @@ public:
   void move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo);
   void move_velo(const std::vector<double> &joint_velo);
 
-
   const geometry_msgs::Pose get_current_pose();
   const std::vector<double> get_current_joints();
   const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
   const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
     , const std::vector<double> &joint_velo);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
-  inline bool is_valid_pose(const geometry_msgs::Pose &pose){
-    try{
-      get_robot_state(pose);
-    }
-    catch(int err){
-      return false;
-    }
-    return true;
-  }
+  bool is_valid_pose(const geometry_msgs::Pose &pose);
   
+  void print_joints(robot_state::RobotState *state);
   static void print_pose(const geometry_msgs::Pose &pose);
+  
 };
 
 #endif

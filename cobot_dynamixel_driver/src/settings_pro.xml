@@ -5,7 +5,7 @@
       <name value="H42_20_S300_R" />
       <model_number value="51200" />
       <!-- degree -->
-      <cw_angle_limit value="0" />
+      <cw_angle_limit value="-180" />
       <ccw_angle_limit value="180" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
@@ -25,7 +25,7 @@
       <name value="H54_100_S500_R" />
       <model_number value="53768" />
       <!-- degree -->
-      <cw_angle_limit value="0" />
+      <cw_angle_limit value="-180" />
       <ccw_angle_limit value="180" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
@@ -45,7 +45,7 @@
       <name value="H54_200_S500_R" />
       <model_number value="54024" />
       <!-- degree -->
-      <cw_angle_limit value="0" />
+      <cw_angle_limit value="-180" />
       <ccw_angle_limit value="180" />
       <!-- 0-1024 -->
       <torque_limit value="900" />

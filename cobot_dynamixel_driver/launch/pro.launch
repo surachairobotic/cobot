@@ -1,0 +1,8 @@
+<launch>
+  <node name="cobot_dynamixel_driver" pkg="cobot_dynamixel_driver" type="cobot_dynamixel_driver_pro" respawn="false" output="screen" >
+    <remap from="cobot_dynamixel_driver/joint_states" to="joint_states"/>
+    <remap from="cobot_dynamixel_driver/goal" to="goal"/>
+    <param name="fake_joints" value="5"/>
+    <param name="load_joint_name" value="true"/>
+  </node>
+</launch>

@@ -15,12 +15,12 @@ int main(int argc, char **argv)
 
   try{
     if( create_trajectory(control) ){
-      print_trajectory(control, "traj_original.txt");
-      control.replan_velocity( 0.2, 0.3);
-//      print_trajectory(control, "traj_const_velo.txt");
-//      move_trajectory(control);
+      print_trajectory(control, "/home/tong/catkin_ws/temp/traj_original.txt");
+      control.replan_velocity( 0.05, 0.3);
+      print_trajectory(control, "/home/tong/catkin_ws/temp/traj_const_velo.txt");
+      move_trajectory(control);
 
-      {
+/*      {
         const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
         printf("\nstart - end point\n");
         const int ii[] = { 0, (int)traj.points.size()-1 };
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
             , pose.position.x, pose.position.y, pose.position.z
             , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
         }
-      }
+      }*/
     }
   }
   catch(int my_error){}
@@ -44,24 +44,21 @@ bool create_trajectory(cControl &control){
   geometry_msgs::Pose start_pose = control.get_current_pose()
     , end_pose = start_pose;
 
-  start_pose.position.y+= 0.01;
-  
-//  end_pose.orientation.w = 1.0;
-  end_pose.position.x = start_pose.position.x + 0.15;
-  end_pose.position.y = start_pose.position.y;
+//  start_pose.position.x+= 0.1;
+
+  end_pose.position.x = start_pose.position.x;
+  end_pose.position.y = start_pose.position.y + 0.1;
   end_pose.position.z = start_pose.position.z;
-/*  end_pose.position.x = 0.28;
-  end_pose.position.y = -0.7;
-  end_pose.position.z = 1.0;
-*/
+
   if( !control.is_valid_pose(start_pose) ){
     ROS_ERROR("Invalid start_pos : ");
     cControl::print_pose(start_pose);
     return false;
   }
+  
   if( !control.is_valid_pose(end_pose) ){
     ROS_ERROR("Invalid end_pos : ");
-    cControl::print_pose(start_pose);
+    cControl::print_pose(end_pose);
     return false;
   }
   
@@ -168,7 +165,15 @@ void move_trajectory(cControl &control){
   ros::Time t_start = ros::Time::now();
   for(int i=1;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
-    printf("waypoint %d\n", i);
+    printf("waypoint %d\njoints : ", i);
+    printf("\nangle : ");
+    for(int j=0;j<p.positions.size();j++)
+      printf(" %.3lf", p.positions[j]);
+    printf("\nvelo : ");
+    for(int j=0;j<p.velocities.size();j++)
+      printf(" %.3lf", p.velocities[j]);
+    printf("\n");
+    
 //    control.move_velo(p.velocities);
     control.move_pos_velo(p.positions, p.velocities);
     bool b_reach;

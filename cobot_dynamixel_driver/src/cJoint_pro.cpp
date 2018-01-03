@@ -140,7 +140,7 @@ void cJoint::load_settings(const char *xml_file){
 void cJoint::set_goal_velo(double rad_per_sec){
   int v = rad_per_sec * velo2val;
   if( v<-this->velocity_limit || v>this->velocity_limit){
-    ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, rad_per_sec);
+    ROS_WARN("[%d] set_goal_velo() : invalid velo : %lf\n", id, rad_per_sec);
     return;
   }
   goal_velo = v;
@@ -149,7 +149,8 @@ void cJoint::set_goal_velo(double rad_per_sec){
 void cJoint::set_goal_pos_velo(double _pos, double _velo){
   int p = _pos * rad2val, v = _velo * velo2val;
   if( p<this->cw_angle_limit || p>this->ccw_angle_limit){
-    ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf\n", id, _pos);
+    ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf , raw = %d (min : %lf, max : %lf)\n"
+      , id, _pos, p, this->cw_angle_limit, this->ccw_angle_limit);
     return;
   }
   else if( v<-this->velocity_limit || v>this->velocity_limit){

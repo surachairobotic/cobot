@@ -174,11 +174,13 @@ void cControl::check_goal_state(const std::vector<double> &joints){
 void cControl::move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo){
   check_goal_state(joint_pos);
   check_goal_state(joint_velo);
+  
   goal.header.stamp = ros::Time::now();
   goal.position = joint_pos;
   goal.velocity = joint_velo;
   goal.effort.clear();
   pub_goal.publish(goal);
+  
 }
 
 void cControl::move_velo(const std::vector<double> &joint_velo){
@@ -209,10 +211,26 @@ const geometry_msgs::Pose cControl::get_current_pose(){
 
 
 const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<double> &joint_pos){
+  robot_state::RobotState robot_state(*move_group.getCurrentState());
+  robot_state.setJointGroupPositions(joint_model_group, joint_pos);
+  const Eigen::Affine3d &e = robot_state.getGlobalLinkTransform(end_effector_name);
+  /*
   kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
-  const Eigen::Affine3d &end_effector_state = kinematic_state->getGlobalLinkTransform(end_effector_name);
+  const Eigen::Affine3d &e = kinematic_state->getGlobalLinkTransform(end_effector_name);
+  */
   geometry_msgs::Pose pose;
-  tf::poseEigenToMsg(end_effector_state, pose);
+  tf::poseEigenToMsg(e, pose);
+  if( pose.position.x<-10000 || pose.position.x>10000 ){
+    ROS_ERROR("cControl::get_cartesian_position() : invalid xyz\n");
+    for(int i=0;i<4;i++){
+      for(int j=0;j<4;j++){
+        printf("%lf ", e.matrix()(i,j));
+      }
+      printf("\n");
+    }
+    print_pose(pose);
+    throw 0;
+  }
   return pose;
 }
 
@@ -316,18 +334,91 @@ void cControl::replan_velocity(double velo, double acc){
 }
 
 robot_state::RobotState cControl::get_robot_state(const geometry_msgs::Pose &pose){
+/*  Eigen::Affine3d e2 = kinematic_state->getGlobalLinkTransform(end_effector_name), end_effector_state;
+  end_effector_state = e2;
+  end_effector_state.translation() << end_effector_state.translation().x() + 0.15
+    , end_effector_state.translation().y(), end_effector_state.translation().z();
+  ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
+  ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
+//  bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+//  ROS_INFO("found : %d", (int)found_ik);
+  */
+  /*
   robot_state::RobotState robot_state(*move_group.getCurrentState());
 //  robot_state.setToDefaultValues();
-  if( !robot_state.setFromIK(joint_model_group, pose, end_effector_name, 5, 0.1) ){
+  if( !robot_state.setFromIK( joint_model_group
+    , pose, end_effector_name, 10, 0.1) ){
+    ROS_ERROR("cControl::get_robot_state : setFromIK failed\n");
+    throw 0;
+  }*/
+  /*
+  robot_state::RobotState robot_state(*move_group.getCurrentState());
+//  robot_state.setToDefaultValues();
+  Eigen::Affine3d pose_eigen;
+  tf::poseMsgToEigen(pose, pose_eigen);
+  for(int i=0;i<4;i++){
+    for(int j=0;j<4;j++){
+      printf("%lf  ", end_effector_state(i,j));
+    }
+    printf("\n");
+  }
+  printf("\n");
+  for(int i=0;i<4;i++){
+    for(int j=0;j<4;j++){
+      if( i==1 && j==0 )
+        pose_eigen(i,j) = end_effector_state(i,j) + 0.00000000001;
+      printf("%lf  ", pose_eigen(i,j));
+    }
+    printf("\n");
+  }
+//  pose_eigen.translation() << end_effector_state.translation().x(), end_effector_state.translation().y(), end_effector_state.translation().z();
+//  pose_eigen.rotation() << end_effector_state.rotation();
+//  pose_eigen = end_effector_state;
+  ROS_INFO_STREAM("Translation 2: " << pose_eigen.translation());
+  ROS_INFO_STREAM("Rotation 2: " << pose_eigen.rotation());*/
+  
+  robot_state::RobotState robot_state(*move_group.getCurrentState());
+//  robot_state.setToDefaultValues();
+  if( !robot_state.setFromIK( joint_model_group
+    , pose, end_effector_name, 5, 0.1) ){
     ROS_ERROR("cControl::get_robot_state : setFromIK failed\n");
     throw 0;
   }
   return robot_state;
 }
 
+bool cControl::is_valid_pose(const geometry_msgs::Pose &pose){
+  try{
+    robot_state::RobotState state = get_robot_state(pose);
+    printf("check valid state\n");
+    print_joints(&state);
+  }
+  catch(int err){
+    return false;
+  }
+  return true;
+}
+
 
 void cControl::print_pose(const geometry_msgs::Pose &pose){
-  printf(" xyz : %.3lf %.3lf %.3lf, xyzw : %.3lf, %.3lf, %.3lf, %.3lf\n"
+  printf(" xyz = [%.3lf, %.3lf, %.3lf], xyzw : [%.3lf, %.3lf, %.3lf, %.3lf]\n"
       , pose.position.x, pose.position.y, pose.position.z
       , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
 }
+
+void cControl::print_joints(robot_state::RobotState *state){
+  const robot_state::JointModelGroup *joint_model_group = state->getJointModelGroup(group_name);
+  const std::vector<std::string> &joint_names = joint_model_group->getJointModelNames();
+  std::vector<double> joint_values;
+  state->copyJointGroupPositions(joint_model_group, joint_values);
+  printf("name : ");
+  for(std::size_t i = 0; i < joint_names.size(); ++i){
+    printf(" %s", joint_names[i].c_str());
+  }
+  printf("\nangle : ");
+  for(std::size_t i = 0; i < joint_values.size(); ++i){
+    printf(" %.3lf", joint_values[i]);
+  }
+  printf("\n");
+}
+
