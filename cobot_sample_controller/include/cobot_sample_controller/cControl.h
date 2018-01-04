@@ -45,7 +45,7 @@ private:
 private:
   void joint_states_callback(const sensor_msgs::JointState::ConstPtr& msg);
   void check_goal_state(const std::vector<double> &joints);
-  robot_state::RobotState get_robot_state(const geometry_msgs::Pose &pose);
+  const robot_state::RobotStatePtr get_robot_state(const geometry_msgs::Pose &pose);
 
 public:
   cControl(const std::string& _group_name, const std::string& _end_effector_name);
@@ -70,7 +70,7 @@ public:
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
   bool is_valid_pose(const geometry_msgs::Pose &pose);
   
-  void print_joints(robot_state::RobotState *state);
+  void print_joints(robot_state::RobotStatePtr state);
   static void print_pose(const geometry_msgs::Pose &pose);
   
 };

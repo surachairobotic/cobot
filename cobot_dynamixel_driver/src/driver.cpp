@@ -90,7 +90,7 @@ int main(int argc, char **argv)
   ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
   ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
   ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(50);
   int fake_joints = 0;
   {
     ros::NodeHandle nh("~");
