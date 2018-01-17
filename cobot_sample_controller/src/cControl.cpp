@@ -245,10 +245,12 @@ const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<dou
 
 const std::vector<double> cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
   , const std::vector<double> &joint_velo){
-  kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
+  robot_state::RobotStatePtr robot_state_tmp = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
+  robot_state_tmp->setJointGroupPositions(joint_model_group, joint_pos);
+//  kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
   Eigen::MatrixXd jacobian;
   Eigen::Vector3d reference_point_position(0.0,0.0,0.0);
-  kinematic_state->getJacobian(joint_model_group, kinematic_state->getLinkModel(end_effector_name),
+  robot_state_tmp->getJacobian(joint_model_group, robot_state_tmp->getLinkModel(end_effector_name),
                              reference_point_position,
                              jacobian);
   Eigen::VectorXd dq(joint_velo.size()), dx;
