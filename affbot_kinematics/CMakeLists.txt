@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(affbot_v10_plane_kinematics)
+project(affbot_kinematics)
 
 add_compile_options(-std=c++11 -g -O0)
 
@@ -50,7 +50,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 ###########
 
 
-set(MOVEIT_LIB_NAME affbot_v10_plane_kinematics)
+set(MOVEIT_LIB_NAME affbot_kinematics)
 
 include_directories(
  include
@@ -59,18 +59,20 @@ include_directories(
 
 
 add_library(${MOVEIT_LIB_NAME} 
-  src/affbot_ik.cpp
-  src/affbot_ik_solver.cpp
-  src/affbot_kinematics_utils.cpp
-  src/affbot_kinematics_plugin.cpp
+  src/affbot_kinematics.cpp
   )
-
-
 target_link_libraries(${MOVEIT_LIB_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
+add_executable(${MOVEIT_LIB_NAME}_exec src/main.cpp)
+target_link_libraries(${MOVEIT_LIB_NAME}_exec
+  ${MOVEIT_LIB_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES}
+)
+
 install(TARGETS ${MOVEIT_LIB_NAME} LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 install(
   FILES
-    affbot_v10_plane_kinematics_plugin_description.xml
+    affbot_kinematics_plugin_description.xml
   DESTINATION
     ${CATKIN_PACKAGE_SHARE_DESTINATION}
     )

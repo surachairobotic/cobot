@@ -1,23 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>affbot_v10_plane_kinematics</name>
+  <name>affbot_kinematics</name>
   <version>0.0.0</version>
-  <description>The affbot_v10_plane_kinematics package</description>
+  <description>The affbot_kinematics package</description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="tong@todo.todo">tong</maintainer>
-
-
-  <!-- One license tag required, multiple allowed, one license per tag -->
-  <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
-
   <buildtool_depend>catkin</buildtool_depend>
-  
   <build_depend>moveit_core</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>kdl_parser</build_depend>
@@ -45,6 +35,6 @@
   <build_export_depend>moveit_core</build_export_depend>
 
   <export>
-    <moveit_core plugin="${prefix}/affbot_v10_plane_kinematics_plugin_description.xml"/>
+    <moveit_core plugin="${prefix}/affbot_kinematics_plugin_description.xml"/>
   </export>
 </package>
