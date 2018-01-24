@@ -123,7 +123,10 @@ protected:
   int dimension_;
   std::vector<std::string> link_names, joint_names;
   std::vector<double> link_lens;
-  tf::Transform tf_origin;
+  std::vector<urdf::Vector3> joint_axis;
+//  std::vector<urdf::Pose> joint_tfs;
+  std::vector<tf::Transform> joint_tfs;
+  tf::Transform tf_origin_inv;
 };
 }
 

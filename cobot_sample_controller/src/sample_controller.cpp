@@ -48,8 +48,8 @@ bool create_trajectory(cControl &control){
 
 //  start_pose.position.x+= 0.1;
 
-  end_pose.position.x = start_pose.position.x;
-  end_pose.position.y = start_pose.position.y + 0.1;
+  end_pose.position.x = start_pose.position.x + 0.1;
+  end_pose.position.y = start_pose.position.y;
   end_pose.position.z = start_pose.position.z;
 
   if( !control.is_valid_pose(start_pose) ){

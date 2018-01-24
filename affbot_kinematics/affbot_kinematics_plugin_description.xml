@@ -1,5 +1,5 @@
-<library path="lib/libaffbot_kinematics_plugin">
-  <class name="affbot_kinematics_plugin/KDLKinematicsPlugin" type="affbot_kinematics_plugin::AffbotKinematicsPlugin" base_class_type="kinematics::KinematicsBase">
+<library path="lib/libaffbot_kinematics">
+  <class name="affbot_kinematics_plugin/KDLKinematicsPlugin" type="affbot_kinematics::AffbotKinematics" base_class_type="kinematics::KinematicsBase">
     <description>
       A implementation of kinematics as a plugin based on KDL.
     </description>
