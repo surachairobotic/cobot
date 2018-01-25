@@ -171,11 +171,18 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-add_executable(cobot_sample_controller src/sample_controller.cpp src/cControl.cpp)
+add_library(cobot_controller_class
+  src/cControl.cpp
+  )
+target_link_libraries(cobot_controller_class ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
+add_executable(cobot_sample_controller src/sample_controller.cpp)
 
 target_link_libraries(cobot_sample_controller
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  cobot_controller_class
 )
 
 #############
