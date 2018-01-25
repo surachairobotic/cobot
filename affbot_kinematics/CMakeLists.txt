@@ -9,10 +9,13 @@ endif()
 
 
 find_package(catkin COMPONENTS
+  std_msgs
+  message_generation
   moveit_core
   pluginlib
   actionlib
   roscpp
+  rospy
   rosconsole
   urdf
   kdl_parser
@@ -21,6 +24,7 @@ find_package(catkin COMPONENTS
   eigen_conversions
   control_msgs
   moveit_msgs
+  trajectory_msgs
 #  pr2_mechanism_msgs
 #  pr2_controllers_msgs
   cmake_modules
@@ -29,9 +33,33 @@ find_package(catkin COMPONENTS
 find_package(Eigen REQUIRED)
 find_package(Boost REQUIRED thread)
 
+## msg, stv ###
+
+
+add_service_files(
+  FILES
+  AffbotPlanning.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  trajectory_msgs
+)
+
+
+
 catkin_package(
   LIBRARIES
   INCLUDE_DIRS
+  CATKIN_DEPENDS
+    message_runtime
+    roscpp
+    rospy
+    std_msgs
+    geometry_msgs
+    trajectory_msgs
   DEPENDS
     moveit_core
 )
@@ -44,6 +72,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 
 link_directories(${Boost_LIBRARY_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
+
 
 ###########
 ## Build ##
