@@ -5,10 +5,11 @@ geometry_msgs/Pose    start_pose
 geometry_msgs/Pose    end_pose
 string                type
 float64               max_velocity
+float64               max_acceleration
+float64               step_time
 
 ---
 
-string[] joint_names
 trajectory_msgs/JointTrajectoryPoint[] points
 int32 error_code
 
