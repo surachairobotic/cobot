@@ -243,10 +243,10 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
     {
       tf::Vector3 xx(x1.x(), x1.y(), 0);
       double len = xx.length();
-      if( len>0.001 ){
+      if( len>0.1 ){
         xx/= len;
-        if( fabs(xx.dot(x2.normalized())) < 0.9999 ){
-          ROS_ERROR("Invalid ee direction : \n ee : %lf %lf %lf\n ax : %lf %lf %lf"
+        if( fabs(xx.dot(x2.normalized())) < 0.9 ){
+          ROS_ERROR("Invalid ee direction : \n tip : %lf %lf %lf\n link : %lf %lf %lf"
               , x1.x(), x1.y(), x1.z(), x2.x(), x2.y(), x2.z());
           return false;
         }
