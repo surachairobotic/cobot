@@ -5,6 +5,7 @@ import os
 import rospy
 import math
 import my_kinematics as kinematics
+import plot_plan
 from affbot_kinematics.srv import *
 from geometry_msgs.msg import Pose
 from affbot_kinematics.msg import *
@@ -34,9 +35,9 @@ def planning(start_pose, end_pose):
     , end_joints=[0.2,0.3,0.7,0.2,0.1]
     , start_pose=start_pose
     , end_pose=end_pose
-    , type="p2p"
-    , max_velocity=math.pi
-    , max_acceleration=math.pi
+    , type="line"
+    , max_velocity=3
+    , max_acceleration=3
     , step_time=0.1)
     return res
   except rospy.ServiceException, e:
@@ -54,4 +55,9 @@ if __name__ == "__main__":
   end_pose = kinematics.get_pose([0.2,0.3,0.7,0.2,0.1])
   
   res = planning(start_pose, end_pose)
-  print(res)
+  if res.error_code==0:
+    plot_plan.plot(res.points)
+  else:
+    print('error : '+str(res.error_code))
+    
+  
