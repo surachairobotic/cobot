@@ -144,11 +144,12 @@ void cJoint::load_settings(const std::string &xml_file){
 }
 
 
-void cJoint::set_goal_velo(double rad_per_sec){
+bool cJoint::set_goal_velo(double rad_per_sec){
   goal_velo = f_velo2val(rad_per_sec);
+  return true;
 }
 
-void cJoint::set_goal_pos_velo(double _pos, double _velo){
+bool cJoint::set_goal_pos_velo(double _pos, double _velo){
   const double PI2 = 2*M_PI;
   while(_pos<0)
     _pos+= PI2;
@@ -157,7 +158,9 @@ void cJoint::set_goal_pos_velo(double _pos, double _velo){
   goal_pos = _pos * rad2val;
   goal_velo = f_velo2val(_velo);
 //  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
+  return true;
 }
+
 
 double cJoint::get_pos() const {
   if( pos < 0 || pos > 4096 ){
@@ -457,8 +460,11 @@ void cJoint::sync_velo(){
     change_mode(MODE_VELOCITY_CONTROL);
   }
   for(int i=0;i<joints.size();i++){
-    const cJoint &j = joints[i];
+    cJoint &j = joints[i];
     bool dxl_addparam_result = false;
+    if( !j.b_goal_velo )
+      continue;
+    j.b_goal_velo = false;
     velo_lh[0] = DXL_LOBYTE(j.goal_velo);
     velo_lh[1] = DXL_HIBYTE(j.goal_velo);
     dxl_addparam_result = group_write_velo->addParam(j.id, velo_lh);
@@ -492,8 +498,11 @@ void cJoint::sync_pos_velo(){
     change_mode(MODE_POSITION_CONTROL);
   }
   for(int i=0;i<joints.size();i++){
-    const cJoint &j = joints[i];
+    cJoint &j = joints[i];
     bool dxl_addparam_result = false;
+    if( !j.b_goal_pos_velo )
+      continue;
+    j.b_goal_pos_velo = false;
     lh[0] = DXL_LOBYTE(j.goal_pos);
     lh[1] = DXL_HIBYTE(j.goal_pos);
     lh[2] = DXL_LOBYTE(j.goal_velo);

@@ -90,6 +90,10 @@ add_service_files(
   FILES
   get_motor_number.srv
 )
+add_service_files(
+  FILES
+  set_home.srv
+)
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs

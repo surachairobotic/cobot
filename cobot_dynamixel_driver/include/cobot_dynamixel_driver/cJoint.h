@@ -15,6 +15,7 @@ enum eADDR{
   P_MODEL_NUMBER,
   P_ID,
   P_OPERATING_MODE,
+  P_HOMING_OFFSET,
   P_RETURN_DELAY_TIME,
   P_CW_ANGLE_LIMIT,
   P_CCW_ANGLE_LIMIT,
@@ -43,6 +44,7 @@ private:
   int pos, velo, current, input_voltage, temperature, load;
   double rad2val, velo2val, acc2val;
   std::string name;
+  bool b_goal_velo, b_goal_pos_velo;
   
   // xml
   std::string motor_name;
@@ -60,6 +62,7 @@ private:
   static int ADDR[32][2];
   static std::vector<std::string> joint_names;
   static std::string setting_file;
+  static bool b_set_home;
 
 private:
   void write(const int param, const int val);
@@ -75,8 +78,8 @@ private:
 public:
   cJoint();
   cJoint(int _id);
-  void set_goal_velo(double rad_per_sec);
-  void set_goal_pos_velo(double _pos, double _velo);
+  bool set_goal_velo(double rad_per_sec);
+  bool set_goal_pos_velo(double _pos, double _velo);
   void print_data() const;
 
   inline int get_id() const { return id; }
@@ -106,6 +109,8 @@ public:
     //ROS_ERROR("invalid joint name : %s\n", _name.c_str());
     return NULL;
   }
+  static void set_home(){ b_set_home = true; }
+  static void reset_goal();
   
 };
 

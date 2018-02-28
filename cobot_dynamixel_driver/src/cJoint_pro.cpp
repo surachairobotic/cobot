@@ -137,36 +137,47 @@ void cJoint::load_settings(const std::string &xml_file){
 }
 
 
-void cJoint::set_goal_velo(double rad_per_sec){
+bool cJoint::set_goal_velo(double rad_per_sec){
   int v = rad_per_sec * velo2val;
+  b_goal_pos_velo = b_goal_velo = false;
   if( v<-this->velocity_limit || v>this->velocity_limit){
     ROS_WARN("[%d] set_goal_velo() : invalid velo : %lf\n", id, rad_per_sec);
-    return;
+    return false;
   }
   goal_velo = v;
+  b_goal_velo = true;
+  return true;
 }
 
-void cJoint::set_goal_pos_velo(double _pos, double _velo){
+bool cJoint::set_goal_pos_velo(double _pos, double _velo){
   int p = _pos * rad2val, v = _velo * velo2val;
+  b_goal_pos_velo = b_goal_velo = false;
   if( p<this->cw_angle_limit || p>this->ccw_angle_limit){
-    ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf , raw = %d (min : %lf, max : %lf)\n"
-      , id, _pos, p, this->cw_angle_limit, this->ccw_angle_limit);
-    return;
+    ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf , raw = %d (min : %.3lf [rad]/ %lf, max : %.3lf [rad]/ %lf)\n"
+      , id, _pos, p
+      , this->cw_angle_limit / rad2val, this->cw_angle_limit
+      , this->ccw_angle_limit / rad2val, this->ccw_angle_limit);
+    return false;
   }
   else if( v<-this->velocity_limit || v>this->velocity_limit){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
-    return;
+    return false;
   }
+  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
   goal_pos = p;
   goal_velo = v;
+  b_goal_pos_velo = true;
 //  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
+  return true;
 }
+
 
 double cJoint::get_pos() const {
 /*  if( pos < this->cw_angle_limit || pos > this->ccw_angle_limit ){
     ROS_ERROR("[%d] get_pos() : invalid pos val : %d\n", id, pos);
     throw 0;
   }*/
+//  ROS_WARN("cpos : %.3lf, %d", pos / rad2val, pos);
   return pos / rad2val;
 }
 
@@ -370,6 +381,8 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_RETURN_DELAY_TIME][1] = 1;
   ADDR[P_OPERATING_MODE][0] = 11;
   ADDR[P_OPERATING_MODE][1] = 1;
+  ADDR[P_HOMING_OFFSET][0] = 13;
+  ADDR[P_HOMING_OFFSET][1] = 4;
   ADDR[P_CW_ANGLE_LIMIT][0] = 40;
   ADDR[P_CW_ANGLE_LIMIT][1] = 4;
   ADDR[P_CCW_ANGLE_LIMIT][0] = 36;
@@ -501,8 +514,11 @@ void cJoint::sync_velo(){
     change_mode(MODE_VELOCITY_CONTROL);
   }
   for(int i=0;i<joints.size();i++){
-    const cJoint &j = joints[i];
+    cJoint &j = joints[i];
     bool dxl_addparam_result = false;
+    if( !j.b_goal_velo )
+      continue;
+    j.b_goal_velo = false;
     velo_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_velo));
     velo_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_velo));
     velo_lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_velo));
@@ -529,8 +545,11 @@ void cJoint::sync_pos_velo(){
     change_mode(MODE_POSITION_CONTROL);
   }
   for(int i=0;i<joints.size();i++){
-    const cJoint &j = joints[i];
+    cJoint &j = joints[i];
     bool dxl_addparam_result = false;
+    if( !j.b_goal_pos_velo )
+      continue;
+    j.b_goal_pos_velo = false;
     lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_pos));
     lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_pos));
     lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_pos));
@@ -579,6 +598,18 @@ bool cJoint::sync_read(){
     j.input_voltage = group_read->getData(j.get_id(), ADDR[P_PRESENT_INPUT_VOLTAGE][0], ADDR[P_PRESENT_INPUT_VOLTAGE][1]);
     j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
   }
+  
+  if( b_set_home ){
+    b_set_home = false;
+    for(int i=0;i<joints.size();i++){
+      cJoint &j = joints[i];
+      j.write( P_TORQUE_ENABLE, 0 );
+      
+      int off = j.read(P_HOMING_OFFSET);
+      j.write( P_HOMING_OFFSET, off-joints[i].pos );
+      j.write( P_TORQUE_ENABLE, 1 );
+    }
+  }
   return true;
 }
 
@@ -589,9 +620,10 @@ void cJoint::change_mode(int _mode){
     return;
   }
   for(int i=0;i<joints.size();i++){
-    joints[i].write( P_TORQUE_ENABLE, 0 );
-    joints[i].write( P_OPERATING_MODE, _mode);
-    joints[i].write( P_TORQUE_ENABLE, 1 );
+    cJoint &j = joints[i];
+    j.write( P_TORQUE_ENABLE, 0 );
+    j.write( P_OPERATING_MODE, _mode);
+    j.write( P_TORQUE_ENABLE, 1 );
   }
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;

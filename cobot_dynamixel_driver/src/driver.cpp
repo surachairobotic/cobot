@@ -15,6 +15,7 @@
 #include "std_msgs/String.h"
 //#include "test_dynamixel/Goal.h"
 #include "cobot_dynamixel_driver/get_motor_number.h"
+#include "cobot_dynamixel_driver/set_home.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 
@@ -33,14 +34,23 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
         if( msg->name.size()!=msg->velocity.size() || msg->name.size()!=msg->position.size() ){
           throw -1;
         }
+        bool b_ok = true;
         for(int i=msg->name.size()-1;i>=0;i--){
           cJoint *j = cJoint::get_joint(std::string(msg->name[i]));
-          if( j )
-            j->set_goal_pos_velo((double)msg->position[i], (double)msg->velocity[i]);
+          if( j ){
+            if( !j->set_goal_pos_velo((double)msg->position[i], (double)msg->velocity[i]) ){
+              b_ok = false;
+              break;
+            }
+          }
           //else
           //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
         }
-        cJoint::sync_pos_velo();
+        if( b_ok ){
+          cJoint::sync_pos_velo();
+        }
+        else
+          cJoint::reset_goal();
       }
       // pos control
       else{
@@ -55,14 +65,22 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg){
       if( msg->name.size()!=msg->velocity.size() ){
         throw -1;
       }
+      bool b_ok = true;
       for(int i=msg->name.size()-1;i>=0;i--){
         cJoint *j = cJoint::get_joint(msg->name[i]);
-        if( j )
-          j->set_goal_velo(msg->velocity[i]);
+        if( j ){
+          if( !j->set_goal_velo(msg->velocity[i]) ){
+            b_ok = false;
+            break;
+          }
+        }
         //else
         //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
       }
-      cJoint::sync_velo();
+      if( b_ok )
+        cJoint::sync_velo();
+      else
+        cJoint::reset_goal();
     }
   }
   catch(int err){
@@ -82,6 +100,11 @@ bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, c
   return true;
 }
 
+bool set_home(cobot_dynamixel_driver::set_home::Request  &req, cobot_dynamixel_driver::set_home::Response &res){
+  cJoint::set_home();
+  return true;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -90,9 +113,10 @@ int main(int argc, char **argv)
   ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
   ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
   ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
+  ros::ServiceServer service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home);
   ros::Rate loop_rate(50);
   int fake_joints = 0;
-  {
+  try{
     ros::NodeHandle nh("~");
     int f = 0;
     nh.getParam("fake_joints", f);
@@ -117,6 +141,11 @@ int main(int argc, char **argv)
       return 0;
     }
     cJoint::set_setting_file(setting_file);
+  }
+  catch(const std::string &err){
+    printf("error\n");
+    ROS_ERROR("%s", err.c_str());
+    return 0;
   }
 
   try{

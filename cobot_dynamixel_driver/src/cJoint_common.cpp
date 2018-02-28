@@ -30,6 +30,7 @@ int cJoint::ADDR[32][2] = {{0}};
 int cJoint::mode = -1;
 std::vector<std::string> cJoint::joint_names;
 std::string cJoint::setting_file;
+bool cJoint::b_set_home = false;
 
 std::string get_attr(TiXmlNode *parent, const char *child_name, const char *attr){
   TiXmlNode *child = parent->FirstChild(child_name);
@@ -56,7 +57,8 @@ double mystof(const std::string &str){
 }
 
 
-cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0){
+cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0)
+, b_goal_velo(false), b_goal_pos_velo(false){
 
   motor_model_number = 0;
   cw_angle_limit = 0;
@@ -133,7 +135,10 @@ void cJoint::load_joint_name(){
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
 
   robot_model::RobotModelPtr r = robot_model_loader.getModel();
-  ROS_INFO("Load joint name : ");
+  if( r==NULL ){
+    ROS_WARN("Set param 'load_joint_name' to 'False' if you don't want to use robot model");
+    mythrow("No robot model found");
+  }
   for(int i=0;i<r->getJointModelCount();i++){
     const robot_state::JointModel *j = r->getJointModel(i);
     const std::string name = j->getName();
@@ -145,5 +150,11 @@ void cJoint::load_joint_name(){
   }
   if( joint_names.empty() ){
     mythrow("No joint found in robot model");
+  }
+}
+
+void cJoint::reset_goal(){
+  for(int i=joints.size()-1;i>=0;i--){
+    joints[i].b_goal_pos_velo = joints[i].b_goal_velo = false;
   }
 }
