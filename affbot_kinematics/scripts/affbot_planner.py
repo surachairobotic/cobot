@@ -347,7 +347,7 @@ def set_joint_limits(robot_desc):
       jl.velocity = lim['max_velocity']
     if lim['has_acceleration_limits']:
       jl.has_acceleration = True
-      jl.acceleration = lim['has_acceleration_limits']
+      jl.acceleration = lim['max_acceleration']
     joint_limits.append(jl)
 
 
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     rospy.logerr('Cannot load robot description')
     exit()
   set_joint_limits(robot_desc)
-#  print(str(joint_limits))
+  print(str(joint_limits))
   
   if hasattr(robot_desc.joints[0], 'origin') and hasattr(robot_desc.joints[0].origin, 'xyz'):
     origin_xyz = robot_desc.joints[0].origin.xyz
