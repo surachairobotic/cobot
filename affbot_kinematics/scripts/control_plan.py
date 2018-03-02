@@ -50,21 +50,24 @@ def planning(start_pose, end_pose):
 serial_buf = ''
 def serial_read(ser):
   global serial_buf
-  c = ser.read().decode()
-  while len(c)>0:
-    if c=='\n' or c=='\r':
-      if len(serial_buf)>0:
-        b = serial_buf
-        serial_buf = ''
-        print('READ : ' + b)
-        return b
-    else:
-      serial_buf+= c
-    c = ser.read().decode()
+  c = ser.read()
+  if len(c)>0 and ord(c)<128:
+    c = c.decode()
+    while len(c)>0:
+      if c=='\n' or c=='\r':
+        if len(serial_buf)>0:
+          b = serial_buf
+          serial_buf = ''
+          print('READ : ' + b)
+          return b
+      else:
+        serial_buf+= c
+      c = ser.read().decode()
   return ''
 
 
 if __name__ == "__main__":
+  rospy.init_node('control_plan')
   '''
   print("waiting 'affbot_planning'")
   rospy.wait_for_service('affbot_planning')
@@ -79,7 +82,7 @@ if __name__ == "__main__":
   
   try:
     ser = serial.Serial()
-    ser.port = "/dev/ttyUSB0"
+    ser.port = "/dev/ttyACM0"
     ser.baudrate = 115200
     ser.timeout = 0.001
     ser.writeTimeout = 1
@@ -100,18 +103,28 @@ if __name__ == "__main__":
           v.append(float(vals[i]))
         points.append(v)
         line = f.readline()
-    print(len(points))
-    
     
     t_start = rospy.Time.now()
+    t_prev = 0
     for p in points:
-      t = p[0] - 0.05
-      while t < (rospy.Time.now() - t_start).to_sec():
+      p[0]*=1
+      print('t = {0}, pos = {1}'.format(p[0], p[1]))
+      t = p[0]# - 0.05
+      while t > (rospy.Time.now() - t_start).to_sec() and not rospy.is_shutdown():
         serial_read(ser)
-        sleep(0.001)
-      
-      ser.write('{0} {1} {2} \n'.format(p[1], p[6], p[0]))
-        
+        rospy.sleep(0.001)
+      if rospy.is_shutdown():
+        print('ros shutdown')
+        break
+      cmd = 'p{0} {1} {2} '.format(p[1], p[6], p[0] - t_prev)
+      t_prev= p[0]
+      ser.write(cmd + '\n')
+      print(cmd)
+    
+    print('end')
+    while not rospy.is_shutdown():
+      serial_read(ser)
+      rospy.sleep(0.001)
   except KeyboardInterrupt:
     print('SIGINT')
   except Exception as e:
