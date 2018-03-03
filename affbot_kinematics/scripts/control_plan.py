@@ -43,8 +43,8 @@ def planning(start_pose, end_pose):
     , max_acceleration=3
     , step_time=0.1)
     return res
-  except rospy.ServiceException, e:
-    print "Service call failed: %s"%e
+  except rospy.ServiceException as e:
+    print("Service call failed: %s"%e)
 
 
 serial_buf = ''
@@ -73,16 +73,17 @@ if __name__ == "__main__":
   rospy.wait_for_service('affbot_planning')
   srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
   kinematics.init()
-  
+
   print('start')
   start_pose =   kinematics.get_pose([0,0,0,0,0])
   end_pose = kinematics.get_pose([0.2,0.3,0.7,0.2,0.1])
   res = planning(start_pose, end_pose)
   '''
-  
+
   try:
     ser = serial.Serial()
-    ser.port = "/dev/ttyACM0"
+    ser.port = "COM5"
+#    ser.port = "/dev/ttyACM0"
     ser.baudrate = 115200
     ser.timeout = 0.001
     ser.writeTimeout = 1
@@ -103,7 +104,7 @@ if __name__ == "__main__":
           v.append(float(vals[i]))
         points.append(v)
         line = f.readline()
-    
+
     t_start = rospy.Time.now()
     t_prev = 0
     for p in points:
@@ -120,7 +121,7 @@ if __name__ == "__main__":
       t_prev= p[0]
       ser.write(cmd + '\n')
       print(cmd)
-    
+
     print('end')
     while not rospy.is_shutdown():
       serial_read(ser)
@@ -131,7 +132,3 @@ if __name__ == "__main__":
     print(e)
   finally:
     ser.close()
-    
-    
-    
-    
