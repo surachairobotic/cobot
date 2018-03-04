@@ -10,9 +10,9 @@ serial_buf = ''
 def serial_read(ser):
   global serial_buf
   c = ser.read()
-  if len(c)>0 and ord(c)<128:
-    c = c.decode()
-    while len(c)>0:
+  while len(c)>0:
+    if ord(c)<128:
+      c = c.decode()
       if c=='\n' or c=='\r':
         if len(serial_buf)>0:
           b = serial_buf
@@ -21,7 +21,7 @@ def serial_read(ser):
           return b
       else:
         serial_buf+= c
-      c = ser.read().decode()
+    c = ser.read()
   return ''
 
 def wait_start(ser):
@@ -31,11 +31,14 @@ def wait_start(ser):
 
 def record_result(f, msg, t):
   if len(msg)<2 or msg[0]!='<' or msg[-1]!='>':
-    return
-  arr = msg.split(' ')
+    return None
+  arr = msg[1:-1].split(' ')
   if len(arr)!=4:
-    return
+    print('invalid data : '+msg)
+    return None
   f.write(msg[1:-1] + '\n')
+  return float(arr[0])
+
 
 if __name__ == "__main__":
 
@@ -65,11 +68,10 @@ if __name__ == "__main__":
 
 
     wait_start(ser)
-    t_start = time.time()
     t_prev = 0
-
     max_stack = 10
     with open('plan_result.txt', 'wt') as fw:
+      t_start = time.time()
       for i in range(len(points)):
         p = points[i]
         p[0]*=1
@@ -90,8 +92,11 @@ if __name__ == "__main__":
             time.sleep(0.01)
         else:
           record_result(fw, serial_read(ser), time.time()-t_start)
-      while time.time()-t_start < points[-1][0] + 0.5:
+      while 1:
         time.sleep(0.01)
+        t = record_result(fw, serial_read(ser), time.time()-t_start)
+        if t is not None and t > points[-1][0] + 0.5:
+          break
     print('end')
     '''
     while 1:
@@ -100,7 +105,5 @@ if __name__ == "__main__":
     '''
   except KeyboardInterrupt:
     print('SIGINT')
-  except Exception as e:
-    print(e)
   finally:
     ser.close()
