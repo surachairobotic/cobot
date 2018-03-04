@@ -39,8 +39,9 @@ if __name__ == "__main__":
   plan_t = plans[:,0]
   plan_q = plans[:,1]
   f, axarr = plt.subplots(2, sharex=True)
-  axarr[0].hold(True)
-  axarr[1].hold(True)
+  for i in range(2):
+    axarr[i].grid(linestyle='-', linewidth=2)
+    axarr[i].hold(True)
   axarr[0].plot(t, q, '+-', t, qt, 'g+-', plan_t, plan_q, 'r+-')
   axarr[1].plot(t, dq, '+-')
   axarr[0].set_xlim([0, t[-1]])

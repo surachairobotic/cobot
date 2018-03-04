@@ -128,7 +128,5 @@ if __name__ == "__main__":
       rospy.sleep(0.001)
   except KeyboardInterrupt:
     print('SIGINT')
-  except Exception as e:
-    print(e)
   finally:
     ser.close()

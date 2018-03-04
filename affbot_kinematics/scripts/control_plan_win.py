@@ -33,9 +33,9 @@ def record_result(f, msg, t):
   if len(msg)<2 or msg[0]!='<' or msg[-1]!='>':
     return
   arr = msg.split(' ')
-  if len(arr)!=3:
+  if len(arr)!=4:
     return
-  f.write(str(t)+' '+msg[1:-1] + '\n')
+  f.write(msg[1:-1] + '\n')
 
 if __name__ == "__main__":
 
@@ -90,7 +90,8 @@ if __name__ == "__main__":
             time.sleep(0.01)
         else:
           record_result(fw, serial_read(ser), time.time()-t_start)
-
+      while time.time()-t_start < points[-1][0] + 0.5:
+        time.sleep(0.01)
     print('end')
     '''
     while 1:
