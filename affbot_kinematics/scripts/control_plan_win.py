@@ -17,7 +17,8 @@ def serial_read(ser):
         if len(serial_buf)>0:
           b = serial_buf
           serial_buf = ''
-          print('READ : ' + b)
+          print(b)
+#          print('READ : ' + b)
           return b
       else:
         serial_buf+= c
@@ -25,8 +26,10 @@ def serial_read(ser):
   return ''
 
 def wait_start(ser):
+  print('wait start')
   while 1:
       if serial_read(ser)=='start':
+        print('start')
         return
 
 def record_result(f, msg, t):
@@ -43,13 +46,6 @@ def record_result(f, msg, t):
 if __name__ == "__main__":
 
   try:
-    ser = serial.Serial()
-    ser.port = "COM5"
-#    ser.port = "/dev/ttyACM0"
-    ser.baudrate = 57600
-    ser.timeout = 0.001
-    ser.writeTimeout = 1
-    ser.open()
 
     val_num = 17
     points = []
@@ -67,6 +63,13 @@ if __name__ == "__main__":
         line = f.readline()
 
 
+    ser = serial.Serial()
+#    ser.port = "COM5"
+    ser.port = "/dev/ttyACM0"
+    ser.baudrate = 57600
+    ser.timeout = 0.001
+    ser.writeTimeout = 1
+    ser.open()
     wait_start(ser)
     t_prev = 0
     max_stack = 10
