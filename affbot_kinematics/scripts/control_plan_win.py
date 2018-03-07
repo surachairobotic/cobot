@@ -62,6 +62,9 @@ if __name__ == "__main__":
         points.append(v)
         line = f.readline()
 
+    print(len(points))
+    print(points[-1][0])
+    
 
     ser = serial.Serial()
 #    ser.port = "COM5"

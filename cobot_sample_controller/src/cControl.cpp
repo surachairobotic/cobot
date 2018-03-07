@@ -411,7 +411,7 @@ bool cControl::is_valid_pose(const geometry_msgs::Pose &pose){
     print_pose(pose);
     return false;
   }*/
-  for(int i=0;i<10;i++){
+  for(int i=0;i<5;i++){
     try{
       const robot_state::RobotStatePtr state = get_robot_state(pose);
       printf("check valid state\n");

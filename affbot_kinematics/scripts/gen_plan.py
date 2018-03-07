@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import math
 
-dt = 0.1
+dt = 0.05
 t = 0
 
 with open('plan2.txt', 'wt') as f:
-  for i in range(100):
+  for i in range(400):
     amp = 3
     ft = math.pi/2
     q = amp*math.sin(t*ft)

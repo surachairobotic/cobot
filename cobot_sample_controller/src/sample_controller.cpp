@@ -48,7 +48,7 @@ bool create_trajectory(cControl &control){
 
 //  start_pose.position.x+= 0.1;
 
-  end_pose.position.x = start_pose.position.x + 0.1;
+  end_pose.position.x = start_pose.position.x + 0.2;
   end_pose.position.y = start_pose.position.y;
   end_pose.position.z = start_pose.position.z;
 
@@ -69,7 +69,8 @@ bool create_trajectory(cControl &control){
   ROS_INFO("end pose : ");
   cControl::print_pose(end_pose);
   
-  bool b = control.plan_p2p(start_pose, end_pose);
+  bool b = control.plan_line(start_pose, end_pose, 0.01);
+//  bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
     printf("Trajectory has been created successfully.\n\n");
   }

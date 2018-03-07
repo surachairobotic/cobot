@@ -25,6 +25,8 @@
 #define MODEL_H54_100_S500_R     53768
 #define MODEL_H54_200_S500_R     54024
 
+#define VELOCITY_LIMIT    3.14
+
 
 /*
 
@@ -515,6 +517,13 @@ void cJoint::sync_velo(){
   }
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
+    if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ){
+      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, j.goal_velo / j.velo2val );
+      return;
+    }
+  }
+  for(int i=0;i<joints.size();i++){
+    cJoint &j = joints[i];
     bool dxl_addparam_result = false;
     if( !j.b_goal_velo )
       continue;
@@ -543,6 +552,14 @@ void cJoint::sync_pos_velo(){
   uint8_t lh[8];
   if( mode!=MODE_POSITION_CONTROL ){
     change_mode(MODE_POSITION_CONTROL);
+  }
+  
+  for(int i=0;i<joints.size();i++){
+    cJoint &j = joints[i];
+    if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ){
+      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, j.goal_velo / j.velo2val );
+      return;
+    }
   }
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
