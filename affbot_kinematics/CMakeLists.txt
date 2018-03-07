@@ -39,6 +39,7 @@ find_package(Boost REQUIRED thread)
 add_service_files(
   FILES
   AffbotPlanning.srv
+  AffbotSetZero.srv
 )
 
 generate_messages(

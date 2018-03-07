@@ -19,8 +19,6 @@ compute_fk = None
 compute_ik = None
 
 
-
-
 def get_pose(ang):
   global JOINT_NAME, compute_fk
   header = Header()

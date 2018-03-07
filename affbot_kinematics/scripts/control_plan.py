@@ -8,21 +8,20 @@ import time
 import my_kinematics as kinematics
 import plot_plan
 import serial
+import copy
 from affbot_kinematics.srv import *
-from geometry_msgs.msg import Pose
 from affbot_kinematics.msg import *
+from geometry_msgs.msg import Pose
 
-from moveit_msgs.msg import RobotState
-from moveit_msgs.srv import GetPositionFK
-from moveit_msgs.srv import GetPositionIK
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
 
-
 srv_planning = None
-joint_names = kinematics.joint_names
-
+start_joints = None
+sub_joint_state = None
+ser = None
+serial_buf = ''
 
 def planning(start_pose, end_pose):
   global srv_planning, joint_names
@@ -47,13 +46,12 @@ def planning(start_pose, end_pose):
     print("Service call failed: %s"%e)
 
 
-serial_buf = ''
-def serial_read(ser):
-  global serial_buf
+def serial_read():
+  global serial_buf, ser
   c = ser.read()
-  if len(c)>0 and ord(c)<128:
-    c = c.decode()
-    while len(c)>0:
+  while len(c)>0:
+    if ord(c)<128:
+      c = c.decode()
       if c=='\n' or c=='\r':
         if len(serial_buf)>0:
           b = serial_buf
@@ -62,71 +60,87 @@ def serial_read(ser):
           return b
       else:
         serial_buf+= c
-      c = ser.read().decode()
+    c = ser.read()
   return ''
 
 
+def callback_joint_state(joints):
+  global sub_joint_state, start_joints
+  start_joints = copy.deepcopy(joints)
+  sub_joint_state.unregister()
+  sub_joint_state = None
+  
+
 if __name__ == "__main__":
-  rospy.init_node('control_plan')
-  '''
-  print("waiting 'affbot_planning'")
-  rospy.wait_for_service('affbot_planning')
-  srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
-  kinematics.init()
-
-  print('start')
-  start_pose =   kinematics.get_pose([0,0,0,0,0])
-  end_pose = kinematics.get_pose([0.2,0.3,0.7,0.2,0.1])
-  res = planning(start_pose, end_pose)
-  '''
-
   try:
-    ser = serial.Serial()
-    ser.port = "COM5"
-#    ser.port = "/dev/ttyACM0"
-    ser.baudrate = 115200
-    ser.timeout = 0.001
-    ser.writeTimeout = 1
-    ser.open()
-
-
-    val_num = 17
-    points = []
-    with open('plan.txt', 'rt') as f:
-      line = f.readline()
-      while line:
-        vals = line.split(' ')
-        if len(vals)!=val_num:
-          print('invalid val num : ' + str(len(vals)))
-          exit()
-        v = []
-        for i in range(val_num-1):
-          v.append(float(vals[i]))
-        points.append(v)
-        line = f.readline()
-
-    t_start = rospy.Time.now()
-    t_prev = 0
-    for p in points:
-      p[0]*=1
-      print('t = {0}, pos = {1}'.format(p[0], p[1]))
-      t = p[0]# - 0.05
-      while t > (rospy.Time.now() - t_start).to_sec() and not rospy.is_shutdown():
-        serial_read(ser)
-        rospy.sleep(0.001)
+    if len(sys.argv)!=5:
+      print('param num has to be 6 : ' + str(len(sys.argv)))
+      exit()
+    move_type = sys.argv[1]
+    if move_type!='line' and move_type!='p2p':
+      print('move type has to be \'p\' or \'l\')
+      exit()
+    xyz = []
+    try:
+      for i in range(3):
+        xyz.append(float(sys.argv[i+2]))
+      velo = float(sys.argv[5])
+    except ValueError:
+      print('invalid value : ' + str(sys.argv[2:-1]))
+      exit()
+    
+    rospy.init_node('control_plan')
+    print("waiting 'affbot_planning'")
+    rospy.wait_for_service('affbot_planning')
+    srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
+    sub_joint_state = rospy.Subscriber("/joint_state", JointState, callback_joint_state)
+    kinematics.init()
+    
+    target_pose = Pose()
+    target_pose.position.x = xyz[0]
+    target_pose.position.y = xyz[1]
+    target_pose.position.z = xyz[2]
+    target_pose.orientation.x = 0
+    target_pose.orientation.y = 0
+    target_pose.orientation.z = 0
+    target_pose.orientation.w = 1
+    
+    while sub_joint_state is not None and not :
+      rospy.sleep(0.01)
       if rospy.is_shutdown():
-        print('ros shutdown')
-        break
-      cmd = 'p{0} {1} {2} '.format(p[1], p[6], p[0] - t_prev)
-      t_prev= p[0]
-      ser.write(cmd + '\n')
-      print(cmd)
+        exit()
+    
+    start_pose = kinematics.get_pose(start_joints.position)
+    res = srv_planning(joint_names=[]
+      , start_joints=[]
+      , end_joints=[]
+      , start_pose=start_pose
+      , end_pose=target_pose
+      , type=move_type
+      , max_velocity=velo
+      , max_acceleration=3
+      , step_time=0.1)
+    if res.error_code!=0:
+      print('planning error : '+str(res.error_code))
+      exit()
+    
+    t_prev = 0
+    max_stack = 10
+    t_start = time.time()
+    points = res.points
+    for i in range(len(points)):
+      p = points[i]
+      t = p.time_from_start.to_sec()
 
-    print('end')
-    while not rospy.is_shutdown():
-      serial_read(ser)
-      rospy.sleep(0.001)
-  except KeyboardInterrupt:
-    print('SIGINT')
+      cmd = 'p%.3f %.3f %.3f ' % (p.positions[0], p.velocities[0], t)
+      t_prev= t
+      ser.write((cmd + '\n').encode('ascii','ignore'))
+      if i>=max_stack-1:
+        while time.time()-t_start < points[i-max_stack+1].positions[0]:
+          serial_read()
+          time.sleep(0.01)
+      else:
+        serial_read()
   finally:
-    ser.close()
+    if ser is not None:
+      ser.close()
