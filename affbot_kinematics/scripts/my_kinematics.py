@@ -76,3 +76,26 @@ def init():
   rospy.wait_for_service('compute_ik')
   compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
 
+if __name__ == "__main__":
+  if len(sys.argv)<=1:
+    exit()
+  init()
+  if sys.argv[1]=='fk':
+    if len(sys.argv)!=7:
+      print('FK param num has to be 7')
+      exit()
+    ang = []
+    for i in range(5):
+      ang.append(float(sys.argv[i+2]))
+    print(get_pose(ang))
+  elif sys.argv[1]=='ik':
+    if len(sys.argv)!=5:
+      print('IK param num has to be 5')
+      exit()
+    xyz = []
+    for i in range(3):
+      xyz.append(float(sys.argv[i+2]))
+    print(get_joints(xyz))
+    
+  
+  

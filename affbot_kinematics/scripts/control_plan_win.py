@@ -17,8 +17,7 @@ def serial_read(ser):
         if len(serial_buf)>0:
           b = serial_buf
           serial_buf = ''
-          print(b)
-#          print('READ : ' + b)
+          print('READ : ' + b)
           return b
       else:
         serial_buf+= c
@@ -88,7 +87,8 @@ if __name__ == "__main__":
           serial_read(ser)
           time.sleep(0.001)
         '''
-        cmd = 'p%.3f %.3f %.3f ' % (p[1], p[6], p[0])# - t_prev)
+        #cmd = 'p%.3f %.3f %.3f ' % (p[1], p[6], p[0])# - t_prev)
+        cmd = 'p%.3f %.3f ' % (p[1], p[0])# - t_prev)
         t_prev= p[0]
         ser.write((cmd + '\n').encode('ascii','ignore'))
         # print(cmd)

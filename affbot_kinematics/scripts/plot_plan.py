@@ -25,6 +25,19 @@ import matplotlib.pyplot as plt
 
 
 
+def save(file_name, points):
+  with open(file_name, 'wt') as f:
+    for p in points:
+      s = str(p.time_from_start.to_sec()) + ' '
+      for v in p.positions:
+        s+= str(v) + ' '
+      for v in p.velocities:
+        s+= str(v) + ' '
+      for v in p.accelerations:
+        s+= str(v) + ' '
+      f.write(s + '\n')
+    print('\'plan.txt\' saved.')
+
 
 def plot(points):
   pos = []

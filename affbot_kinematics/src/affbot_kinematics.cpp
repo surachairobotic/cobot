@@ -293,6 +293,10 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
         , b = acos(cos_b);
 //    if( C - A*cos_a < 0.0 )
 //      b = M_PI - b;
+    if( fabs(cos_a)>1 || fabs(cos_b)>1 ){
+      ROS_ERROR("Invalid A,B angle : cos_a = %.3lf, cos_b = %.3lf", cos_a, cos_b);
+      return false;
+    }
     ROS_INFO("err : %lf , %lf", A*sin(a) - B*sin(b), A*cos(a) + B*cos(b) - C);
     ROS_INFO("cos: %lf , %lf , %lf , %lf", cos_a, a, cos_b, b);
     ROS_INFO("cos err: %lf , %lf", cos_a - cos(a), cos_b - cos(b));
