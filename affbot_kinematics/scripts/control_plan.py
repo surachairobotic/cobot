@@ -43,7 +43,7 @@ def wait_start():
           exit()
   print('wait start failed')
   exit()
-        
+
 def serial_read():
   global serial_buf, ser, enable_ser
   if not enable_ser:
@@ -69,7 +69,7 @@ def callback_joint_state(joints):
   start_joints = copy.deepcopy(joints)
   sub_joint_state.unregister()
   sub_joint_state = None
-  
+
 
 if __name__ == "__main__":
   try:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     if move_type!='line' and move_type!='p2p':
       print('move type has to be \'p\' or \'l\'')
       exit()
-    
+
     target_pose = Pose()
     end_joints = []
     joint_names = []
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     except ValueError:
       print('invalid value : ' + str(sys.argv[2:-1]))
       exit()
-      
+
     if enable_ser:
       ser = serial.Serial()
   #    ser.port = "COM5"
@@ -119,20 +119,20 @@ if __name__ == "__main__":
       ser.writeTimeout = 1
       ser.open()
       wait_start()
-    
+
     rospy.init_node('control_plan')
     print("waiting 'affbot_planning'")
     rospy.wait_for_service('affbot_planning')
     srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
     sub_joint_state = rospy.Subscriber("/joint_states", JointState, callback_joint_state)
     kinematics.init()
-    
+
     print('waiting current joint state')
     while sub_joint_state is not None:
       rospy.sleep(0.01)
       if rospy.is_shutdown():
         exit()
-    
+
     if target_type=='joint':
       start_joints = start_joints.position
       start_pose = Pose()
@@ -152,17 +152,20 @@ if __name__ == "__main__":
     if res.error_code!=0:
       print('planning error : '+str(res.error_code))
       exit()
-    
+
     t_prev = 0
     max_stack = 10
     points = res.points
     plot_plan.save('plan.txt', points)
-    
+
     print('start moving')
     t_start = time.time()
     for i in range(len(points)):
       p = points[i]
-      t = p.time_from_start.to_sec()
+      if i>0:
+        t = p.time_from_start.to_sec() - points[i-1].time_from_start.to_sec()
+      else:
+        t = p.time_from_start.to_sec()
 #      cmd = 'p%.3f %.3f %.3f ' % ( (p.positions[0] - joint_offset[0])/joint_gear_ratio[0], p.velocities[0], t)
       cmd = 'p'
       q_motor = joint2motor(p.positions)
