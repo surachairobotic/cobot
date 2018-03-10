@@ -18,10 +18,11 @@ def plan(req, joint_limits, joint_names, origin_xyz):
   if len(req.joint_names)>0:
     if req.joint_names!=joint_names:
       raise affbot_planner.MyException('Joint names does not match  : {0}'.format(req.joint_names))
-      
+    '''
     for i in range(len(req.joint_names)):
       if req.joint_names[i] not in joint_names:
         raise affbot_planner.MyException('Unknown joint name : ' + req.joint_names[i])
+    '''
     start_pose = kinematics.get_pose(req.start_joints)
     if start_pose is None:
       raise affbot_planner.MyExceptionr('Invalid start joints')

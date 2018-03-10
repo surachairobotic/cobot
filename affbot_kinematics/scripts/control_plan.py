@@ -9,6 +9,7 @@ import my_kinematics as kinematics
 import plot_plan
 import serial
 import copy
+import lib_controller
 from convert_motor_angle import joint2motor
 from affbot_kinematics.srv import *
 from affbot_kinematics.msg import *
@@ -18,11 +19,15 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
 enable_ser = True
+b_1_motor = True
+motor_id = 0
 
 srv_planning = None
 start_joints = None
 sub_joint_state = None
 ser = None
+
+'''
 serial_buf = ''
 
 def wait_start():
@@ -62,7 +67,7 @@ def serial_read():
         serial_buf+= c
     c = ser.read()
   return ''
-
+'''
 
 def callback_joint_state(joints):
   global sub_joint_state, start_joints
@@ -73,25 +78,26 @@ def callback_joint_state(joints):
 
 if __name__ == "__main__":
   try:
-    if len(sys.argv)<=6:
-      print('param num has to be larger than 6 : ' + str(len(sys.argv)))
+    if len(sys.argv)<3:
+      print('param num has to be larger than 2 : ' + str(len(sys.argv)))
       exit()
     move_type = sys.argv[1]
-    if move_type!='line' and move_type!='p2p':
-      print('move type has to be \'p\' or \'l\'')
-      exit()
-
     target_pose = Pose()
     end_joints = []
     joint_names = []
     target_type = sys.argv[2]
+    
+    if move_type!='line' and move_type!='p2p':
+      print('move type has to be \'p\' or \'l\'')
+      exit()
+
     try:
       if target_type=='joint':
         for i in range(5):
           end_joints.append(float(sys.argv[i+3]))
           joint_names.append('J'+str(i+1))
         velo = float(sys.argv[8])
-      elif target_type!='xyz':
+      elif target_type=='xyz':
         xyz = []
         for i in range(3):
           xyz.append(float(sys.argv[i+3]))
@@ -103,6 +109,17 @@ if __name__ == "__main__":
         target_pose.orientation.z = 0
         target_pose.orientation.w = 0
         velo = float(sys.argv[6])
+      elif target_type=='home' or target_type=='zero':
+        if target_type=='home':
+          end_joints = lib_controller.q_start
+        else:
+          end_joints = [0.0,0.0,0.0,0.0,0.0]
+        for i in range(5):
+          joint_names.append('J'+str(i+1))
+        if len(sys.argv)>=4:
+          velo = float(sys.argv[3])
+        else:
+          velo = 0.5
       else:
         print('target type has to be \'joint\' or \'xyz\'')
         exit()
@@ -110,6 +127,7 @@ if __name__ == "__main__":
       print('invalid value : ' + str(sys.argv[2:-1]))
       exit()
 
+    '''
     if enable_ser:
       ser = serial.Serial()
   #    ser.port = "COM5"
@@ -119,6 +137,18 @@ if __name__ == "__main__":
       ser.writeTimeout = 1
       ser.open()
       wait_start()
+    '''
+    if enable_ser:
+      ser = lib_controller.MySerial("/dev/ttyACM0", 57600)
+      if b_1_motor:
+        ser.wait_start('controller_pos_velo')
+        ser.set_limit(motor_id, True)
+        ser.set_gear_microstep(motor_id, True)
+      else:
+        ser.wait_start('central_mega')
+        for i in range(5):
+          ser.set_limit(i, False)
+          ser.set_gear_microstep(i, False)
 
     rospy.init_node('control_plan')
     print("waiting 'affbot_planning'")
@@ -133,13 +163,12 @@ if __name__ == "__main__":
       if rospy.is_shutdown():
         exit()
 
-    if target_type=='joint':
-      start_joints = start_joints.position
-      start_pose = Pose()
-    else:
+    if target_type=='xyz':
       start_pose = kinematics.get_pose(start_joints.position)
       start_joints = []
-    print('start planning')
+    else:
+      start_joints = start_joints.position
+      start_pose = Pose()
     res = srv_planning(joint_names=joint_names
       , start_joints=start_joints
       , end_joints=end_joints
@@ -157,6 +186,9 @@ if __name__ == "__main__":
     max_stack = 10
     points = res.points
     plot_plan.save('plan.txt', points)
+    
+    #plot_plan.plot(points)
+    #exit()
 
     print('start moving')
     t_start = time.time()
@@ -166,27 +198,30 @@ if __name__ == "__main__":
         t = p.time_from_start.to_sec() - points[i-1].time_from_start.to_sec()
       else:
         t = p.time_from_start.to_sec()
-#      cmd = 'p%.3f %.3f %.3f ' % ( (p.positions[0] - joint_offset[0])/joint_gear_ratio[0], p.velocities[0], t)
+      
+      ser.set_target(t, p.positions, b_1_motor)
+      '''
       cmd = 'p'
       q_motor = joint2motor(p.positions)
       for i in range(1):# range(len(p.positions)):
         cmd+= '%.3f %.3f ' % ( q_motor[i], t )
-      t_prev= t
       if enable_ser:
         ser.write((cmd + '\n').encode('ascii','ignore'))
       print(cmd)
+      t_prev= t
+      '''
       if i>=max_stack-1:
         while time.time()-t_start < points[i-max_stack+1].positions[0]:
-          serial_read()
+          ser.serial_read()
           time.sleep(0.01)
           if rospy.is_shutdown():
             exit()
       else:
-        serial_read()
+        ser.serial_read()
       if rospy.is_shutdown():
         exit()
 #    plot_plan.plot(points)
 
   finally:
     if ser is not None:
-      ser.close()
+      ser.ser.close()

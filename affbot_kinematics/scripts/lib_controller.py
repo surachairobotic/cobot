@@ -23,13 +23,13 @@ q_start = [90.0 * math.pi/180.0
   , 0 * math.pi/180.0 ]
 '''
 
-deg2rad = math.pi/180
+DEG2RAD = math.pi/180
 
 GEAR_RATIO = [100.0, 88.0, 37.5, 2.0, 2.0]
 MICROSTEP = [1600, 1600, 1600, 1600, 1600]
-MOTOR_MIN_ANG = [0, 0, -150*deg2rad, 0, -360*deg2rad]
-MOTOR_MAX_ANG = [ 180*deg2rad,  120*deg2rad, 0,  260*deg2rad,  360**deg2rad]
-MOTOR_MAX_VELO = [ 60*deg2rad,  60**deg2rad, 60*deg2rad, 90*deg2rad, 90*deg2rad]
+MOTOR_MIN_ANG = [0, 0, -150*DEG2RAD, 0, -360*DEG2RAD]
+MOTOR_MAX_ANG = [ 180*DEG2RAD,  120*DEG2RAD, 0,  260*DEG2RAD,  360**DEG2RAD]
+MOTOR_MAX_VELO = [ 60*DEG2RAD,  60*DEG2RAD, 60*DEG2RAD, 90*DEG2RAD, 90*DEG2RAD]
 
 q_start = [90.0 * math.pi/180.0
   , -15.4 * math.pi/180.0
@@ -86,7 +86,7 @@ class MySerial():
     for i in range(len(msg)):
       sum+= ord(msg[i])
     cs = (sum & 127) + ord('0')
-    msg2 = bytes(msg.encode('ascii','ignore')) + bytes([cs, ord('\n')])
+    msg2 = list(bytearray(msg.encode('ascii','ignore'))) + [cs, ord('\n')]
     self.ser.write(msg2)
 
   def set_gear_microstep(self, id, b_1_motor, gear=None, microstep=None):
