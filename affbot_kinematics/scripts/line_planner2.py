@@ -14,18 +14,18 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 
 def quat2ab(xyz, quat, origin_xyz):
-  b = math.atan2( origin_xyz[0] - xyz[0], xyz[1] - origin_xyz[1] )
-  
   mat = tf.transformations.quaternion_matrix(quat)
-  x1 = mat[:,2]
-  x = mat[0,2]
-  y = mat[1,2]
-  z = mat[2,2]
-  print(mat[:,2])
-  a = math.atan2( math.sqrt(x**2+y**2), abs(z) )
-  if z>0:
+  b = 0
+  
+  qx = mat[:,0]
+  qy = mat[:,1]
+  qz = mat[:,2]
+  b = math.atan2(qy[1], qy[0]) - math.pi*0.5
+  
+  a = math.atan2( math.sqrt(qx[0]**2+qx[1]**2), abs(qx[2]) )
+  if qx[2]>0:
     a = math.pi - a
-  if x*(xyz[0] - origin_xyz[0]) + y*(xyz[1] - origin_xyz[1]) >=0:
+  if qx[0]*(xyz[0] - origin_xyz[0]) + qx[1]*(xyz[1] - origin_xyz[1]) >=0:
     a = -a
   return a,b
   
@@ -40,7 +40,7 @@ def ab2quat(xyz, ab, origin_xyz):
   qy = ab[0] + math.pi*0.5
   '''
   qz = math.atan2(y,x)
-  qx = ab[1] - qz
+  qx = (- ab[1]) + qz
   qy = ab[0] + math.pi*0.5
   
   cx = math.cos(qx)
@@ -53,16 +53,20 @@ def ab2quat(xyz, ab, origin_xyz):
   rz = np.array( [[cz, -sz, 0,0],[sz, cz, 0,0],[0,0,1,0],[0,0,0,1]] )
   ry = np.array( [[cy, 0, sy,0],[0, 1, 0,0],[-sy, 0, cy,0],[0,0,0,1]] )
 #  mat = np.matmul( rx , np.matmul(ry,rz))
-  mat = np.matmul( ry , np.matmul(rz,rx))
+#  mat = np.matmul( ry , np.matmul(rz,rx))
+#  mat = np.matmul( ry , rz)
+  mat = np.matmul( rz , np.matmul(ry,rx))
   vx = np.array([1,0,0,1])
   v = mat.dot(vx)
-  
+  '''
   print(rx)
   print(ry)
   print(rz)
   
+  '''
   print(v)
-  return tf.transformations.quaternion_from_matrix(mat)
+  quat = tf.transformations.quaternion_from_matrix(mat)
+  return quat
 
 def plan(req, joint_limits, joint_names, origin_xyz):
   # use joint angles
