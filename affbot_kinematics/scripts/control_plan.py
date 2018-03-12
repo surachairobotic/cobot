@@ -19,7 +19,7 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
 enable_ser = True
-b_1_motor = True
+b_1_motor = False
 motor_id = 0
 
 srv_planning = None
@@ -139,7 +139,7 @@ if __name__ == "__main__":
       wait_start()
     '''
     if enable_ser:
-      ser = lib_controller.MySerial("/dev/ttyACM0", 57600)
+      ser = lib_controller.MySerial("/dev/ttyACM1", 57600)
       if b_1_motor:
         ser.wait_start('controller_pos_velo')
         ser.set_limit(motor_id, True)
@@ -192,6 +192,7 @@ if __name__ == "__main__":
 
     print('start moving')
     t_start = time.time()
+    t_top = 0
     for i in range(len(points)):
       p = points[i]
       if i>0:
@@ -211,7 +212,7 @@ if __name__ == "__main__":
       t_prev= t
       '''
       if i>=max_stack-1:
-        while time.time()-t_start < points[i-max_stack+1].positions[0]:
+        while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec():
           ser.serial_read()
           time.sleep(0.01)
           if rospy.is_shutdown():
@@ -221,6 +222,8 @@ if __name__ == "__main__":
       if rospy.is_shutdown():
         exit()
 #    plot_plan.plot(points)
+    while not rospy.is_shutdown():
+      ser.serial_read()
 
   finally:
     if ser is not None:

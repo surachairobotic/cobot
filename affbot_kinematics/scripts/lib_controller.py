@@ -26,9 +26,9 @@ q_start = [90.0 * math.pi/180.0
 DEG2RAD = math.pi/180
 
 GEAR_RATIO = [100.0, 88.0, 37.5, 2.0, 2.0]
-MICROSTEP = [1600, 1600, 1600, 1600, 1600]
-MOTOR_MIN_ANG = [0, 0, -150*DEG2RAD, 0, -360*DEG2RAD]
-MOTOR_MAX_ANG = [ 180*DEG2RAD,  120*DEG2RAD, 0,  260*DEG2RAD,  360**DEG2RAD]
+MICROSTEP = [400, 400, 400, 400, 400]
+MOTOR_MIN_ANG = [-180*DEG2RAD, 0, -150*DEG2RAD, 0, -360*DEG2RAD]
+MOTOR_MAX_ANG = [ 0,  120*DEG2RAD, 0,  260*DEG2RAD,  360**DEG2RAD]
 MOTOR_MAX_VELO = [ 60*DEG2RAD,  60*DEG2RAD, 60*DEG2RAD, 90*DEG2RAD, 90*DEG2RAD]
 
 q_start = [90.0 * math.pi/180.0
@@ -44,8 +44,8 @@ class MySerial():
 #    ser.port = "COM5"
     self.ser.port = _port_name
     self.ser.baudrate = _baud_rate
-    self.ser.timeout = 0.001
-    self.ser.writeTimeout = 1
+    self.ser.timeout = 0.01
+    self.ser.writeTimeout = 0
     self.ser.open()
     self.serial_buf = ''
 
@@ -131,8 +131,8 @@ class MySerial():
       cmd = 'p%.3f %.3f ' % (time, q_motor[0])
     else:
       cmd = 'p%.3f ' % (time)
-      for p in positions:
-        cmd+= '%.3f ' % (p)
+      for q in q_motor:
+        cmd+= '%.3f ' % (q)
 
     self.print_checksum(cmd)
     print('set_target() : ' + cmd)
@@ -181,4 +181,5 @@ def joint2motor(q):
   q_motor[2] = (q_link[1] + q_link[2])
   q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
   q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  print(q_motor)
   return q_motor

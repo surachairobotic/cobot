@@ -7,11 +7,12 @@ import time
 import serial
 import rospy
 import copy
-from convert_motor_angle import motor2joint
+import lib_controller
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from affbot_kinematics.srv import AffbotSetZero
 
+'''
 joint_gear_ratio = [1600.0/(400.0*100)
  ,1600.0/(400.0*88.0)
  ,1600.0/(400.0*37.5)
@@ -23,7 +24,6 @@ joint_offset = [90.0 * math.pi/180.0
   , -200 * math.pi/180.0
   , 0 * math.pi/180.0 ]
 
-'''
 joint_offset = [0.0,0.0,0.0,0.0,0.0]
 joint_gear_ratio = [100.0,100.0,100.0,100.0,100.0]
 '''
@@ -134,6 +134,7 @@ if __name__ == "__main__":
         ser = sers[k]
         s = ser.read()
         if len(s)>3:
+          print(s)
           if s[0]=='<' and s[-1]=='>':
             start_id = int(s[1])
             arr = s[3:-2].split(' ')
@@ -164,10 +165,11 @@ if __name__ == "__main__":
               q_motor = []
               dq_motor = []
               for i in range(n_joint):
-                motor_position[start_id + i] = float(arr[i*2])
-                motor_velocity[start_id + i] = float(arr[i*2+1])
-              joint_position = motor2joint( motor_position )
-              joint_velocity = motor2joint( motor_velocity, add_q_start=False )
+                r = 1000.0 / (lib_controller.MICROSTEP[i] * lib_controller.GEAR_RATIO[i])
+                motor_position[start_id + i] = float(arr[i*2]) * r
+                motor_velocity[start_id + i] = float(arr[i*2+1]) * r
+              joint_position = lib_controller.motor2joint( motor_position )
+              joint_velocity = lib_controller.motor2joint( motor_velocity, add_q_start=False )
               '''
               for i in range(n_joint):
                 joint_position[start_id + i] = q_link[i]
