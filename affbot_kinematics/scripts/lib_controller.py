@@ -181,5 +181,4 @@ def joint2motor(q):
   q_motor[2] = (q_link[1] + q_link[2])
   q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
   q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
-  print(q_motor)
   return q_motor

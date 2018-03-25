@@ -10,6 +10,7 @@ import my_kinematics as kinematics
 from affbot_kinematics.srv import *
 from affbot_kinematics.msg import *
 import affbot_planner
+from trajectory_msgs.msg import JointTrajectoryPoint
 '''
 from urdf_parser_py.urdf import URDF
 from geometry_msgs.msg import Pose
@@ -22,7 +23,7 @@ from pointsectory_msgs.msg import JointpointsectoryPoint
 import tf.transformations
 '''
 import matplotlib.pyplot as plt
-
+import lib_controller
 
 
 def save(file_name, points):
@@ -37,6 +38,29 @@ def save(file_name, points):
         s+= str(v) + ' '
       f.write(s + '\n')
     print('\'plan.txt\' saved.')
+
+
+def load(file_name):
+  points = []
+  with open(file_name,'rt') as f:
+    line = f.readline()
+    while line:
+      vals = line.split(' ')
+      if len(vals)!=17:
+        print('invalid val num : ' + str(len(vals)))
+        exit()
+        
+      for i in range(len(vals)-1):
+        vals[i] = float(vals[i])
+      p = JointTrajectoryPoint()
+      p.time_from_start = rospy.Duration(vals[0])
+      p.positions = vals[1:6]
+      p.velocities = vals[6:11]
+      p.accelerations = vals[6:11]
+      points.append(p)
+      line = f.readline()
+  return points
+  
 
 
 def plot(points):
@@ -80,5 +104,42 @@ def plot(points):
 #  axarr[3].plot(t, xyz[:,0], '+-', t, xyz[:,1], '+-', t, xyz[:,2], '+-')
   axarr[3].plot(t, line_dis, '+-')
   plt.show()
+
+def plot_pulse(points):
+  pos = []
+  t = []
+  pw = []
+  
+  rad2pulse = []
+  for i in range(5):
+    rad2pulse.append( lib_controller.MICROSTEP[i] * lib_controller.GEAR_RATIO[i] / (2*math.pi) )
+  
+  q_motor = []
+  for i in range(len(points)):
+    q_motor.append(lib_controller.joint2motor(points[i].positions))
+  for i in range(len(points)-1):
+    p = []
+    for j in range(5):
+      p.append( (abs(q_motor[i+1][j] - q_motor[i][j]) * rad2pulse[j]) / (points[i+1].time_from_start.to_sec() - points[i].time_from_start.to_sec()) )
+    pw.append(p)
+    t.append(points[i].time_from_start.to_sec())
+  
+  pw = np.array(pw)
+  plt.hold(True)
+  for i in range(5):
+    plt.plot(t, pw[:,i], '+-')
+  plt.grid(linestyle='-', linewidth='0.5')
+  plt.legend(['q1','q2','q3','q4','q5'])
+  plt.xlabel('time (s)')
+  plt.ylabel('pulse / sec')
+  plt.show()
+  
+
+if __name__ == "__main__":
+  points = load('plan.txt')
+  kinematics.init()
+#  plot(points)
+  plot_pulse(points)
+  
 
 

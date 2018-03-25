@@ -18,7 +18,7 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
-enable_ser = True
+enable_ser = False
 b_1_motor = False
 motor_id = 0
 
@@ -186,6 +186,8 @@ if __name__ == "__main__":
     max_stack = 10
     points = res.points
     plot_plan.save('plan.txt', points)
+    plot_plan.plot_pulse(points)
+    exit()
     
     #plot_plan.plot(points)
     #exit()
