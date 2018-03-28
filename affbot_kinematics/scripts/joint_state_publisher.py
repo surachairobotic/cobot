@@ -18,6 +18,7 @@ motor_position = [0.0,0.0,0.0,0.0,0.0]
 motor_velocity = [0.0,0.0,0.0,0.0,0.0]
 joint_effort = [0.0,0.0,0.0,0.0,0.0]
 sers = []
+last_plan = None
 
 '''
 class MySerial:
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     # init ros
     rospy.init_node('affbot_joint_state_publisher')
     pub = rospy.Publisher("/joint_states", JointState, queue_size=10)
-    srv = rospy.Service('~set_zero', AffbotSetZero, set_zero)
+    srv = rospy.Service('affbot/joint_state_publisher/set_zero', AffbotSetZero, set_zero)
     
     print('waiting start')
     try:

@@ -18,25 +18,16 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
-enable_ser = False
-b_1_motor = False
-motor_id = 0
-
 srv_planning = None
 start_joints = None
 sub_joint_state = None
 ser = None
 
 
-def callback_joint_state(joints):
-  global sub_joint_state, start_joints
-  start_joints = copy.deepcopy(joints)
-  sub_joint_state.unregister()
-  sub_joint_state = None
-
 
 if __name__ == "__main__":
   try:
+    #### param ####
     if len(sys.argv)<3:
       print('param num has to be larger than 2 : ' + str(len(sys.argv)))
       exit()
@@ -86,47 +77,29 @@ if __name__ == "__main__":
       print('invalid value : ' + str(sys.argv[2:-1]))
       exit()
 
-    '''
-    if enable_ser:
-      ser = serial.Serial()
-  #    ser.port = "COM5"
-      ser.port = "/dev/ttyACM0"
-      ser.baudrate = 57600
-      ser.timeout = 0.001
-      ser.writeTimeout = 1
-      ser.open()
-      wait_start()
-    '''
-    if enable_ser:
-      ser = lib_controller.MySerial("/dev/ttyACM1", 57600)
-      if b_1_motor:
-        ser.wait_start('controller_pos_velo')
-        ser.set_limit(motor_id, True)
-        ser.set_gear_microstep(motor_id, True)
-      else:
-        ser.wait_start('central_mega')
-        for i in range(5):
-          ser.set_limit(i, False)
-          ser.set_gear_microstep(i, False)
-
+    #### serial ####
+    ser = lib_controller.MySerial("/dev/ttyACM0", 9600)
+    ser.wait_start('central_mega')
+    for i in range(5):
+      ser.set_limit(i, False)
+      ser.set_gear_microstep(i, False)
+    ser.reset()
+    
+    #### ros ####
     rospy.init_node('control_plan')
     print("waiting 'affbot_planning'")
-    rospy.wait_for_service('affbot_planning')
-    srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
-    sub_joint_state = rospy.Subscriber("/joint_states", JointState, callback_joint_state)
+    rospy.wait_for_service('affbot/planning')
+    srv_planning = rospy.ServiceProxy('affbot/planning', AffbotPlanning)
     kinematics.init()
 
+    #### planning ####
     print('waiting current joint state')
-    while sub_joint_state is not None:
-      rospy.sleep(0.01)
-      if rospy.is_shutdown():
-        exit()
+    start_joints = kinematics.get_current_joints()
 
     if target_type=='xyz':
-      start_pose = kinematics.get_pose(start_joints.position)
+      start_pose = kinematics.get_pose(start_joints)
       start_joints = []
     else:
-      start_joints = start_joints.position
       start_pose = Pose()
     res = srv_planning(joint_names=joint_names
       , start_joints=start_joints
@@ -140,17 +113,14 @@ if __name__ == "__main__":
     if res.error_code!=0:
       print('planning error : '+str(res.error_code))
       exit()
-
-    t_prev = 0
-    max_stack = 10
     points = res.points
     plot_plan.save('plan.txt', points)
-    plot_plan.plot_pulse(points)
-    exit()
-    
-    #plot_plan.plot(points)
-    #exit()
+#    plot_plan.plot_pulse(points)
+#    exit()
 
+    #### move ####
+    t_prev = 0
+    max_stack = 10
     print('start moving')
     t_start = time.time()
     t_top = 0
@@ -161,17 +131,7 @@ if __name__ == "__main__":
       else:
         t = p.time_from_start.to_sec()
       
-      ser.set_target(t, p.positions, b_1_motor)
-      '''
-      cmd = 'p'
-      q_motor = joint2motor(p.positions)
-      for i in range(1):# range(len(p.positions)):
-        cmd+= '%.3f %.3f ' % ( q_motor[i], t )
-      if enable_ser:
-        ser.write((cmd + '\n').encode('ascii','ignore'))
-      print(cmd)
-      t_prev= t
-      '''
+      ser.set_target(t, p.positions, False)
       if i>=max_stack-1:
         while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec():
           ser.serial_read()

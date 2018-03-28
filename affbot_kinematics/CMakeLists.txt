@@ -28,7 +28,11 @@ find_package(catkin COMPONENTS
 #  pr2_mechanism_msgs
 #  pr2_controllers_msgs
   cmake_modules
-  REQUIRED)
+REQUIRED
+  genmsg
+  actionlib_msgs
+  actionlib
+)
 
 find_package(Eigen REQUIRED)
 find_package(Boost REQUIRED thread)
@@ -40,6 +44,14 @@ add_service_files(
   FILES
   AffbotPlanning.srv
   AffbotSetZero.srv
+  AffbotGetLastPlan.srv
+)
+
+add_action_files(
+DIRECTORY
+  action
+FILES
+  AffbotMoveLastPlan.action
 )
 
 generate_messages(
@@ -47,6 +59,7 @@ generate_messages(
   std_msgs
   geometry_msgs
   trajectory_msgs
+  actionlib_msgs
 )
 
 

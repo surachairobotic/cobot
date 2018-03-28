@@ -4,6 +4,8 @@ import sys
 import os
 import rospy
 import math
+import time
+import copy
 
 import geometry_msgs.msg
 import moveit_msgs.msg
@@ -75,6 +77,34 @@ def init():
   print("waiting 'compute_ik'")
   rospy.wait_for_service('compute_ik')
   compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
+#### get current pose ####
+
+sub_joint_state = None
+start_joints = None
+
+def callback_joint_state(joints):
+  global sub_joint_state, start_joints
+  start_joints = copy.deepcopy(joints)
+  sub_joint_state.unregister()
+  sub_joint_state = None
+
+
+def get_current_joints():
+  global sub_joint_state, start_joints
+  sub_joint_state = rospy.Subscriber("/joint_states", JointState, callback_joint_state)
+  t = time.time()
+  while sub_joint_state is not None:
+    if time.time()-t > 1.0:
+      sub_joint_state.unregister()
+      sub_joint_state = None
+      raise Exception('get_current_pose() : time out')
+  return start_joints.position
+
+def get_current_pose():
+  return get_pose(get_current_joints())
+
+#### main ####
 
 if __name__ == "__main__":
   if len(sys.argv)<=1:

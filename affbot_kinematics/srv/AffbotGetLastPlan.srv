@@ -1,0 +1,6 @@
+
+---
+
+trajectory_msgs/JointTrajectoryPoint[] points
+int32 error_code
+

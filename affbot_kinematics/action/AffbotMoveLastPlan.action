@@ -1,0 +1,8 @@
+#goal definition
+---
+#result definition
+int32 error_code
+---
+#feedback
+float64 progress
+
