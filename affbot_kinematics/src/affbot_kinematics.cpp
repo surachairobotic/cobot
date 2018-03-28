@@ -321,6 +321,11 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
   for(int i=0;i<5;i++){
     while(q[i] > M_PI) q[i] -= 2*M_PI;
     while(q[i] < -M_PI) q[i] += 2*M_PI;
+    if( i==3 ){
+      if( q[i] > M_PI*0.5 ){
+        q[i]-= 2*M_PI;
+      }
+    }
     solution[i] = q[i];
   }
   for(int i=0;i<5;i++){

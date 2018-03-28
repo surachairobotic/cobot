@@ -27,47 +27,6 @@ start_joints = None
 sub_joint_state = None
 ser = None
 
-'''
-serial_buf = ''
-
-def wait_start():
-  global ser
-  print('wait start')
-  for i in range(5):
-    ser.write('who\n')
-    t = time.time() + 1
-    while time.time() < t:
-      s = serial_read()
-      if s[0:4]=='who:':
-        name = s[4:]
-        if name=='central_mega' or name=='controller_pos_velo':
-          print('start')
-          return
-        else:
-          print('wrong serial name : %s' % (name))
-          exit()
-  print('wait start failed')
-  exit()
-
-def serial_read():
-  global serial_buf, ser, enable_ser
-  if not enable_ser:
-    return ''
-  c = ser.read()
-  while len(c)>0:
-    if ord(c)<128:
-      c = c.decode()
-      if c=='\n' or c=='\r':
-        if len(serial_buf)>0:
-          b = serial_buf
-          serial_buf = ''
-          print('READ : ' + b)
-          return b
-      else:
-        serial_buf+= c
-    c = ser.read()
-  return ''
-'''
 
 def callback_joint_state(joints):
   global sub_joint_state, start_joints

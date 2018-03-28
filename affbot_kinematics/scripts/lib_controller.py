@@ -88,6 +88,7 @@ class MySerial():
     cs = (sum & 127) + ord('0')
     msg2 = list(bytearray(msg.encode('ascii','ignore'))) + [cs, ord('\n')]
     self.ser.write(msg2)
+#    print(bytearray(msg2).decode("ascii"))
 
   def set_gear_microstep(self, id, b_1_motor, gear=None, microstep=None):
     if gear is None:
@@ -136,6 +137,17 @@ class MySerial():
 
     self.print_checksum(cmd)
     print('set_target() : ' + cmd)
+  
+  
+  def reset(self):
+    self.ser.write(b'\nreset\n')
+    t = time.time()
+    while 1:
+      s = self.serial_read()
+      if len(s)>0 and s=='reset:ok':
+        break
+      if time.time() - t > 1.0:
+        raise Exception('reset timeout : ' + str(i))
 
 
 def motor2joint(q_motor, add_q_start=True):

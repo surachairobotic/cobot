@@ -12,32 +12,14 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from affbot_kinematics.srv import AffbotSetZero
 
-'''
-joint_gear_ratio = [1600.0/(400.0*100)
- ,1600.0/(400.0*88.0)
- ,1600.0/(400.0*37.5)
- ,1600.0/(400.0*2.0)
- ,1600.0/(400.0*2.0)]
-joint_offset = [90.0 * math.pi/180.0
-  , -15.4 * math.pi/180.0
-  , 60 * math.pi/180.0
-  , -200 * math.pi/180.0
-  , 0 * math.pi/180.0 ]
-
-joint_offset = [0.0,0.0,0.0,0.0,0.0]
-joint_gear_ratio = [100.0,100.0,100.0,100.0,100.0]
-'''
 
 joint_name = ['J1', 'J2', 'J3', 'J4', 'J5']
-'''
-joint_position = copy.deepcopy(joint_offset)
-joint_velocity = [0.0,0.0,0.0,0.0,0.0]
-'''
 motor_position = [0.0,0.0,0.0,0.0,0.0]
 motor_velocity = [0.0,0.0,0.0,0.0,0.0]
 joint_effort = [0.0,0.0,0.0,0.0,0.0]
 sers = []
 
+'''
 class MySerial:
   def __init__(self, port_num, name):
     self.ser = serial.Serial()
@@ -90,12 +72,14 @@ class MySerial:
     
   def set_zero(self):
     self.ser.write('reset\n')
+'''
 
 def set_zero(req):
   global sers
   for ser in sers:
-    ser.set_zero()
+    ser.reset()
   return []
+
 
 
 if __name__ == "__main__":
@@ -106,7 +90,7 @@ if __name__ == "__main__":
   try:
     # init serial
     for i in range(len(sys.argv)-1):
-      sers.append(MySerial(sys.argv[i+1], 'get_pulse_due'))
+      sers.append(lib_controller.MySerial("/dev/ttyACM" + sys.argv[i+1], 115200))
       
     # init ros
     rospy.init_node('affbot_joint_state_publisher')
@@ -115,6 +99,10 @@ if __name__ == "__main__":
     
     print('waiting start')
     try:
+      for i in range(len(sys.argv)-1):
+        sers[i].wait_start('get_pulse_due')
+        sers[i].reset()
+      '''
       while 1:
         b = True
         for ser in sers:
@@ -125,6 +113,17 @@ if __name__ == "__main__":
         if rospy.is_shutdown():
           exit()
         time.sleep(0.01)
+      while 1:
+        b = True
+        for ser in sers:
+          if ser.wait_start()==False:
+            b = False
+        if b:
+          break
+        if rospy.is_shutdown():
+          exit()
+        time.sleep(0.01)
+      '''
     except serial.serialutil.SerialException:
       exit()
     print('start')
@@ -132,9 +131,9 @@ if __name__ == "__main__":
       time.sleep(0.01)
       for k in range(len(sers)):
         ser = sers[k]
-        s = ser.read()
+        s = ser.serial_read()
         if len(s)>3:
-          print(s)
+#          print(s)
           if s[0]=='<' and s[-1]=='>':
             start_id = int(s[1])
             arr = s[3:-2].split(' ')

@@ -24,19 +24,13 @@ joint_names = kinematics.joint_names
 def planning(start_pose, end_pose):
   global srv_planning, joint_names
   try:
-    req = AffbotPlanRequest()
-    start_pose = start_pose
-    end_pose = end_pose
-    type = "p2p"
-    max_velocity = 1
-
-    res = srv_planning(joint_names=joint_names
-    , start_joints=[0,0,0,0,0]
-    , end_joints=[0.2,0.3,0.7,0.2,0.1]
+    res = srv_planning(joint_names=[] #joint_names
+    , start_joints=[]
+    , end_joints=[]
     , start_pose=start_pose
     , end_pose=end_pose
-    , type="line"
-    , max_velocity=3
+    , type="p2p"
+    , max_velocity=6
     , max_acceleration=3
     , step_time=0.1)
     return res
@@ -51,8 +45,8 @@ if __name__ == "__main__":
   kinematics.init()
   
   print('start')
-  start_pose =   kinematics.get_pose([0,0,0,0,0])
-  end_pose = kinematics.get_pose([0.2,0.3,0.7,0.2,0.1])
+  start_pose =   kinematics.get_pose([1.5707963267948966, -0.2687807048071268, 1.0471975511965976, -3.490658503988659, 0.0])
+  end_pose = kinematics.get_pose([0,0,0,0,0])
   
   res = planning(start_pose, end_pose)
   if res.error_code==0:

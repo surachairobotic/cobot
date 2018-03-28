@@ -32,7 +32,6 @@ def plan(req, joint_limits, joint_names):
     end_joints = kinematics.get_joints(req.end_pose)
     if end_joints is None:
       raise affbot_planner.MyException('Invalid end pos')
-  
   res_points = []
   n = len(joint_names)
   pos = [None]*n

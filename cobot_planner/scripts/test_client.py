@@ -53,7 +53,7 @@ def planning(start_pose, end_pose):
 if __name__ == "__main__":
   print("waiting 'cobot_planning'")
   rospy.wait_for_service('cobot_planning')
-  srv_planning = rospy.ServiceProxy('cobot_planning', cobot_planning)
+  srv_planning = rospy.ServiceProxy('cobot_planning', CobotPlanning)
   print("waiting 'compute_fk'")
   rospy.wait_for_service('compute_fk')
   compute_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
