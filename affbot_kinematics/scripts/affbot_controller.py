@@ -19,15 +19,11 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 
-srv_planning = None
-start_joints = None
-sub_joint_state = None
 ser = None
-serial_id = '0'
 srv_get_last_plan = None
 
 
-class MoveLastPlan(object):
+class MyAffbotMoveLastPlanAction(object):
   # create messages that are used to publish feedback/result
   _feedback = AffbotMoveLastPlanFeedback()
   _result = AffbotMoveLastPlanResult()
@@ -37,7 +33,7 @@ class MoveLastPlan(object):
     self._as.start()
   
   def execute_cb(self, goal):
-    global ser
+    global ser, srv_get_last_plan
     rospy.loginfo('execute move last plan')
     self._feedback.progress = 0.0
     self._result.error_code = -1
@@ -72,6 +68,8 @@ class MoveLastPlan(object):
       else:
         t = p.time_from_start.to_sec()
       
+      time.sleep(0.5)
+      '''
       ser.set_target(t, p.positions, False)
       if i>=max_stack-1:
         while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec():
@@ -90,6 +88,7 @@ class MoveLastPlan(object):
             return
       else:
         ser.serial_read()
+      '''
       if rospy.is_shutdown():
         self._result.error_code = -6
         self._as.set_succeeded(self._result)
@@ -111,84 +110,33 @@ def move_last_plan(req):
   
 
 if __name__ == "__main__":
+  serial_id = '0'
   try:
     #### param ####
     if len(sys.argv)>1:
       serial_id = sys.argv[1]
 
     #### serial ####
+    '''
     ser = lib_controller.MySerial("/dev/ttyACM" + serial_id, 9600)
     ser.wait_start('central_mega')
     for i in range(5):
       ser.set_limit(i, False)
       ser.set_gear_microstep(i, False)
     ser.reset()
-
+    '''
     
     #### ros ####
     rospy.init_node('affbot_controller')
     print("waiting 'affbot_planning'")
     rospy.wait_for_service('affbot/planner/get_last_plan')
     srv_get_last_plan = rospy.ServiceProxy('affbot/planner/get_last_plan', AffbotGetLastPlan)
-    srv_move_last_plan = rospy.Service('affbot/controller/move_last_plan', AffbotMoveLastPlan, move_last_plan)
-    
-    act_move_last_plan = actionlib.SimpleActionServer('affbot/controller/move_last_plan', AffbotMoveLastPlanAction, handler_move_last_plan, False)
-    act_move_last_plan.start()
+    server = MyAffbotMoveLastPlanAction()
     kinematics.init()
-
-    #### planning ####
-    print('waiting current joint state')
-    start_joints = kinematics.get_current_joints()
-
-    if target_type=='xyz':
-      start_pose = kinematics.get_pose(start_joints)
-      start_joints = []
-    else:
-      start_pose = Pose()
-    res = srv_planning(joint_names=joint_names
-      , start_joints=start_joints
-      , end_joints=end_joints
-      , start_pose=start_pose
-      , end_pose=target_pose
-      , type=move_type
-      , max_velocity=velo
-      , max_acceleration=1
-      , step_time=0.1)
-    if res.error_code!=0:
-      print('planning error : '+str(res.error_code))
-      exit()
-    points = res.points
-    plot_plan.save('plan.txt', points)
-#    plot_plan.plot_pulse(points)
-#    exit()
-
-    #### move ####
-    t_prev = 0
-    max_stack = 10
-    print('start moving')
-    t_start = time.time()
-    t_top = 0
-    for i in range(len(points)):
-      p = points[i]
-      if i>0:
-        t = p.time_from_start.to_sec() - points[i-1].time_from_start.to_sec()
-      else:
-        t = p.time_from_start.to_sec()
-      
-      ser.set_target(t, p.positions, False)
-      if i>=max_stack-1:
-        while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec():
-          ser.serial_read()
-          time.sleep(0.01)
-          if rospy.is_shutdown():
-            exit()
-      else:
-        ser.serial_read()
-      if rospy.is_shutdown():
-        exit()
-#    plot_plan.plot(points)
-    while not rospy.is_shutdown():
-      ser.serial_read()
+    print('start')
+    rospy.spin()
+#    while not rospy.is_shutdown():
+#      ser.serial_read()
 
   finally:
     if ser is not None:
