@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# use xyzab to interpolate
+
 import sys
 import os
 import math
@@ -13,20 +15,86 @@ from affbot_kinematics.msg import *
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 
+def Rx(q):
+  cx = math.cos(q)
+  sx = math.sin(q)
+  return np.array( [[1,0,0,0],[0, cx,-sx,0],[0,sx,cx,0],[0,0,0,1]] )
+
+
+def Ry(q):
+  cy = math.cos(q)
+  sy = math.sin(q)
+  return np.array( [[cy, 0, sy,0],[0, 1, 0,0],[-sy, 0, cy,0],[0,0,0,1]] )
+
+def Rz(q):
+  cz = math.cos(q)
+  sz = math.sin(q)
+  return np.array( [[cz, -sz, 0,0],[sz, cz, 0,0],[0,0,1,0],[0,0,0,1]] )
+  
+
 def quat2ab(xyz, quat, origin_xyz):
   mat = tf.transformations.quaternion_matrix(quat)
   b = 0
   
-  qx = mat[:,0]
-  qy = mat[:,1]
-  qz = mat[:,2]
-  b = math.atan2(qy[1], qy[0]) - math.pi*0.5
+  qx = mat[0:3,0]
+  qy = mat[0:3,1]
+  qz = mat[0:3,2]
   
-  a = math.atan2( math.sqrt(qx[0]**2+qx[1]**2), abs(qx[2]) )
-  if qx[2]>0:
+  q_xyz = np.array([ xyz[0] - origin_xyz[0], xyz[1] - origin_xyz[1], 0])
+#  print('qz : ' + str(qz))
+#  print('q_xyz : ' + str(q_xyz))
+  
+  if abs(qz[2])<0.001:
+    v2 = q_xyz
+  else:
+    if qz[2]<0:
+      v1 = np.cross( qz, q_xyz )
+    else:
+      v1 = np.cross( q_xyz, qz )
+    v1/= math.sqrt( v1[0]**2 +  v1[1]**2 +  v1[2]**2 )
+    v2 = np.cross( v1, qz )
+    '''
+    if v2[0]*q_xyz[0]<0:
+      print('v2 : ' + str(v2))
+      v2*= -1.0
+    print('v1 : ' + str(v1))
+    '''
+  '''
+  print('v2 : ' + str(v2))
+  print('qy : ' + str(qy))
+  print(v2.dot( qy ))
+  '''  
+  
+  ac = v2.dot( qy )
+  if ac>1:
+    ac = 1
+  elif ac<-1:
+    ac = -1
+  b = math.acos(ac)
+  sin_b = v2.dot( qx )
+  if sin_b>0:
+    b = -b
+  b+= math.atan2( q_xyz[1], q_xyz[0] ) + math.pi*0.5
+  
+  a = math.atan2( math.sqrt(qz[0]**2+qz[1]**2), abs(qz[2]) )
+#  b = math.atan2(qy[1], qy[0]) + math.pi*0.5
+  
+#  print(mat)
+  
+  '''
+  print(mat)
+  print('a : ' + str(a))
+  print('b : ' + str(b))
+  '''
+  
+  if qz[2]>0:
     a = math.pi - a
-  if qx[0]*(xyz[0] - origin_xyz[0]) + qx[1]*(xyz[1] - origin_xyz[1]) >=0:
+  if qz[0]*(xyz[0] - origin_xyz[0]) + qz[1]*(xyz[1] - origin_xyz[1]) >=0:
     a = -a
+    
+#  if abs(qy[0])<0.01 && abs(qy[1])<0.01:
+#    b = 
+    
   return a,b
   
 def ab2quat(xyz, ab, origin_xyz):
@@ -38,33 +106,44 @@ def ab2quat(xyz, ab, origin_xyz):
   qz = math.atan2( -x, y )
   qx = ab[1] - qz
   qy = ab[0] + math.pi*0.5
-  '''
-  qz = math.atan2(y,x)
-  qx = (- ab[1]) + qz
-  qy = ab[0] + math.pi*0.5
   
-  cx = math.cos(qx)
-  sx = math.sin(qx)
-  cy = math.cos(qy)
-  sy = math.sin(qy)
-  cz = math.cos(qz)
-  sz = math.sin(qz)
-  rx = np.array( [[1,0,0,0],[0, cx,-sx,0],[0,sx,cx,0],[0,0,0,1]] )
-  rz = np.array( [[cz, -sz, 0,0],[sz, cz, 0,0],[0,0,1,0],[0,0,0,1]] )
-  ry = np.array( [[cy, 0, sy,0],[0, 1, 0,0],[-sy, 0, cy,0],[0,0,0,1]] )
+  qx = ( ab[1]) # + math.pi # - qz
+  qz = math.atan2(y,x) + math.pi*0.5
+  qy = -ab[0] + math.pi*0.5
+
+  print('xyz : ' + str([x,y,z]))
+  print('qxyz : ' + str([qx,qy,qz]))
+  
+  rx = Rx(qx)
+  ry = Ry(qy)
+  rz = Rz(qz)
+
+  mat = np.matmul( rz , np.matmul(ry,rx))
+  '''
+  
+  qz = -ab[1] - math.pi*0.5
+  qy = math.pi + ab[0]
+  qz2 = math.pi*0.5
+  
+#  print('qzyz : ' + str([qz,qy,qz2]))
+  
+  mat = np.matmul( Rz(qz2) , np.matmul(Ry(qy),Rz(qz)))
+  
+    
+  
 #  mat = np.matmul( rx , np.matmul(ry,rz))
 #  mat = np.matmul( ry , np.matmul(rz,rx))
 #  mat = np.matmul( ry , rz)
-  mat = np.matmul( rz , np.matmul(ry,rx))
+#  print(mat)
   vx = np.array([1,0,0,1])
   v = mat.dot(vx)
+#  print(v)
   '''
   print(rx)
   print(ry)
   print(rz)
   
   '''
-  print(v)
   quat = tf.transformations.quaternion_from_matrix(mat)
   return quat
 

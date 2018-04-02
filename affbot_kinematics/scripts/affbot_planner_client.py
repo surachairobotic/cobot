@@ -40,8 +40,8 @@ def planning(start_pose, end_pose):
 
 if __name__ == "__main__":
   print("waiting 'affbot_planning'")
-  rospy.wait_for_service('affbot_planning')
-  srv_planning = rospy.ServiceProxy('affbot_planning', AffbotPlanning)
+  rospy.wait_for_service('affbot/planner/planning')
+  srv_planning = rospy.ServiceProxy('affbot/planner/planning', AffbotPlanning)
   kinematics.init()
   
   print('start')

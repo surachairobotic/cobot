@@ -203,6 +203,7 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
                                            moveit_msgs::MoveItErrorCodes &error_code,
                                            const kinematics::KinematicsQueryOptions &options) const
 {
+  ROS_INFO("my IK");
 
   // move J1 to origin
   tf::Transform t1(tf::Quaternion(ik_pose.orientation.x,ik_pose.orientation.y
@@ -220,7 +221,7 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
   tf::Matrix3x3 mat(qt);
 //  mat = mat.transpose();
   mat.getEulerYPR(yaw, pitch, roll);
-
+/*
   ROS_INFO("tip : %lf, %lf, %lf"
       , t1.getOrigin().x(), t1.getOrigin().y(), t1.getOrigin().z());
   ROS_INFO("origin : %lf, %lf, %lf"
@@ -228,7 +229,7 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
   ROS_INFO("xyz : %lf , %lf , %lf", x,y,z);
   ROS_INFO("xyzw : %lf , %lf , %lf , %lf",qt.x(), qt.y(), qt.z(), qt.w());
   ROS_INFO("YPR : %lf , %lf , %lf",yaw, pitch,roll);
-
+*/
   double q[6] = {0};
   double ang;
   q[0] = atan2(y,x);
@@ -270,9 +271,9 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
       s = -s;
     }
     q[4] = -atan2(c,s);
-    ROS_INFO("cs : %lf , %lf, R22 : %lf", c, s, x1[2]);
+/*    ROS_INFO("cs : %lf , %lf, R22 : %lf", c, s, x1[2]);
     ROS_INFO("x1 : %lf , %lf, %lf", x1.x(), x1.y(), x1.z());
-    ROS_INFO("x4 : %lf , %lf, %lf", x4.x(), x4.y(), x4.z());
+    ROS_INFO("x4 : %lf , %lf, %lf", x4.x(), x4.y(), x4.z());*/
 
     if((fabs(x1[0])>0.0001 && fabs(x2[0])>0.0001 && x1[0]*x2[0]<0) ||
        (fabs(x1[1])>0.0001 && fabs(x2[1])>0.0001 && x1[1]*x2[1]<0) )
@@ -297,19 +298,20 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
       ROS_ERROR("Invalid A,B angle : cos_a = %.3lf, cos_b = %.3lf", cos_a, cos_b);
       return false;
     }
-    ROS_INFO("err : %lf , %lf", A*sin(a) - B*sin(b), A*cos(a) + B*cos(b) - C);
+/*    ROS_INFO("err : %lf , %lf", A*sin(a) - B*sin(b), A*cos(a) + B*cos(b) - C);
     ROS_INFO("cos: %lf , %lf , %lf , %lf", cos_a, a, cos_b, b);
-    ROS_INFO("cos err: %lf , %lf", cos_a - cos(a), cos_b - cos(b));
+    ROS_INFO("cos err: %lf , %lf", cos_a - cos(a), cos_b - cos(b));*/
 
     q[1] = M_PI*0.5 - (atan2(z2,x2) + a);
     q[2] = M_PI*0.5 - (M_PI - a - b);
     // M_PI*0.5 - q[1] + M_PI*0.5 - q[2] + M_PI*0.5 - q[3] = ang;
     q[3] = (M_PI*2 - q[1] - q[2]) + ang;
 
+/*
     ROS_INFO("ang : %lf", ang);
     ROS_INFO("ab : %lf, %lf", a,b);
     ROS_INFO("xz2 : %lf, %lf", x2, z2);
-    ROS_INFO("ABC : %lf, %lf, %lf", A, B, C);
+    ROS_INFO("ABC : %lf, %lf, %lf", A, B, C);*/
 
   }
 

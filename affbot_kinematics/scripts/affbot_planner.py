@@ -143,6 +143,7 @@ def handle_get_last_plan(req):
   if last_error_code==0:
     return last_plan, 0
   else:
+    rospy.logerr("No plan found")
     return [], last_error_code
   
 

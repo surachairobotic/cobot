@@ -14,12 +14,17 @@ from moveit_msgs.srv import GetPositionFK
 from moveit_msgs.srv import GetPositionIK
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
+from urdf_parser_py.urdf import URDF
 
 joint_names = ['J1', 'J2', 'J3', 'J4', 'J5']
 
 compute_fk = None
 compute_ik = None
+origin_xyz = None
 
+
+
+#### IK, FK ####
 
 def get_pose(ang):
   global JOINT_NAME, compute_fk
@@ -68,15 +73,16 @@ def get_joints(xyz, xyzw=None):
     #print "Service call failed: %s"%e
     #return None
 
-def init():
-  global compute_ik, compute_fk
-  
-  print("waiting 'compute_fk'")
-  rospy.wait_for_service('compute_fk')
-  compute_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
-  print("waiting 'compute_ik'")
-  rospy.wait_for_service('compute_ik')
-  compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
+#### get origin xyz ####
+
+def get_origin_xyz():
+  global origin_xyz
+  if origin_xyz is None:
+    robot_desc = URDF.from_parameter_server()
+    origin_xyz = robot_desc.joints[0].origin.xyz
+  return origin_xyz
+
 
 #### get current pose ####
 
@@ -103,6 +109,19 @@ def get_current_joints():
 
 def get_current_pose():
   return get_pose(get_current_joints())
+
+#### init ####
+
+def init():
+  global compute_ik, compute_fk
+  
+  print("waiting 'compute_fk'")
+  rospy.wait_for_service('compute_fk')
+  compute_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
+  print("waiting 'compute_ik'")
+  rospy.wait_for_service('compute_ik')
+  compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
 
 #### main ####
 

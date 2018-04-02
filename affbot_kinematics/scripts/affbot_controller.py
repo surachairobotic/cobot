@@ -31,18 +31,23 @@ class MyAffbotMoveLastPlanAction(object):
   def __init__(self):
     self._as = actionlib.SimpleActionServer("affbot/controller/move_last_plan", AffbotMoveLastPlanAction, execute_cb=self.execute_cb, auto_start = False)
     self._as.start()
+#    self._as.register_preempt_callback(self.preempt_cb)
   
+#  def preempt_cb(self):
+#    rospy.loginfo('preem')
+    
   def execute_cb(self, goal):
     global ser, srv_get_last_plan
-    rospy.loginfo('execute move last plan')
     self._feedback.progress = 0.0
     self._result.error_code = -1
     res = srv_get_last_plan()
     if res is None or res.error_code!=0:
+      rospy.logerr('Cannot get last plan')
       self._result.error_code = -2
       self._as.set_succeeded(self._result)
       return
     points = res.points
+    rospy.loginfo('execute move last plan')
     
     #### move ####
     
@@ -54,6 +59,8 @@ class MyAffbotMoveLastPlanAction(object):
     for i in range(len(points)):
       # feedback
       self._feedback.progress = float(i)/len(points)
+      self._as.publish_feedback(self._feedback)
+      print('feedback : ' + str(self._feedback.progress))
       
       # preempt
       if self._as.is_preempt_requested():
