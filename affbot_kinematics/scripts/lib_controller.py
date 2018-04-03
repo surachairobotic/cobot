@@ -36,7 +36,7 @@ q_start = [90.0 * math.pi/180.0
   , 60 * math.pi/180.0
   , -200 * math.pi/180.0
   , 0 * math.pi/180.0 ]
-
+rad2freq_pulse = None
 
 class MySerial():
   def __init__(self, _port_name, _baud_rate):
@@ -194,3 +194,15 @@ def joint2motor(q):
   q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
   q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
   return q_motor
+  
+
+
+def get_rad2freq_pulse():
+  global rad2freq_pulse, MICROSTEP, GEAR_RATIO
+  if rad2freq_pulse is None:
+    r = []
+    for i in range(5):
+      r.append( MICROSTEP[i] * GEAR_RATIO[i] / (2*math.pi) )
+    rad2freq_pulse = r
+  return rad2freq_pulse
+

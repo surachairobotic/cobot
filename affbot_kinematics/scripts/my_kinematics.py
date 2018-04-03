@@ -24,6 +24,35 @@ origin_xyz = None
 
 
 
+class MyException(Exception):
+    def __init__(self, msg, err_code=-1):
+        Exception.__init__(self)
+        self.msg = msg
+        self.err_code = err_code
+        
+
+def quat2list(quat):
+  return [ quat.x, quat.y, quat.z, quat.w ]
+
+def list2quat(l):
+  q = geometry_msgs.msg._Quaternion.Quaternion()
+  q.x = l[0]
+  q.y = l[1]
+  q.z = l[2]
+  q.w = l[3]
+  return q
+
+def pos2list(pos):
+  return [pos.x, pos.y, pos.z]
+  
+def list2pos(l):
+  p = geometry_msgs.msg._Position.Position()
+  p.x = l[0]
+  p.y = l[1]
+  p.z = l[2]
+  return p
+
+
 #### IK, FK ####
 
 def get_pose(ang):
@@ -67,6 +96,11 @@ def get_joints(xyz, xyzw=None):
     if resp.error_code.val!=1:
       raise Exception('error : ' + str(resp.error_code.val))
       #print('error : ' + str(resp.error_code.val))
+      
+    for v in resp.solution.joint_state.position:
+      if math.isnan(v):
+        print(target.pose)
+        raise Exception("ik nan : " + str(resp.solution.joint_state.position))
     return resp.solution.joint_state.position
   except rospy.ServiceException, e:
     raise Exception("Service call failed: %s"%e)

@@ -7,7 +7,7 @@ import numpy as np
 import rospy
 import my_kinematics as kinematics
 import tf.transformations
-import affbot_planner
+#import affbot_planner
 from affbot_kinematics.srv import *
 from affbot_kinematics.msg import *
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -17,21 +17,21 @@ def plan(req, joint_limits, joint_names):
   # use joint angles
   if len(req.joint_names)>0:
     if req.joint_names!=joint_names:
-      raise affbot_planner.MyException('Joint names does not match  : {0}'.format(req.joint_names))
+      raise kinematics.MyException('Joint names does not match  : {0}'.format(req.joint_names))
       
     for i in range(len(req.joint_names)):
       if req.joint_names[i] not in joint_names:
-        raise affbot_planner.MyException('Unknown joint name : ' + req.joint_names[i])
+        raise kinematics.MyException('Unknown joint name : ' + req.joint_names[i])
     start_joints = req.start_joints
     end_joints = req.end_joints
   # use pose
   else:
     start_joints = kinematics.get_joints(req.start_pose)
     if start_joints is None:
-      raise affbot_planner.MyExceptionr('Invalid start pos')
+      raise kinematics.MyExceptionr('Invalid start pos')
     end_joints = kinematics.get_joints(req.end_pose)
     if end_joints is None:
-      raise affbot_planner.MyException('Invalid end pos')
+      raise kinematics.MyException('Invalid end pos')
   res_points = []
   n = len(joint_names)
   pos = [None]*n
@@ -60,7 +60,7 @@ def plan(req, joint_limits, joint_names):
     else:
       err = abs(pos[i] - 0.5*ta*velo[i]*2 - velo[i]*(time[i]-2*ta))
     if err>0.0001:
-      raise affbot_planner.MyException('cal time failed : err = ' + str(err))
+      raise kinematics.MyException('cal time failed : err = ' + str(err))
     if start_joints[i]<end_joints[i]:
       direct[i] = 1
     else:
@@ -95,7 +95,7 @@ def plan(req, joint_limits, joint_names):
     velo[i] = (t_max-math.sqrt(t_max**2-4*pos[i]/acc[i])) * acc[i] * 0.5
     err = abs(velo[i]**2/acc[i] - velo[i]*t_max + pos[i])
     if err>0.0001:
-      raise affbot_planner.MyException('recal velo failed : err = ' + str(err))
+      raise kinematics.MyException('recal velo failed : err = ' + str(err))
   
   step = int(math.ceil(t_max / req.step_time))
   step_time = t_max / step

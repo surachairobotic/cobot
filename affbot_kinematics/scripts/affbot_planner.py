@@ -7,6 +7,7 @@ import math
 import numpy as np
 import copy
 import my_kinematics as kinematics
+import lib_controller
 
 #from AffbotPlanningRequest.msg import *
 from affbot_kinematics.srv import *
@@ -24,9 +25,9 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from trajectory_msgs.msg import JointTrajectory
 import tf.transformations
 import matplotlib.pyplot as plt
-import line_planner
+import line_planner2 as line_planner
 import p2p_planner
-import plot_plan
+#import plot_plan
 
 robot_desc = None
 
@@ -36,35 +37,7 @@ display_pub = None
 last_error_code = -1
 last_plan = None
 
-class MyException(Exception):
-    def __init__(self, msg, err_code=-1):
-        Exception.__init__(self)
-        self.msg = msg
-        self.err_code = err_code
-        
-
-def quat2list(quat):
-  return [ quat.x, quat.y, quat.z, quat.w ]
-
-def list2quat(l):
-  q = geometry_msgs.msg._Quaternion.Quaternion()
-  q.x = l[0]
-  q.y = l[1]
-  q.z = l[2]
-  q.w = l[3]
-  return q
-
-def pos2list(pos):
-  return [pos.x, pos.y, pos.z]
-  
-def list2pos(l):
-  p = geometry_msgs.msg._Position.Position()
-  p.x = l[0]
-  p.y = l[1]
-  p.z = l[2]
-  return p
-
-
+'''
 def get_tip_direction(origin_xyz, xyz):
   x = xyz.x - origin_xyz[0]
   y = xyz.y - origin_xyz[1]
@@ -75,6 +48,7 @@ def get_diff_ang(pos1, pos2):
   p2 = np.array([pos2.x, pos2.y, pos2.z])
 
   return math.acos( np.dot( p1, p2 ) / (np.linalg.norm(p1) * np.linalg.norm(p2)) )
+'''
 
 class cJointLimit:
   def __init__(self):
@@ -114,11 +88,11 @@ def check_plan(points, joint_limits):
       jl = joint_limits[i]
       if jl.has_position and \
         (p.positions[i]<jl.position[0] or p.positions[i]>jl.position[1]):
-        raise MyException('Joint angle exceeds the limit [{0}] : {1}'.format(i, p.positions[i]), -2)
+        raise kinematics.MyException('Joint angle exceeds the limit [{0}] : {1}'.format(i, p.positions[i]), -2)
       if jl.has_velocity and abs(p.velocities[i])>jl.velocity:
-        raise MyException('Joint velocity exceeds the limit [{0}] : {1}'.format(i, p.velocities[i]), -2)
+        raise kinematics.MyException('Joint velocity exceeds the limit [{0}] : {1}'.format(i, p.velocities[i]), -2)
       if jl.has_acceleration and abs(p.accelerations[i])>jl.acceleration:
-        raise MyException('Joint acceleration exceeds the limit [{0}] : {1}'.format(i, p.accelerations[i]), -2)
+        raise kinematics.MyException('Joint acceleration exceeds the limit [{0}] : {1}'.format(i, p.accelerations[i]), -2)
 
 
 def display_plan(points):
@@ -157,21 +131,20 @@ def handle_planning(req):
     
     if len(req.joint_names)>0 and len(req.start_joints)==0:
       req.start_joints = kinematics.get_current_joints()
-      print('start joints')
-      print(req.start_joints)
+      print('start joints : '+str(req.start_joints))
     if req.type=='p2p':
       res_points = p2p_planner.plan(req, joint_limits, joint_names)
     elif req.type=='line':
       res_points = line_planner.plan(req, joint_limits, joint_names, origin_xyz)
     else:
-      raise MyException('Unknown planning type : ' + req.type)
+      raise kinematics.MyException('Unknown planning type : ' + req.type)
     check_plan(res_points, joint_limits)
     display_plan(res_points)
     
     last_plan = copy.deepcopy(res_points)
     last_error_code = 0
     return res_points, 0
-  except MyException as e:
+  except kinematics.MyException as e:
     rospy.logerr(e.msg)
     return [], e.err_code
 
@@ -202,6 +175,18 @@ def set_joint_limits(robot_desc):
     joint_limits.append(jl)
 
 
+def set_velo_limits_pulse():
+  print('-- set_velo_limits_pulse --')
+  max_f = 5000.0
+  rad2freq_pulse = lib_controller.get_rad2freq_pulse()
+  for i in range(len(joint_limits)):
+    if joint_limits[i].has_velocity:
+      f = rad2freq_pulse[i] * joint_limits[i].velocity
+      if f > max_f:
+        v = joint_limits[i].velocity
+        joint_limits[i].velocity = max_f / rad2freq_pulse[i]
+        print('[%d] : %f => %f' % (i, v, joint_limits[i].velocity))
+
 if __name__ == "__main__":
 
   rospy.init_node('affbot_planner')
@@ -216,6 +201,7 @@ if __name__ == "__main__":
     rospy.logerr('Cannot load robot description')
     exit()
   set_joint_limits(robot_desc)
+  set_velo_limits_pulse()
   print(str(joint_limits))
   
   if hasattr(robot_desc.joints[0], 'origin') and hasattr(robot_desc.joints[0].origin, 'xyz'):

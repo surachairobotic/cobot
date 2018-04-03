@@ -24,12 +24,12 @@ joint_names = kinematics.joint_names
 def planning(start_pose, end_pose):
   global srv_planning, joint_names
   try:
-    res = srv_planning(joint_names=[] #joint_names
+    res = srv_planning(joint_names=joint_names
     , start_joints=[]
-    , end_joints=[]
+    , end_joints=[1,0,0,0,0]
     , start_pose=start_pose
     , end_pose=end_pose
-    , type="p2p"
+    , type="line"
     , max_velocity=6
     , max_acceleration=3
     , step_time=0.1)

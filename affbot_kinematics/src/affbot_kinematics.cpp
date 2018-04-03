@@ -203,8 +203,6 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
                                            moveit_msgs::MoveItErrorCodes &error_code,
                                            const kinematics::KinematicsQueryOptions &options) const
 {
-  ROS_INFO("my IK");
-
   // move J1 to origin
   tf::Transform t1(tf::Quaternion(ik_pose.orientation.x,ik_pose.orientation.y
       ,ik_pose.orientation.z,ik_pose.orientation.w)
@@ -262,7 +260,14 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
       x4 = x3.cross(x1);
     }
 
-    ang = acos(x1.dot(n));
+    {
+      double d = x1.dot(n);
+      if( d<-1.0 )
+        d = -1.0;
+      else if( d>1.0 )
+        d = 1.0;
+      ang = acos(d);
+    }
 
     double c = x4.dot(mat.getColumn(0))
         , s = x4.dot(mat.getColumn(1));
@@ -294,6 +299,14 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
         , b = acos(cos_b);
 //    if( C - A*cos_a < 0.0 )
 //      b = M_PI - b;
+    if( std::isnan(a) ){
+      ROS_ERROR("a nan");
+      ROS_INFO("xyz : %lf, %lf, %lf", x, y, z);
+      ROS_INFO("ang : %lf", ang);
+      ROS_INFO("xz2 : %lf, %lf", x2, z2);
+      ROS_INFO("ABC : %lf, %lf, %lf", A, B, C);
+      return false;
+    }
     if( fabs(cos_a)>1 || fabs(cos_b)>1 ){
       ROS_ERROR("Invalid A,B angle : cos_a = %.3lf, cos_b = %.3lf", cos_a, cos_b);
       return false;
@@ -306,7 +319,7 @@ bool AffbotKinematics::getPositionIK(const geometry_msgs::Pose &ik_pose,
     q[2] = M_PI*0.5 - (M_PI - a - b);
     // M_PI*0.5 - q[1] + M_PI*0.5 - q[2] + M_PI*0.5 - q[3] = ang;
     q[3] = (M_PI*2 - q[1] - q[2]) + ang;
-
+    
 /*
     ROS_INFO("ang : %lf", ang);
     ROS_INFO("ab : %lf, %lf", a,b);

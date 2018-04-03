@@ -9,7 +9,6 @@ import my_kinematics as kinematics
 
 from affbot_kinematics.srv import *
 from affbot_kinematics.msg import *
-import affbot_planner
 from trajectory_msgs.msg import JointTrajectoryPoint
 '''
 from urdf_parser_py.urdf import URDF
@@ -56,7 +55,7 @@ def load(file_name):
       p.time_from_start = rospy.Duration(vals[0])
       p.positions = vals[1:6]
       p.velocities = vals[6:11]
-      p.accelerations = vals[6:11]
+      p.accelerations = vals[11:16]
       points.append(p)
       line = f.readline()
   return points
@@ -72,9 +71,9 @@ def plot(points):
   line_dis = []
   
   p1 = kinematics.get_pose(points[0].positions)
-  p1 = np.array(affbot_planner.pos2list(p1.position))
+  p1 = np.array(kinematics.pos2list(p1.position))
   p2 = kinematics.get_pose(points[-1].positions)
-  p2 = np.array(affbot_planner.pos2list(p2.position))
+  p2 = np.array(kinematics.pos2list(p2.position))
   l0 = (p2-p1)/np.linalg.norm(p2-p1)
   for i in range(len(points)):
     pos.append(points[i].positions[:])
@@ -88,7 +87,7 @@ def plot(points):
     v = np.cross(p-p1, l0)
     line_dis.append( np.linalg.norm(v) )
     
-  f, axarr = plt.subplots(4, sharex=True)
+  f, axarr = plt.subplots(5, sharex=True)
   axarr[0].hold(True)
   axarr[1].hold(True)
   axarr[2].hold(True)
@@ -102,7 +101,28 @@ def plot(points):
     axarr[1].plot(t, velo[:,i], '+-')
     axarr[2].plot(t, acc[:,i], '+-')
 #  axarr[3].plot(t, xyz[:,0], '+-', t, xyz[:,1], '+-', t, xyz[:,2], '+-')
-  axarr[3].plot(t, line_dis, '+-')
+  axarr[3].plot(t, xyz[:,0], '+-', t, xyz[:,1], '+-', t, xyz[:,2], '+-')
+  axarr[4].plot(t, line_dis, '+-')
+  
+  # legend
+  leg = []
+  for i in range(5):
+    leg.append('q' + str(i+1))
+  axarr[0].legend(leg)
+  axarr[3].legend(['x','y','z'])
+  
+  # grid
+  for i in range(5):
+    axarr[i].grid(linestyle='-', linewidth='0.2')
+  
+  # axis
+  axarr[0].set_ylabel('angle [rad]')
+  axarr[1].set_ylabel('velo [rad/s]')
+  axarr[2].set_ylabel('acc [rad/s2]')
+  axarr[3].set_ylabel('xyz [m]')
+  axarr[4].set_ylabel('error to line [m]')
+  axarr[4].set_xlabel('time [s]')
+  
   plt.show()
 
 def plot_pulse(points):
@@ -110,9 +130,7 @@ def plot_pulse(points):
   t = []
   pw = []
   
-  rad2pulse = []
-  for i in range(5):
-    rad2pulse.append( lib_controller.MICROSTEP[i] * lib_controller.GEAR_RATIO[i] / (2*math.pi) )
+  rad2freq_pulse = lib_controller.get_rad2freq_pulse()
   
   q_motor = []
   for i in range(len(points)):
@@ -120,7 +138,7 @@ def plot_pulse(points):
   for i in range(len(points)-1):
     p = []
     for j in range(5):
-      p.append( (abs(q_motor[i+1][j] - q_motor[i][j]) * rad2pulse[j]) / (points[i+1].time_from_start.to_sec() - points[i].time_from_start.to_sec()) )
+      p.append( (abs(q_motor[i+1][j] - q_motor[i][j]) * rad2freq[j]) / (points[i+1].time_from_start.to_sec() - points[i].time_from_start.to_sec()) )
     pw.append(p)
     t.append(points[i].time_from_start.to_sec())
   
@@ -138,8 +156,8 @@ def plot_pulse(points):
 if __name__ == "__main__":
   points = load('plan.txt')
   kinematics.init()
-#  plot(points)
-  plot_pulse(points)
+  plot(points)
+#  plot_pulse(points)
   
 
 
