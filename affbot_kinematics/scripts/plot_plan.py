@@ -68,6 +68,7 @@ def plot(points):
   acc = []
   t = []
   xyz = []
+  dxyz = []
   line_dis = []
   
   p1 = kinematics.get_pose(points[0].positions)
@@ -75,6 +76,8 @@ def plot(points):
   p2 = kinematics.get_pose(points[-1].positions)
   p2 = np.array(kinematics.pos2list(p2.position))
   l0 = (p2-p1)/np.linalg.norm(p2-p1)
+  
+  
   for i in range(len(points)):
     pos.append(points[i].positions[:])
     velo.append(points[i].velocities[:])
@@ -82,6 +85,15 @@ def plot(points):
     t.append(points[i].time_from_start.to_sec())
     pose = kinematics.get_pose(points[i].positions)
     p = [pose.position.x ,pose.position.y, pose.position.z]
+    
+    if i==0:
+      dxyz.append([0,0,0])
+    else:
+      vv = []
+      dt = t[-1]-t[-2]
+      for j in range(3):
+        vv.append( (p[j] - xyz[-1][j]) / dt )
+      dxyz.append(vv)
     xyz.append(p)
     p = np.array(p)
     v = np.cross(p-p1, l0)
@@ -96,13 +108,15 @@ def plot(points):
   velo = np.array(velo)
   acc = np.array(acc)
   xyz = np.array(xyz)
+  dxyz = np.array(dxyz)
   for i in range(5):
     axarr[0].plot(t, pos[:,i], '+-')
     axarr[1].plot(t, velo[:,i], '+-')
     axarr[2].plot(t, acc[:,i], '+-')
 #  axarr[3].plot(t, xyz[:,0], '+-', t, xyz[:,1], '+-', t, xyz[:,2], '+-')
   axarr[3].plot(t, xyz[:,0], '+-', t, xyz[:,1], '+-', t, xyz[:,2], '+-')
-  axarr[4].plot(t, line_dis, '+-')
+  axarr[4].plot(t, dxyz[:,0], '+-', t, dxyz[:,1], '+-', t, dxyz[:,2], '+-')
+#  axarr[4].plot(t, line_dis, '+-')
   
   # legend
   leg = []
@@ -120,7 +134,8 @@ def plot(points):
   axarr[1].set_ylabel('velo [rad/s]')
   axarr[2].set_ylabel('acc [rad/s2]')
   axarr[3].set_ylabel('xyz [m]')
-  axarr[4].set_ylabel('error to line [m]')
+  axarr[4].set_ylabel('velo_linear [m/s]')
+#  axarr[4].set_ylabel('error to line [m]')
   axarr[4].set_xlabel('time [s]')
   
   plt.show()

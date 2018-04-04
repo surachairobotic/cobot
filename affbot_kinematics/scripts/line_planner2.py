@@ -9,6 +9,7 @@ import numpy as np
 import rospy
 import my_kinematics as kinematics
 import tf.transformations
+import time
 from affbot_kinematics.srv import *
 from affbot_kinematics.msg import *
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -108,6 +109,7 @@ def ab2quat(xyz, ab, origin_xyz):
 
 def plan(req, joint_limits, joint_names, origin_xyz):
   # use joint angles
+  t_start = time.time()
   if len(req.joint_names)>0:
     if req.joint_names!=joint_names:
       raise kinematics.MyException('Joint names does not match  : {0}'.format(req.joint_names))
@@ -167,12 +169,14 @@ def plan(req, joint_limits, joint_names, origin_xyz):
       err = abs(dis*0.5 - 0.5*acc*t**2)
       if velo > max_velo:
         raise kinematics.MyException('velo increased : ')
+      max_velo_linear = velo
     else:
 #      t = velo / acc
       t_const = (dis - 2*0.5*acc*t**2) / velo
       t_max = t*2 + t_const
       t_acc = [t, t+t_const]
       err = abs(dis - acc*t**2 - velo*(t_max-2*t))
+      max_velo_linear = velo
       
     if err>0.0001:
       print('dis_acc = {0}\ndis={1}\nt = {2}\nt_acc = {3}\nt_max = {4}'.format(dis_acc,dis,t,t_acc,t_max))
@@ -180,7 +184,7 @@ def plan(req, joint_limits, joint_names, origin_xyz):
     
     step = int(math.ceil(t_max / req.step_time))
     step_time = t_max / step
-    time = [i*step_time for i in range(step+1)]
+    times = [i*step_time for i in range(step+1)]
     
     # tip angle
     '''
@@ -199,27 +203,27 @@ def plan(req, joint_limits, joint_names, origin_xyz):
     '''
     
     dts = [0]
-    for i in range(len(time)-1):
-      dts.append(time[i+1]-time[i])
-    for i in range(len(time)):
+    for i in range(len(times)-1):
+      dts.append(times[i+1]-times[i])
+    for i in range(len(times)):
       p = JointTrajectoryPoint()
       p.positions = [0]*n
       p.velocities = [0]*n
       p.accelerations = [0]*n
       p.effort = [0]*n
-      p.time_from_start = rospy.rostime.Duration(time[i])
+      p.time_from_start = rospy.rostime.Duration(times[i])
       
-      if time[i]<t_acc[0]:
-        v = acc*time[i]
-        d = 0.5 * v * time[i]
+      if times[i]<t_acc[0]:
+        v = acc*times[i]
+        d = 0.5 * v * times[i]
         a = acc
-      elif time[i]>t_acc[1]:
-        v = acc*(t_max - time[i])
-        d = dis - 0.5 * v * (t_max - time[i])
+      elif times[i]>t_acc[1]:
+        v = acc*(t_max - times[i])
+        d = dis - 0.5 * v * (t_max - times[i])
         a = -acc
       else:
         v = velo
-        d = 0.5*acc*t_acc[0]**2 + (time[i]-t_acc[0])*v
+        d = 0.5*acc*t_acc[0]**2 + (times[i]-t_acc[0])*v
         a = 0
         
       ratio = d / dis
@@ -267,25 +271,30 @@ def plan(req, joint_limits, joint_names, origin_xyz):
         dt = dts[i]
         
         new_acc = max_acc
-        new_velo = max_velo
+        new_velo = max_velo_linear
         for j in range(n):
           v = (p.positions[j] - p1.positions[j]) / dt
-          p.velocities[j] = 2*v - p1.velocities[j]
-          p.accelerations[j] = (p.velocities[j] - p1.velocities[j]) / dt
-          if joint_limits[j].has_acceleration and abs(p.accelerations[j]) > joint_limits[j].acceleration:
-            a = max_acc * joint_limits[j].acceleration / abs(p.accelerations[j])
+          v = 2*v - p1.velocities[j]
+          a = (p.velocities[j] - p1.velocities[j]) / dt
+          a = 2*a - p1.accelerations[j]
+          p.velocities[j] = v
+          p.accelerations[j] = a
+          a = abs(a)
+          v = abs(v)
+          if joint_limits[j].has_acceleration and a > joint_limits[j].acceleration:
+            a = max_acc * joint_limits[j].acceleration / a
             if a < new_acc:
               new_acc = a
-              print('[%d] acc ex [%d] : %f / %f = %f' % (n_time, j, p.accelerations[j], joint_limits[j].acceleration, a))
+              #print('[%d] acc ex [%d] : %f / %f = %f' % (n_time, j, p.accelerations[j], joint_limits[j].acceleration, a))
               b_replan = True
-              #break
-          if joint_limits[j].has_velocity and abs(p.velocities[j]) > joint_limits[j].velocity:
-            v = max_velo * joint_limits[j].velocity / abs(p.velocities[j])
-            if v < max_velo:
-              print('[%d] vel ex [%d] : %f / %f => %f' % (n_time, j, p.velocities[j], joint_limits[j].velocity, v))
+
+          if joint_limits[j].has_velocity and v > joint_limits[j].velocity:
+            v = max_velo_linear * joint_limits[j].velocity / v
+            if v < new_velo:
+              #print('[%d] vel ex [%d] : %f / %f => %f' % (n_time, j, p.velocities[j], joint_limits[j].velocity, v))
               b_replan = True
               new_velo = v
-              #break
+
         if b_replan:
           max_velo = new_velo
           max_acc = new_acc
@@ -294,7 +303,7 @@ def plan(req, joint_limits, joint_names, origin_xyz):
       points.append(p)
     
     new_acc = max_acc
-    new_velo = max_velo
+    new_velo = max_velo_linear
     i = 1
     while i<len(points)-1:
       p = points[i]
@@ -303,31 +312,40 @@ def plan(req, joint_limits, joint_names, origin_xyz):
       dt = dts[i]
       for j in range(n):
         v = (p.positions[j] - p1.positions[j]) / dt
-        p.velocities[j] = 2*v - p1.velocities[j]
-        p.accelerations[j] = (p.velocities[j] - p1.velocities[j]) / dt
-        if joint_limits[j].has_acceleration and abs(p.accelerations[j]) > joint_limits[j].acceleration:
-          a = max_acc * joint_limits[j].acceleration / abs(p.accelerations[j])
+#        v = 2*v - p1.velocities[j]
+        a = (p.velocities[j] - p1.velocities[j]) / dt
+#        a = 2*a - p1.accelerations[j]
+        p.velocities[j] = v
+        p.accelerations[j] = a
+        a = abs(a)
+        v = abs(v)
+        
+        if joint_limits[j].has_acceleration and a > joint_limits[j].acceleration:
+          a = max_acc * joint_limits[j].acceleration / a
           if a < new_acc:
             new_acc = a
-            #print('[%d] acc ex [%d] : %f / %f = %f' % (n_time, j, p.accelerations[j], joint_limits[j].acceleration, a))
             b_replan = True
             #break
-        if joint_limits[j].has_velocity and abs(p.velocities[j]) > joint_limits[j].velocity:
-          v = max_velo * joint_limits[j].velocity / abs(p.velocities[j])
-          if v < max_velo:
-            #print('[%d] vel ex [%d] : %f / %f => %f' % (n_time, j, p.velocities[j], joint_limits[j].velocity, v))
-            b_replan = True
+        if joint_limits[j].has_velocity and v > joint_limits[j].velocity:
+          v = max_velo_linear * joint_limits[j].velocity / v
+          if v < new_velo:
             new_velo = v
+            b_replan = True
             #break
+        
       i+=1
+    
+#    b_replan = False
+#    print('[%d] [i=%d] vel ex : %f => %f' % (n_time, i, max_velo, new_velo))
+#    print('[%d] [i=%d] acc ex : %f => %f' % (n_time, i, max_acc, new_acc))
     if b_replan:
-      print('[%d] vel ex : %f => %f' % (n_time, max_velo, new_velo))
-      print('[%d] acc ex : %f => %f' % (n_time, max_acc, new_acc))
+#      print('vl : %f' % (max_velo_linear))
       max_velo = new_velo
       max_acc = new_acc
     
     if not b_replan:
-      print('attempt : ' + str(n_time))
+      print('attempt : %d, time = %f' % (n_time, time.time()-t_start))
+      print('max_velo : %f , max_acc : %f' % (max_velo, max_acc))
       return points
     else:
       n_time+=1

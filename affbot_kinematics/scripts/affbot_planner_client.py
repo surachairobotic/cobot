@@ -30,8 +30,8 @@ def planning(start_pose, end_pose):
     , start_pose=start_pose
     , end_pose=end_pose
     , type="line"
-    , max_velocity=6
-    , max_acceleration=3
+    , max_velocity=0.2
+    , max_acceleration=0.1
     , step_time=0.1)
     return res
   except rospy.ServiceException, e:
