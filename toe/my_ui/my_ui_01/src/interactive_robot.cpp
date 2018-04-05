@@ -41,8 +41,7 @@
 #include <moveit/robot_state/conversions.h>
 
 // default world object position is just in front and left of PR2 robot.
-const Eigen::Affine3d InteractiveRobot::DEFAULT_WORLD_OBJECT_POSE_(Eigen::Affine3d(Eigen::Translation3d(0.25, -0.5,
-                                                                                                        0.5)));
+const Eigen::Affine3d InteractiveRobot::DEFAULT_WORLD_OBJECT_POSE_(Eigen::Affine3d(Eigen::Translation3d(0.25, -0.5, 0.5)));
 
 // size of the world geometry cube
 const double InteractiveRobot::WORLD_BOX_SIZE_ = 0.15;
@@ -124,7 +123,10 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
   last_callback_time_ = init_time_;
   average_callback_duration_ = min_delay_;
   schedule_request_count_ = 0;
-  publish_timer_ = nh_.createTimer(average_callback_duration_, &InteractiveRobot::updateCallback, this, true);
+  publish_timer_ = nh_.createTimer(average_callback_duration_, 
+																	 &InteractiveRobot::updateCallback, 
+																	 this, 
+																	 true);
 
   // begin publishing robot state
   scheduleUpdate();
@@ -253,7 +255,6 @@ void InteractiveRobot::updateAll()
   if (robot_state_->setFromIK(group_, desired_group_end_link_pose_, 10, 0.1))
   {
     publishRobotState();
-//		eef_state_publisher_.publish(desired_group_end_link_pose_); // Me
 
     if (user_callback_)
       user_callback_(*this);
@@ -341,6 +342,8 @@ std::vector<geometry_msgs::Pose> InteractiveRobot::getPose()
 	std::vector<geometry_msgs::Pose> v_pose;
   Eigen::Affine3d link;
 	geometry_msgs::Pose pose;
+
+	std::string str_pose;
 	for(int i=0; i < group_->getLinkModelNames().size(); i++) {
 		link = robot_state_->getGlobalLinkTransform(group_->getLinkModelNames()[i]);
   	tf::poseEigenToMsg(link, pose);

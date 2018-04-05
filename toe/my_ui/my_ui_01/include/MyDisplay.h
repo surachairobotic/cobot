@@ -12,7 +12,6 @@
 
 #include "interactive_robot.h"
 #include "pose_string.h"
-//#include "imarker.h"
 
 namespace my_plugin
 {
@@ -25,9 +24,6 @@ namespace my_plugin
 			~MyDisplay();
 
 		  void setName(const QString& name);
-
-//			static std::vector<geometry_msgs::Pose> robot_pose;
-			InteractiveRobot* irobot_start_state;
 
 		protected:
 			virtual void load(const rviz::Config& config);
@@ -53,7 +49,8 @@ namespace my_plugin
 			ros::Subscriber robot_start_;
 			ros::Subscriber robot_goal_;
 
-//			InteractiveRobot irobot_goal_state;
+			InteractiveRobot* irobot_start_state;
+			InteractiveRobot* irobot_goal_state;
 			static const std::string& FRAME_ID;
   		static const std::string PLANNING_GROUP;
 
@@ -66,7 +63,7 @@ namespace my_plugin
 			ros::AsyncSpinner spinner;
 
 			static void callbackRobotStartState(InteractiveRobot &robot);
-//			static void callbackRobotGoalState(InteractiveRobot &robot);
+			static void callbackRobotGoalState(InteractiveRobot &robot);
 
 		private Q_SLOTS:
 		  void motionPanelVisibilityChange(bool enable);

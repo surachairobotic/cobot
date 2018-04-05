@@ -12,6 +12,7 @@ static const std::string PLANNING_GROUP = "arm";
 
 MyDisplay::MyDisplay() : nh_(), spinner(1)
 		,irobot_start_state(0)
+		,irobot_goal_state(0)
 /*	,irobot_start_state( "robot_description", 
   										 "start_state_robot_pub", 
 											 "start_state_robot_markers",
@@ -42,6 +43,15 @@ MyDisplay::MyDisplay() : nh_(), spinner(1)
 																						 "/base_link",
 																						 "robot_start_state",
 																						 this);
+	irobot_goal_state = new InteractiveRobot( "robot_description", 
+																						 "goal_state_robot_pub", 
+																						 "goal_state_robot_markers",
+																						 "goal_state_robot_imarkers",
+																						 "arm",
+																						 "/base_link",
+																						 "robot_goal_state",
+																						 this);
+
 //	robot_start_ = nh_.subscribe<std_msgs::String>("my_topic", 1, callbackRobotStartState());
 //	robot_start_ = nh_.subscribe("direction", 128, MyDisplay::callbackRobotStartState);
 //	robot_start_ = nh_.subscribe("/start_state_robot_pub", 128, &MyDisplay::callbackRobotStartState, this);
@@ -51,7 +61,7 @@ MyDisplay::MyDisplay() : nh_(), spinner(1)
   spinner.start();
 
   irobot_start_state->setUserCallback(callbackRobotStartState);
-//  irobot_goal_state.setUserCallback(callbackRobotGoalState);
+  irobot_goal_state->setUserCallback(callbackRobotGoalState);
 
 	debug_message = "";
 }
@@ -86,7 +96,6 @@ void MyDisplay::onInitialize()
 
   if (frame_)
   {
-//    QString host;
     frame_->ui_->lineEdit_x->setText(QString("onInitialize"));
 	}
 
@@ -102,10 +111,19 @@ void MyDisplay::motionPanelVisibilityChange(bool enable)
 void MyDisplay::callbackRobotStartState(InteractiveRobot &robot)
 {
 		ROS_WARN("callbackRobotStartState !!!");
-//		robot.my_display->frame_->newLabel(robot.getPose());
-		robot.my_display->frame_->ui_->lineEdit_x->setText(QString::fromStdString("xxxx"));
-//		robot.getPose();
 
+		// ** comment this line, error disappear
+		robot.my_display->frame_->ui_->lineEdit_x->setText(QString::fromStdString("xxxx"));
+
+
+//		std::vector<geometry_msgs::Pose> vPose = robot.getPose();
+
+//		robot.my_display->frame_->newLabel(robot.getPose());
+		
+/*		for(int i=0; i<vPose.size(); i++) {
+			ROS_INFO("link : %s", PoseString(vPose[i]).c_str());
+		}
+*/
 //		frame_->ui_->lineEdit_x->setText(QString::fromStdString(str.state.joint_state.name[0]));
 //		QString tmp = "";
 //		for(int i=0; i<robot_pose.size(); i++) {
@@ -131,12 +149,12 @@ void MyDisplay::callbackRobotStartState(InteractiveRobot &robot)
 //	}
 
 }
-/*
+
 void MyDisplay::callbackRobotGoalState(InteractiveRobot &robot)
 {
 	ROS_WARN("callbackRobotGoalState !!!");
+	//std::vector<geometry_msgs::Pose> vPose = robot.getPose();
 }
-*/
 
 std::string MyDisplay::double2string(double x)
 {

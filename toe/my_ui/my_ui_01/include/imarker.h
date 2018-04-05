@@ -70,11 +70,19 @@ public:
           Dof dof = BOTH)
     : imarker_()
   {
-    initialize(server, name, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0), frame_id, callback, dof);
+    initialize(server,
+							 name, 
+							 Eigen::Vector3d(0, 0, 0), 
+							 Eigen::Quaterniond(1, 0, 0, 0), 
+							 frame_id, 
+							 callback, 
+							 dof);
   }
 
   /** create an interactive marker with an initial pose */
-  IMarker(interactive_markers::InteractiveMarkerServer& server, const std::string& name, const Eigen::Affine3d& pose,
+  IMarker(interactive_markers::InteractiveMarkerServer& server, 
+					const std::string& name, 
+					const Eigen::Affine3d& pose,
           const std::string& frame_id = "/base_footprint",
           boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr&)> callback = printFeedback,
           Dof dof = BOTH)
@@ -87,8 +95,10 @@ public:
   }
 
   /** create an interactive marker with an initial pose */
-  IMarker(interactive_markers::InteractiveMarkerServer& server, const std::string& name,
-          const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation,
+  IMarker(interactive_markers::InteractiveMarkerServer& server, 
+					const std::string& name,
+          const Eigen::Vector3d& position, 
+					const Eigen::Quaterniond& orientation,
           const std::string& frame_id = "/base_footprint",
           boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr&)> callback = printFeedback,
           Dof dof = BOTH)
@@ -98,8 +108,10 @@ public:
   }
 
   /** create an interactive marker with an initial position */
-  IMarker(interactive_markers::InteractiveMarkerServer& server, const std::string& name,
-          const Eigen::Vector3d& position, const std::string& frame_id = "/base_footprint",
+  IMarker(interactive_markers::InteractiveMarkerServer& server, 
+					const std::string& name,
+          const Eigen::Vector3d& position, 
+					const std::string& frame_id = "/base_footprint",
           boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr&)> callback = printFeedback,
           Dof dof = BOTH)
     : imarker_()
@@ -115,8 +127,11 @@ public:
 
 private:
   /* called by constructors */
-  void initialize(interactive_markers::InteractiveMarkerServer& server, const std::string& name,
-                  const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, const std::string& frame_id,
+  void initialize(interactive_markers::InteractiveMarkerServer& server, 
+									const std::string& name,
+                  const Eigen::Vector3d& position, 
+									const Eigen::Quaterniond& orientation, 
+									const std::string& frame_id,
                   boost::function<void(const visualization_msgs::InteractiveMarkerFeedbackConstPtr&)> callback,
                   Dof dof);
 
