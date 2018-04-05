@@ -5,7 +5,6 @@ import os
 import rospy
 import math
 import time
-import lib_controller
 import actionlib
 from actionlib_msgs.msg import GoalStatus, GoalID
 

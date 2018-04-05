@@ -19,6 +19,7 @@ motor_velocity = [0.0,0.0,0.0,0.0,0.0]
 joint_effort = [0.0,0.0,0.0,0.0,0.0]
 sers = []
 last_plan = None
+b_set_zero = False
 
 '''
 class MySerial:
@@ -76,60 +77,49 @@ class MySerial:
 '''
 
 def set_zero(req):
-  global sers
-  for ser in sers:
-    ser.reset()
+  global b_set_zero
+  b_set_zero = True
   return []
 
 
-
 if __name__ == "__main__":
+  '''
   if len(sys.argv)<=1:
     print('no port num found : ')
     exit()
-    
+  '''
+  
   try:
     # init serial
+    sers = lib_controller.get_arduinos("/dev/ttyACM", 3, 115200, 'get_pulse_due')
+    print('arduino found : %d' % len(sers))
+    '''
     for i in range(len(sys.argv)-1):
       sers.append(lib_controller.MySerial("/dev/ttyACM" + sys.argv[i+1], 115200))
+#      sers[-1].set_print(False)
+    print('waiting start')
+    try:
+      for i in range(len(sers)):
+        sers[i].wait_start('get_pulse_due')
+        sers[i].reset_arduino()
+    except serial.serialutil.SerialException:
+      exit()
+    '''
       
     # init ros
     rospy.init_node('affbot_joint_state_publisher')
     pub = rospy.Publisher("/joint_states", JointState, queue_size=10)
     srv = rospy.Service('affbot/joint_state_publisher/set_zero', AffbotSetZero, set_zero)
     
-    print('waiting start')
-    try:
-      for i in range(len(sys.argv)-1):
-        sers[i].wait_start('get_pulse_due')
-        sers[i].reset()
-      '''
-      while 1:
-        b = True
-        for ser in sers:
-          if ser.wait_start()==False:
-            b = False
-        if b:
-          break
-        if rospy.is_shutdown():
-          exit()
-        time.sleep(0.01)
-      while 1:
-        b = True
-        for ser in sers:
-          if ser.wait_start()==False:
-            b = False
-        if b:
-          break
-        if rospy.is_shutdown():
-          exit()
-        time.sleep(0.01)
-      '''
-    except serial.serialutil.SerialException:
-      exit()
+      
     print('start')
     while not rospy.is_shutdown():
       time.sleep(0.01)
+      if b_set_zero:
+        for k in range(len(sers)):
+          sers[k].reset_arduino()
+        b_set_zero = False
+        print('reset ok')
       for k in range(len(sers)):
         ser = sers[k]
         s = ser.serial_read()
@@ -162,10 +152,9 @@ if __name__ == "__main__":
               j.header.frame_id = 'base_link'
               j.name = joint_name
               
-              q_motor = []
-              dq_motor = []
               for i in range(n_joint):
-                r = 1000.0 / (lib_controller.MICROSTEP[i] * lib_controller.GEAR_RATIO[i])
+                r = 1000.0 / (lib_controller.MICROSTEP[start_id + i] 
+                  * lib_controller.GEAR_RATIO[start_id + i])
                 motor_position[start_id + i] = float(arr[i*2]) * r
                 motor_velocity[start_id + i] = float(arr[i*2+1]) * r
               joint_position = lib_controller.motor2joint( motor_position )
@@ -184,6 +173,8 @@ if __name__ == "__main__":
             except ValueError:
               print('Invalid data vale : ' + s)
     print('end')
+  #except serial.serialutil.SerialException:
+  #  print('serial break')
   except KeyboardInterrupt:
     print('SIGINT')
   finally:

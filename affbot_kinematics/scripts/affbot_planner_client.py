@@ -24,14 +24,14 @@ joint_names = kinematics.joint_names
 def planning(start_pose, end_pose):
   global srv_planning, joint_names
   try:
-    res = srv_planning(joint_names=joint_names
+    res = srv_planning(joint_names=[] #joint_names
     , start_joints=[]
-    , end_joints=[1,0,0,0,0]
+    , end_joints=[]
     , start_pose=start_pose
     , end_pose=end_pose
-    , type="line"
-    , max_velocity=0.2
-    , max_acceleration=0.1
+    , type="p2p"
+    , max_velocity=2.0
+    , max_acceleration=1.5
     , step_time=0.1)
     return res
   except rospy.ServiceException, e:

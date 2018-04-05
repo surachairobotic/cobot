@@ -5,6 +5,8 @@ import os
 import math
 import time
 import serial
+import rospy
+from affbot_kinematics.srv import AffbotSetZero
 
 #!/usr/bin/env python
 
@@ -40,23 +42,32 @@ rad2freq_pulse = None
 
 class MySerial():
   def __init__(self, _port_name, _baud_rate):
+    '''
+    self.ser = serial.Serial(port = _port_name
+    , baudrate = _baud_rate
+    , timeout = 0.01
+    , writeTimeout = 0)
+    if self.ser.isOpen():
+      raise Exception('opened')
+    '''
     self.ser = serial.Serial()
-#    ser.port = "COM5"
     self.ser.port = _port_name
     self.ser.baudrate = _baud_rate
     self.ser.timeout = 0.01
     self.ser.writeTimeout = 0
+    
     self.ser.open()
+    self.b_print = True
     self.serial_buf = ''
 
   def wait_start(self, name):
     print('wait start')
-    for i in range(5):
+    for i in range(3):
       self.ser.write(b'who\n')
-      t = time.time() + 1
+      t = time.time() + 1.0
       while time.time() < t:
         s = self.serial_read()
-        if s[0:4]=='who:':
+        if len(s)>0 and s[0:4]=='who:':
           _name = s[4:].split(' ')[0]
           if (type(name) is str and name==_name) or (type(name) is list and (_name in name) ):
             print('start')
@@ -74,13 +85,17 @@ class MySerial():
           if len(self.serial_buf)>0:
             b = self.serial_buf
             self.serial_buf = ''
-            print('READ : ' + b)
+            if self.b_print:
+              print('READ : ' + b)
             return b
         else:
           self.serial_buf+= c
       c = self.ser.read()
     return ''
 
+  def set_print(self, b_print):
+    self.b_print = b_print
+    
   def print_checksum(self, msg):
     sum = 0
     for i in range(len(msg)):
@@ -91,6 +106,7 @@ class MySerial():
 #    print(bytearray(msg2).decode("ascii"))
 
   def set_gear_microstep(self, id, b_1_motor, gear=None, microstep=None):
+    global GEAR_RATIO, MICROSTEP
     if gear is None:
       gear = GEAR_RATIO[id]
     if microstep is None:
@@ -139,19 +155,50 @@ class MySerial():
     print('set_target() : ' + cmd)
   
   
-  def reset(self):
+  def reset_arduino(self):
     self.ser.write(b'\nreset\n')
     t = time.time()
+    
     while 1:
       s = self.serial_read()
       if len(s)>0 and s=='reset:ok':
         break
       if time.time() - t > 1.0:
-        raise Exception('reset timeout : ' + str(i))
+        raise Exception('reset timeout : ' + self.ser.port)
+        
+  def reset_joint_state(self):
+    print('reset_joint_state')
+    try:
+      srv_name = 'affbot/joint_state_publisher/set_zero'
+      rospy.wait_for_service(srv_name, timeout=0.01)
+      j_zero = rospy.ServiceProxy(srv_name, AffbotSetZero)
+      j_zero()
+    except rospy.ROSException:
+      print('No joint_state_publisher found')
 
+def get_arduinos(port_prefix, max_num, baud_rate, who):
+  sers = []
+  for i in range(9):
+    ser = None
+    try:
+      port = port_prefix + str(i)
+      ser = MySerial(port, baud_rate)
+      ser.wait_start(who)
+      sers.append(ser)
+      if len(sers)==max_num:
+        return sers
+      print(port + ' : ok')
+    except (serial.serialutil.SerialException, Exception) as e:
+      print(port + ' : fail : ' + str(e))
+      if ser is not None:
+        ser.ser.close()
+  for ser in sers:
+    ser.ser.close()
+  raise Exception('Too few arduino found : %d' % (len(sers)))
+  
 
 def motor2joint(q_motor, add_q_start=True):
-  global GEAR_RATIO, q_start
+  global q_start
   if len(q_motor)!=5:
     raise Exception('motor2joint : joint num is not 5 (%d)' % (len(q_motor)))
   q = [0,0,0,0,0]
