@@ -45,15 +45,15 @@ M = [
 ]
 
 # inertia
-I = [
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1])
-]
+I = sp.Matrix([
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1]),
+  np.diag([1,1,1,1])
+])
 
 
 
@@ -119,18 +119,6 @@ for i in range(len(Rq)):
   r = r*Rq[i]
   R.append(r)
 
-#### U ####
-
-U = 0
-com = []
-for i in range(len(R)):
-  v1 = R[i]*sp.Matrix(COM[i])
-  com.append(v1)
-  v2 = (v1).dot(sp.Matrix([0,0,1,0]))
-  v3 = v2*g
-  U+= v3
-
-#### T ####
 
 
 def diff_mat(mat):
@@ -138,7 +126,7 @@ def diff_mat(mat):
   s = mat.shape
   for j in range(s[0]):
     if s[1]==1:
-      v.append( sp.diff(mat[j], t) )
+      v.append( sp.diff(mat[j,i], t) )
     else:
       v2 = []
       for i in range(s[1]):
@@ -147,35 +135,38 @@ def diff_mat(mat):
   return sp.Matrix(v)
 
 
-T = sp.Float(0)
-v_com = []
-w_com = []
-for i in range(len(R)):
-  v1 = diff_mat(com[i])
-  v_com.append(v1)
-  R2 = R[i][0:3, 0:3]
-  omega = diff_mat(R2) * R2.T
-  w = sp.Matrix([omega[2,1], omega[0,2], omega[1,0]])
-  w_com.append(w)
-  T+= sp.Float(sp.Rational(M[i],2))*(v_com[i].dot(v_com[i]))
-  I2 = sp.Matrix(I[i])
-  T2 = w.T * R2 * I2 * R2.T * w
-  T+= sp.Rational(1,2) * T2[0] #sp.Float(sp.Rational(T2[0],2))
-#  T+= sp.Rational(T2,2)
-  
-print(T)
+R = R[-1][0:3, 0:3]
+omega = diff_mat(R) * R.T
+
+w = omega.subs( sp.Derivative(q[0], t), 1 )
+w = omega
+
+for i in range(6):
+  w = w.subs( sp.Derivative(q[i], t), i+1 )
+  w = w.subs( q[i], (i+1)*0.1 )
+
+print(w)
+
+print('w : ' + str([w[2,1], w[0,2], w[1,0]]))
+
+# I' = R*I*R.T
+# inertia = 1/2*w*I'*w
 
 '''
-#### Tq ####
-Tq = sp.Float(0)
-v_com = []
-for i in range(len(R)):
-  v = [] #sp.Matrix([0,0,0,0])
-  for j in range(len(com[i])):
-    v.append( sp.diff(com[i][j], t) )
-  v1 = sp.Matrix(v)
-  #v1 = sp.diff(com[i], t)
-  v_com.append(v1)
-  Tx+= sp.Float(sp.Rational(M[i],2))*(v_com[i].dot(v_com[i]))
+w = omega.subs( [ sp.Derivative(q[0], t), 1
+  , sp.Derivative(q[1], t), 2
+  , sp.Derivative(q[2], t), 3
+  , sp.Derivative(q[3], t), 4
+  , sp.Derivative(q[4], t), 5
+  , sp.Derivative(q[5], t), 6
+  , q[0], 0.1
+  , q[1], 0.2
+  , q[2], 0.3
+  , q[3], 0.4
+  , q[4], 0.5
+  , q[5], 0.6]
+)
+print(w)
 '''
+
 
