@@ -21,60 +21,6 @@ sers = []
 last_plan = None
 b_set_zero = False
 
-'''
-class MySerial:
-  def __init__(self, port_num, name):
-    self.ser = serial.Serial()
-    self.ser.port = "/dev/ttyACM" + str(port_num)
-    self.ser.baudrate = 115200
-    self.ser.timeout = 0.001
-    self.ser.writeTimeout = 1
-    self.ser.open()
-    self.serial_buf = ''
-    self.b_start = False
-    self.t_prev_wait_start = -1
-    self.name = name
-    
-  def read(self):
-    c = self.ser.read()
-    while len(c)>0:
-      if ord(c)<128:
-        c = c.decode()
-        if c=='\n' or c=='\r':
-          if len(self.serial_buf)>0:
-            b = self.serial_buf
-            self.serial_buf = ''
-  #          print('READ : ' + b)
-            return b
-        else:
-          self.serial_buf+= c
-      c = self.ser.read()
-    return ''
-
-  def wait_start(self):
-    if self.b_start:
-      return True
-    t = time.time()
-    if t > self.t_prev_wait_start:
-      self.t_prev_wait_start = t + 1
-      self.ser.write('who\n')
-    s = self.read()
-    if len(s)>0:
-      if s[0]!='<':
-        print('READ : '+s)
-      if s[0:4]=='who:':
-        name = s[4:]
-        if self.name==name:
-          self.b_start = True
-          return True
-        else:
-          print('wrong serial name (%s) : %s' % (self.ser.port, name))
-          exit()
-    return False
-    
-  def set_zero(self):
-    self.ser.write('reset\n')
-'''
 
 def set_zero(req):
   global b_set_zero
@@ -113,6 +59,7 @@ if __name__ == "__main__":
     
       
     print('start')
+    t_start = rospy.Time.now()
     while not rospy.is_shutdown():
       time.sleep(0.01)
       if b_set_zero:
@@ -160,12 +107,14 @@ if __name__ == "__main__":
               joint_position = lib_controller.motor2joint( motor_position )
               joint_velocity = lib_controller.motor2joint( motor_velocity, add_q_start=False )
               '''
-              for i in range(n_joint):
-                joint_position[start_id + i] = q_link[i]
-                joint_velocity[start_id + i] = dq_link[i]
-                #joint_position[start_id + i] = float(arr[i*2]) * joint_gear_ratio[start_id + i] + joint_offset[start_id + i]
-                #joint_velocity[start_id + i] = float(arr[i*2+1]) * joint_gear_ratio[start_id + i]
+              with open('joint_state.txt', 'at') as f:
+                f.write('%f' % (j.header.stamp - t_start).to_sec())
+                for i in range(len(motor_position)):
+                  f.write(' %f %f %f %f' % (motor_position[i], motor_velocity[i]
+                    , joint_position[i], joint_velocity[i]))
+                f.write('\n')
               '''
+              
               j.position = joint_position
               j.velocity = joint_velocity
               j.effort = joint_effort

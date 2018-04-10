@@ -143,6 +143,7 @@ if __name__ == "__main__":
     sers = lib_controller.get_arduinos("/dev/ttyACM", 1, 9600, 'central_mega')
     ser = sers
     '''
+    print('port_id = ' + serial_id)
     ser = lib_controller.MySerial("/dev/ttyACM" + serial_id, 9600)
     ser.wait_start('central_mega')
     for i in range(5):

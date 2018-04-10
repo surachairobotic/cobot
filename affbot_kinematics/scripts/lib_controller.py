@@ -29,15 +29,19 @@ DEG2RAD = math.pi/180
 
 GEAR_RATIO = [100.0, 88.0, 37.5, 2.0, 2.0]
 MICROSTEP = [400, 400, 400, 400, 400]
+JOINT_MIN_ANG = [-91*DEG2RAD, -15.49*DEG2RAD, -91*DEG2RAD, -201*DEG2RAD, -360*DEG2RAD]
+JOINT_MAX_ANG = [ 91*DEG2RAD, 91*DEG2RAD, 61*DEG2RAD, 31*DEG2RAD,  360*DEG2RAD]
+JOINT_MAX_VELO = [ 60*DEG2RAD,  60*DEG2RAD, 60*DEG2RAD, 90*DEG2RAD, 90*DEG2RAD]
+'''
 MOTOR_MIN_ANG = [-180*DEG2RAD, 0, -150*DEG2RAD, 0, -360*DEG2RAD]
 MOTOR_MAX_ANG = [ 0,  120*DEG2RAD, 0,  260*DEG2RAD,  360**DEG2RAD]
 MOTOR_MAX_VELO = [ 60*DEG2RAD,  60*DEG2RAD, 60*DEG2RAD, 90*DEG2RAD, 90*DEG2RAD]
-
-q_start = [90.0 * math.pi/180.0
-  , -15.4 * math.pi/180.0
-  , 60 * math.pi/180.0
-  , -200 * math.pi/180.0
-  , 0 * math.pi/180.0 ]
+'''
+q_start = [90.0 * DEG2RAD
+  , -15.4 * DEG2RAD
+  , 60 * DEG2RAD
+  , -200 * DEG2RAD
+  , 0 * DEG2RAD ]
 rad2freq_pulse = None
 
 class MySerial():
@@ -124,16 +128,29 @@ class MySerial():
     raise Exception('set_gear_microstep() : timeout')
 
   def set_limit(self, id, b_1_motor, velo=None, min_ang=None, max_ang=None):
+    global JOINT_MAX_VELO, JOINT_MIN_ANG, JOINT_MAX_ANG
+    
     if velo is None:
-      velo = MOTOR_MAX_VELO[id]
-    if min_ang is None:
-      min_ang = MOTOR_MIN_ANG[id]
-    if max_ang is None:
-      max_ang = MOTOR_MAX_ANG[id]
-    if b_1_motor:
-      self.print_checksum('l%.3f %.3f %.3f ' % (velo, min_ang, max_ang))
+      velo = joint2motor(JOINT_MAX_VELO)[id]
     else:
-      self.print_checksum('l%d %.3f %.3f %.3f ' % (id, velo, min_ang, max_ang))
+      JOINT_MAX_VELO[i] = velo
+    if min_ang is None:
+      min_ang = joint2motor(JOINT_MIN_ANG)[id]
+    else:
+      JOINT_MIN_ANG[i] = min_ang
+    if max_ang is None:
+      max_ang = joint2motor(JOINT_MAX_ANG)[id]
+    else:
+      JOINT_MAX_ANG[i] = max_ang
+    
+    velo = 999.0
+    min_ang = -999.0
+    max_ang = 999.0
+    
+    if b_1_motor:
+      self.print_checksum('l%.3f %.3f %.3f ' % ( abs(velo), min_ang, max_ang))
+    else:
+      self.print_checksum('l%d %.3f %.3f %.3f ' % (id, abs(velo), min_ang, max_ang))
     for i in range(5):
       t = time.time() + 1
       while time.time()<t:
@@ -143,7 +160,14 @@ class MySerial():
     raise Exception('set_limit() : timeout')
 
   def set_target(self, time, positions, b_1_motor):
+    global JOINT_MIN_ANG, JOINT_MAX_ANG
+    for i in range(len(positions)):
+      if positions[i]>JOINT_MAX_ANG[i] or positions[i]<JOINT_MIN_ANG[i]:
+        raise Exception('angle exceeds the limit [%d] : %f , %f / %f' % \
+          (i, positions[i], JOINT_MIN_ANG[i], JOINT_MAX_ANG[i]))
+
     q_motor = joint2motor(positions)
+    q_motor[2] = -q_motor[2]
     if b_1_motor:
       cmd = 'p%.3f %.3f ' % (time, q_motor[0])
     else:
@@ -152,6 +176,7 @@ class MySerial():
         cmd+= '%.3f ' % (q)
 
     self.print_checksum(cmd)
+    print('set_target() pos : ' + str(positions))
     print('set_target() : ' + cmd)
   
   
@@ -242,7 +267,6 @@ def joint2motor(q):
   q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
   return q_motor
   
-
 
 def get_rad2freq_pulse():
   global rad2freq_pulse, MICROSTEP, GEAR_RATIO
