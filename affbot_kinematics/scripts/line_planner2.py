@@ -156,6 +156,8 @@ def plan(req, joint_limits, joint_names, origin_xyz):
     b_replan = False
     points = []
     
+#    print('velo : %f, acc : %f' % (velo, acc))
+    
     # time
 #    t_max = (dis + (velo**2)/acc)/velo
     t = velo/acc          # time used for acceleration

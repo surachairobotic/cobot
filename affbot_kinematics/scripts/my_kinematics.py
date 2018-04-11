@@ -125,9 +125,10 @@ start_joints = None
 
 def callback_joint_state(joints):
   global sub_joint_state, start_joints
-  start_joints = copy.deepcopy(joints)
-  sub_joint_state.unregister()
-  sub_joint_state = None
+  if sub_joint_state is not None:
+    start_joints = copy.deepcopy(joints)
+    sub_joint_state.unregister()
+    sub_joint_state = None
 
 
 def get_current_joints():

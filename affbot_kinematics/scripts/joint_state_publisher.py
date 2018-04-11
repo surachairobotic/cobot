@@ -20,7 +20,8 @@ joint_effort = [0.0,0.0,0.0,0.0,0.0]
 sers = []
 last_plan = None
 b_set_zero = False
-
+b_save_file = False
+file_name = 'joint_state.txt'
 
 def set_zero(req):
   global b_set_zero
@@ -34,6 +35,14 @@ if __name__ == "__main__":
     print('no port num found : ')
     exit()
   '''
+  if len(sys.argv)>1:
+    if sys.argv[1]=='save':
+      b_save_file = True
+      try:
+        os.remove(file_name)
+      except:
+        pass
+  
   
   try:
     # init serial
@@ -106,14 +115,13 @@ if __name__ == "__main__":
                 motor_velocity[start_id + i] = float(arr[i*2+1]) * r
               joint_position = lib_controller.motor2joint( motor_position )
               joint_velocity = lib_controller.motor2joint( motor_velocity, add_q_start=False )
-              '''
-              with open('joint_state.txt', 'at') as f:
-                f.write('%f' % (j.header.stamp - t_start).to_sec())
-                for i in range(len(motor_position)):
-                  f.write(' %f %f %f %f' % (motor_position[i], motor_velocity[i]
-                    , joint_position[i], joint_velocity[i]))
-                f.write('\n')
-              '''
+              if b_save_file:
+                with open(file_name, 'at') as f:
+                  f.write('%f' % (j.header.stamp - t_start).to_sec())
+                  for i in range(len(motor_position)):
+                    f.write(' %f %f %f %f' % (motor_position[i], motor_velocity[i]
+                      , joint_position[i], joint_velocity[i]))
+                  f.write('\n')
               
               j.position = joint_position
               j.velocity = joint_velocity

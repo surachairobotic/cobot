@@ -88,7 +88,7 @@ def check_plan(points, joint_limits):
       jl = joint_limits[i]
       if jl.has_position and \
         (p.positions[i]<jl.position[0] or p.positions[i]>jl.position[1]):
-        raise kinematics.MyException('Joint angle exceeds the limit [{0}] : {1}'.format(i, p.positions[i]), -2)
+        raise kinematics.MyException('Joint angle exceeds the limit [{0}] : {1} , {2} / {3}'.format(i, p.positions[i], jl.position[0], jl.position[1]), -2)
       if jl.has_velocity and abs(p.velocities[i])>jl.velocity:
         raise kinematics.MyException('Joint velocity exceeds the limit [{0}] : {1}'.format(i, p.velocities[i]), -2)
       if jl.has_acceleration and abs(p.accelerations[i])>jl.acceleration:
@@ -131,7 +131,7 @@ def handle_planning(req):
     
     if len(req.joint_names)>0 and len(req.start_joints)==0:
       req.start_joints = kinematics.get_current_joints()
-      print('start joints : '+str(req.start_joints))
+      print('use current joints as start : '+str(req.start_joints))
     if req.type=='p2p':
       res_points = p2p_planner.plan(req, joint_limits, joint_names)
     elif req.type=='line':

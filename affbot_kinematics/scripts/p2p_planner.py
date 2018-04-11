@@ -71,7 +71,7 @@ def plan(req, joint_limits, joint_names):
   t_max = time[index_max_time]
   
   # start_pose = end_pose
-  if t_max==0:
+  if t_max<0.1:
     p = JointTrajectoryPoint()
     p.positions = start_joints
     p.velocities = [0]*n
@@ -92,7 +92,13 @@ def plan(req, joint_limits, joint_names):
     if i==index_max_time:
       continue
     # v = (t+math.sqrt(t**2-4/a*th))/(2/a))
-    velo[i] = (t_max-math.sqrt(t_max**2-4*pos[i]/acc[i])) * acc[i] * 0.5
+    
+    dd = t_max**2-4*pos[i]/acc[i]
+    if dd<0:
+      dd = 0
+#      raise kinematics.MyException('cannot cal velo for axis [%d]\nt_max : %f\npos = %f\nacc = %f\ndd = %f\n' % (i, t_max, pos[i], acc[i], dd))
+      
+    velo[i] = (t_max-math.sqrt(dd)) * acc[i] * 0.5
     err = abs(velo[i]**2/acc[i] - velo[i]*t_max + pos[i])
     if err>0.0001:
       raise kinematics.MyException('recal velo failed : err = ' + str(err))

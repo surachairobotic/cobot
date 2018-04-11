@@ -167,7 +167,7 @@ class MySerial():
           (i, positions[i], JOINT_MIN_ANG[i], JOINT_MAX_ANG[i]))
 
     q_motor = joint2motor(positions)
-    q_motor[2] = -q_motor[2]
+#    q_motor[2] = -q_motor[2]
     if b_1_motor:
       cmd = 'p%.3f %.3f ' % (time, q_motor[0])
     else:
@@ -229,7 +229,8 @@ def motor2joint(q_motor, add_q_start=True):
   q = [0,0,0,0,0]
   q[0] = q_motor[0]
   q[1] = q_motor[1]
-  q[2] = q_motor[2] - q[1]
+#  q[2] = q_motor[2] - q[1]
+  q[2] = -q_motor[2] - q[1] # reverse direction
   q[3] = (q_motor[3] + q_motor[4]) * 0.5 - q[1] - q[2]
   q[4] = (q_motor[3] - q_motor[4]) * 0.5
   '''
@@ -263,8 +264,14 @@ def joint2motor(q):
   q_motor[0] = q_link[0]
   q_motor[1] = q_link[1]
   q_motor[2] = (q_link[1] + q_link[2])
-  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
-  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+#  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
+#  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  # have to reverse q5 but why ?
+  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])  
+
+  # reverse direction
+  q_motor[2]*= -1.0
   return q_motor
   
 
