@@ -1,9 +1,12 @@
 import sympy as sp
 import numpy as np
 import math
+import time
+import pickle
+import dill
+import lib_sympy as lib_sp
 
-
-# set up symbols 
+# set up symbols
 
 xyz = ['x','y','z']
 
@@ -23,12 +26,12 @@ for i in range(7):
   for j in range(3):
     l.append(sp.Symbol('L'+str(i) + xyz[j]))
     c.append(sp.Symbol('COM'+str(i) + xyz[j]))
-    
+
     i3 = []
     for k in range(3):
       i3.append(sp.Symbol('I'+str(i) + '_' + str(j) + str(k)))
     i2.append(i3)
-    
+
   c.append(1)
 
   if i<6:
@@ -42,248 +45,18 @@ for i in range(7):
   M.append(sp.Symbol('M' + str(i)))
   I.append(i2)
 
-
-#### my func ####
-
-'''
-def diff_mat(mat, t):
-  v = []
-  s = mat.shape
-  for j in range(s[0]):
-    if s[1]==1:
-      v.append( sp.diff(mat[j], t) )
-    else:
-      v2 = []
-      for i in range(s[1]):
-        v2.append( sp.diff(mat[j,i], t) )
-      v.append(v2)
-  return sp.Matrix(v)
-
-
-
-
-def trigsimp_mat(mat):
-  v = []
-  s = mat.shape
-  for j in range(s[0]):
-    if s[1]==1:
-      v.append( sp.trigsimp(mat[j]) )
-    else:
-      v2 = []
-      for i in range(s[1]):
-        v2.append( sp.trigsimp(mat[j,i]) )
-      v.append(v2)
-  return sp.Matrix(v)
-'''
-
-def diff_subs( val, d ):
-  tmp = sp.Symbol('tmp')
-  diff = val.subs( d, tmp )
-  diff = sp.diff( diff, tmp )
-  return diff.subs( tmp, d )
-  
-def apply_mat(mat, func, var1=None):
-  v = []
-  s = mat.shape
-  for j in range(s[0]):
-    if s[1]==1:
-      if var1 is None:
-        v.append( func(mat[j]) )
-      else:
-        v.append( func(mat[j], var1) )
-    else:
-      v2 = []
-      for i in range(s[1]):
-        if var1 is None:
-          v2.append( func(mat[j,i]) )
-        else:
-          v2.append( func(mat[j,i], var1) )
-      v.append(v2)
-  return sp.Matrix(v)
-  
-'''
-def Rx(q):
-  return sp.Matrix([
-    [1, 0, 0, 0],
-    [0, sp.cos(q), -sp.sin(q), 0],
-    [0, sp.sin(q), sp.cos(q), 0],
-    [0, 0, 0, 1]
-  ])
-  
-def Ry(q):
-  return sp.Matrix([
-    [sp.cos(q), 0, sp.sin(q), 0],
-    [0, 1, 0, 0],
-    [-sp.sin(q), 0, sp.cos(q), 0],
-    [0, 0, 0, 1]
-  ])
-  
-  
-def Rz(q):
-  return sp.Matrix([
-    [sp.cos(q), -sp.sin(q), 0, 0],
-    [sp.sin(q), sp.cos(q) , 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 1]
-  ])
-
-
-'''
-def Rx(q, L):
-  return sp.Matrix([
-    [1, 0, 0, L[0]],
-    [0, sp.cos(q), -sp.sin(q), L[1]],
-    [0, sp.sin(q), sp.cos(q) , L[2]],
-    [0, 0, 0, 1]
-  ])
-  
-def Ry(q, L):
-  return sp.Matrix([
-    [sp.cos(q), 0, sp.sin(q), L[0]],
-    [0, 1, 0, L[1]],
-    [-sp.sin(q), 0, sp.cos(q) , L[2]],
-    [0, 0, 0, 1]
-  ])
-  
-  
-def Rz(q, L):
-  return sp.Matrix([
-    [sp.cos(q), -sp.sin(q), 0, L[0]],
-    [sp.sin(q), sp.cos(q) , 0, L[1]],
-    [0, 0, 1, L[2]],
-    [0, 0, 0, 1]
-  ])
-
-
-
-'''
-g = 9.8
-
-# set up our joint angle symbols (6th angle doesn't affect any kinematics)
-t = sp.Symbol('t')
-q = []
-for i in range(6):
-  q.append(sp.Function('q'+str(i))(t))
-#q = [sp.Symbol('q%i(t)'%ii) for ii in range(6)]
-# segment lengths associated with each joint
-#L = np.array([1,2,3,4,5])
-L = [
-  [0,0,0],
-  [0,0,0],
-  [1,0,0],
-  [2,0,0],
-  [3,0,0],
-  [4,0,0],
-  [5,0,0]
-]
-
-# center of mass
-COM = [
-  [0,0,0,1],
-  [0,0,0,1],
-  [1,0,0,1],
-  [2,0,0,1],
-  [3,0,0,1],
-  [4,0,0,1],
-  [5,0,0,1]
-]
-
-# mass
-M = [
-  0,
-  1,
-  1,
-  1,
-  1,
-  1,
-  1
-]
-
-# inertia
-I = [
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1]),
-  np.diag([1,1,1])
-]
-
-# friction
-Fr = [ 1.0
- , 1.0
- , 1.0
- , 1.0
- , 1.0
- , 1.0
-]
-'''
-
 #### cal R ####
-
 
 Rq = []
 
-Rq.append( Rz(q[0], L[0] ) )
-Rq.append( Ry(q[1], L[1] ) )
-Rq.append( Ry(q[2], L[2] ) )
-Rq.append( Rx(q[3], L[3] ) )
-Rq.append( Ry(q[4], L[4] ) )
-Rq.append( Rx(q[5], L[5] ) )
-Rq.append( Rx(q[6], L[6] ) )
+Rq.append( lib_sp.Rz(q[0], L[0] ) )
+Rq.append( lib_sp.Ry(q[1], L[1] ) )
+Rq.append( lib_sp.Ry(q[2], L[2] ) )
+Rq.append( lib_sp.Rx(q[3], L[3] ) )
+Rq.append( lib_sp.Ry(q[4], L[4] ) )
+Rq.append( lib_sp.Rx(q[5], L[5] ) )
+Rq.append( lib_sp.Rx(q[6], L[6] ) )
 
-'''
-Rq.append(sp.Matrix([
-  [sp.cos(q[0]), -sp.sin(q[0]), 0, 0],
-  [sp.sin(q[0]), sp.cos(q[0]) , 0, 0],
-  [0, 0, 1, 0],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [sp.cos(q[1]), 0, sp.sin(q[1]), L[1][0]],
-  [0, 1, 0, L[1][1]],
-  [-sp.sin(q[1]), 0, sp.cos(q[1]), L[1][2]],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [sp.cos(q[2]), 0, sp.sin(q[2]), L[2][0]],
-  [0, 1, 0, L[2][1]],
-  [-sp.sin(q[2]), 0, sp.cos(q[2]), L[2][2]],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [1, 0, 0, L[3][0]],
-  [0, sp.cos(q[3]), -sp.sin(q[3]), L[3][1]],
-  [0, sp.sin(q[3]), sp.cos(q[3]), L[3][2]],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [sp.cos(q[4]), 0, sp.sin(q[4]), L[4][0]],
-  [0, 1, 0, L[4][1]],
-  [-sp.sin(q[4]), 0, sp.cos(q[4]), L[4][2]],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [1, 0, 0, L[5][0]],
-  [0, sp.cos(q[5]), -sp.sin(q[5]), L[5][1]],
-  [0, sp.sin(q[5]), sp.cos(q[5]), L[5][2]],
-  [0, 0, 0, 1]
-]))
-
-Rq.append(sp.Matrix([
-  [1, 0, 0, L[6][0]],
-  [0, 1, 0, L[6][1]],
-  [0, 0, 1, L[6][2]],
-  [0, 0, 0, 1]
-]))
-
-'''
 
 R = []
 r = sp.Matrix(np.diag([1,1,1,1]))
@@ -291,7 +64,7 @@ r = sp.Matrix(np.diag([1,1,1,1]))
 for i in range(len(Rq)):
   r = r*Rq[i]
   R.append(r)
-  
+
 
 #### U ####
 
@@ -310,9 +83,61 @@ for i in range(len(R)):
 T = sp.Float(0)
 v_com = []
 w_com = []
+J_com = []
+dJ_com = []
+tt = time.time()
 for i in range(len(R)):
-  v1 = apply_mat( com[i], sp.diff, t )
+  v = lib_sp.apply_mat( com[i], sp.diff, t )
+  J = sp.Matrix(np.zeros([len(v),len(q)]))
+  for j in range(len(v)):
+    for k1 in range(len(q)):
+      c = v[j]
+      for k2 in range(len(q)):
+        if k1==k2:
+          n = 1
+        else:
+          n = 0
+        c = c.subs(sp.Derivative(q[k2], t), n)
+      #J[j,k1] = simplify_cs(c, q)
+      J[j,k1] = sp.simplify(c)
+  dJ = sp.simplify(lib_sp.apply_mat( J, sp.diff, t))
+  J_com.append(J)
+  dJ_com.append(dJ)
+  '''
+  dill.settings['recurse'] = True
+  dill.dump([J_com, dJ_com], open("J_com.dill", "w"))
+  JJ = dill.load(open("J_com.dill"))
+  print(JJ)
+  exit()
+  '''
+
+  '''
+  for i in range(len(J_com)):
+    J_com[i] = simplify_q(J_com[i],q)
+    dJ_com[i] = simplify_q(dJ_com[i],q)
+  with open('test.pkl', 'wb') as f:
+    pickle.dump([J_com, dJ_com], f)
+  with open('test.pkl', 'rb') as f:
+    J_com2, dJ_com2 = pickle.load(f)
+  '''
+
+  lib_sp.save([J_com, dJ_com], f)
   
+  print(J_com2)
+  print(dJ_com2)
+  exit()
+
+print(time.time() - tt)
+with open('J_com.txt', 'wt') as f:
+  f.write(str(J_com))
+with open('dJ_com.txt', 'wt') as f:
+  f.write(str(dJ_com))
+exit()
+
+if 0:
+
+
+
 #  v1 = diff_mat(com[i], t)
 #  v1 = trigsimp_mat(v1)
   v_com.append(v1)
@@ -333,9 +158,9 @@ for i in range(len(R)):
   T2 = sp.trigsimp(T2)
   print('simp')
   T2 = sp.simplify(T2)
-  
+
   T+= sp.Rational(1,2) * T2
-  
+
   with open('t3.txt', 'at') as f:
     f.write('\n\n------- ' + str(i) + ' -------\n\n')
     f.write('\n\n--- v ---\n\n' + str(v1))
@@ -344,7 +169,7 @@ for i in range(len(R)):
   print('T : ' + str(i))
   if i==1:
     break
-  
+
 exit()
 #  T+= sp.Rational(T2,2)
 
@@ -394,4 +219,3 @@ for i in range(len(R)):
   v_com.append(v1)
   Tx+= sp.Float(sp.Rational(M[i],2))*(v_com[i].dot(v_com[i]))
 '''
-
