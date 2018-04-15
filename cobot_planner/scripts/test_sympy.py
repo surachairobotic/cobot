@@ -3,7 +3,6 @@ import numpy as np
 import math
 import time
 import pickle
-import dill
 import lib_sympy as lib_sp
 
 # set up symbols
@@ -13,6 +12,7 @@ xyz = ['x','y','z']
 t = sp.Symbol('t')  # time        (1)
 g = sp.Symbol('g')  # g           (1)
 q = []      # angle               (1)
+dq = []     # angular velocity    (1)
 L = []      # link tip's position (3x1)
 COM = []    # center of mass      (4x1)
 M = []      # mass                (1)
@@ -40,6 +40,7 @@ for i in range(7):
   else:
     q.append(sp.Symbol('q'+str(i)))
     Fr.append(sp.Float(0))
+  dq.append(sp.Derivative(q[-1], t))
   L.append(l)
   COM.append(c)
   M.append(sp.Symbol('M' + str(i)))
@@ -85,53 +86,30 @@ v_com = []
 w_com = []
 J_com = []
 dJ_com = []
-tt = time.time()
+t_start = time.time()
 for i in range(len(R)):
+  t1 = time.time()
   v = lib_sp.apply_mat( com[i], sp.diff, t )
-  J = sp.Matrix(np.zeros([len(v),len(q)]))
-  for j in range(len(v)):
-    for k1 in range(len(q)):
-      c = v[j]
-      for k2 in range(len(q)):
-        if k1==k2:
-          n = 1
-        else:
-          n = 0
-        c = c.subs(sp.Derivative(q[k2], t), n)
-      #J[j,k1] = simplify_cs(c, q)
-      J[j,k1] = sp.simplify(c)
-  dJ = sp.simplify(lib_sp.apply_mat( J, sp.diff, t))
+
+#  J = sp.simplify(lib_sp.coeff_mat(v, dq))
+#  dJ = sp.simplify(lib_sp.apply_mat( J, sp.diff, t))
+  J = lib_sp.coeff_mat(v, dq)
+  dJ = lib_sp.apply_mat( J, sp.diff, t)
   J_com.append(J)
   dJ_com.append(dJ)
+  print('t[%d] : %f' % (i, (time.time() - t1)))
   '''
-  dill.settings['recurse'] = True
-  dill.dump([J_com, dJ_com], open("J_com.dill", "w"))
-  JJ = dill.load(open("J_com.dill"))
-  print(JJ)
-  exit()
-  '''
-
-  '''
-  for i in range(len(J_com)):
-    J_com[i] = simplify_q(J_com[i],q)
-    dJ_com[i] = simplify_q(dJ_com[i],q)
-  with open('test.pkl', 'wb') as f:
-    pickle.dump([J_com, dJ_com], f)
-  with open('test.pkl', 'rb') as f:
-    J_com2, dJ_com2 = pickle.load(f)
+  if i==1:
+    lib_sp.save('test.pkl', [J_com, dJ_com], q)
+    J_com2, dJ_com2 = lib_sp.load('test.pkl', q)
+    lib_sp.save_text('J_com.txt', J_com)
+    exit()
   '''
 
-  lib_sp.save([J_com, dJ_com], f)
-  
-  print(J_com2)
-  print(dJ_com2)
-  exit()
-
-print(time.time() - tt)
-with open('J_com.txt', 'wt') as f:
-  f.write(str(J_com))
-with open('dJ_com.txt', 'wt') as f:
-  f.write(str(dJ_com))
+print(time.time() - t_start)
+lib_sp.save('test.pkl', [J_com, dJ_com], q)
+lib_sp.save_text('J_com.txt', J_com)
+lib_sp.save_text('dJ_com.txt', dJ_com)
 exit()
 
 if 0:

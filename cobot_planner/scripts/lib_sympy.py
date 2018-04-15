@@ -58,7 +58,7 @@ def subs_mat(mat, s1, s2):
       if len(s1)==1:
         mat2[j,k] = mat2[j,k].subs(s1, s2)
       else:
-        for i in range(len(q)):
+        for i in range(len(s1)):
           mat2[j,k] = mat2[j,k].subs(s1[i], s2[i])
   return mat2
 
@@ -135,28 +135,39 @@ def Rz(q, L):
 def recursive_simp(simp, var, q):
   if type(var)==list:
     var2 = [None]*len(var)
-    for i in len(var):
-      var2[i] = recursive_simp(var[i], q)
+    for i in range(len(var)):
+      var2[i] = recursive_simp(simp, var[i], q)
     return var2
   else:
     return simp(var, q)
 
 def save(file_name, var, q):
-  if type(var)==list:
-    var2 = []
-    for v in var:
-      var2.append( simplify_q(v, q) )
-    var = var2
-
+  v = recursive_simp(simplify_q, var, q)
   with open(file_name, 'wb') as f:
-    pickle.dump(var, f)
+    pickle.dump(v, f)
 
-def load(file_name, var, q):
+def load(file_name, q):
   with open(file_name, 'rb') as f:
     var = pickle.load(f)
-    if type(var)==list:
-      var2 = []
-      for v in var:
-        var2.append( desimplify_q(v, q) )
-      var = var2
-    return var
+    v = recursive_simp(desimplify_q, var, q)
+    return v
+
+def save_text(file_name, var):
+  with open(file_name, 'wt') as f:
+    f.write(str(var))
+
+def coeff_mat(var, q):
+  s = var.shape
+  assert(s[1]==1)
+  v = sp.Matrix(np.zeros([s[0], len(q)]))
+  for j in range(s[0]):
+    for k1 in range(len(q)):
+      c = var[j]
+      for k2 in range(len(q)):
+        if k1==k2:
+          n = 1
+        else:
+          n = 0
+        c = c.subs(q[k2], n)
+      v[j,k1] = c
+  return v
