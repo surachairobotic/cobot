@@ -13,11 +13,15 @@ t = sp.Symbol('t')  # time        (1)
 g = sp.Symbol('g')  # g           (1)
 q = []      # angle               (1)
 dq = []     # angular velocity    (1)
-L = []      # link tip's position (3x1)
+ddq = []    # angular acc         (1)
+L = []      # position of link's tip (3x1)
 COM = []    # center of mass      (4x1)
 M = []      # mass                (1)
 I = []      # inertia             (3x3)
 Fr = []     # friction            (1)
+w0 = []     # angular veclocity in vector around rotation axis (3x1)
+eq = sp.Matrix([0]*6) # equation of motion
+
 for i in range(7):
   l = []
   c = []
@@ -37,14 +41,26 @@ for i in range(7):
   if i<6:
     q.append(sp.Function('q'+str(i))(t))
     Fr.append(sp.Symbol('Fr' + str(i)))
+    dq.append(sp.Derivative(q[-1], t))
+    ddq.append(sp.Derivative(dq[-1], t))
   else:
-    q.append(sp.Symbol('q'+str(i)))
+#    q.append(sp.Symbol('q'+str(i)))
     Fr.append(sp.Float(0))
-  dq.append(sp.Derivative(q[-1], t))
   L.append(l)
   COM.append(c)
   M.append(sp.Symbol('M' + str(i)))
   I.append(i2)
+
+q = sp.Matrix(q)
+dq = sp.Matrix(dq)
+ddq = sp.Matrix(ddq)
+
+w0.append(sp.Matrix([0,0,sp.Derivative(q[0], t)]))
+w0.append(sp.Matrix([0,sp.Derivative(q[1], t),0]))
+w0.append(sp.Matrix([0,sp.Derivative(q[2], t),0]))
+w0.append(sp.Matrix([sp.Derivative(q[3], t),0,0]))
+w0.append(sp.Matrix([0,sp.Derivative(q[4], t),0]))
+w0.append(sp.Matrix([sp.Derivative(q[5], t),0,0]))
 
 #### cal R ####
 
@@ -56,16 +72,24 @@ Rq.append( lib_sp.Ry(q[2], L[2] ) )
 Rq.append( lib_sp.Rx(q[3], L[3] ) )
 Rq.append( lib_sp.Ry(q[4], L[4] ) )
 Rq.append( lib_sp.Rx(q[5], L[5] ) )
-Rq.append( lib_sp.Rx(q[6], L[6] ) )
+#Rq.append( lib_sp.Rx(q[6], L[6] ) )
 
 
 R = []
+dR = []
+dR_dq = []
 r = sp.Matrix(np.diag([1,1,1,1]))
 
 for i in range(len(Rq)):
   r = r*Rq[i]
   R.append(r)
-
+  dR_dq.append([])
+#  dR2 = sp.Matrix(np.zeros([4,4]))
+  for j in range(len(Rq)):
+    dR_dq[i].append( lib_sp.apply_mat( r, lib_sp.diff_subs, q[j]) )
+#    dR2+= dR_dq[i][-1]*dq[j]
+  dR.append( lib_sp.apply_mat( r, sp.diff, t) )
+#  print(sp.simplify(dR[-1] - dR2))
 
 #### U ####
 
@@ -75,41 +99,71 @@ com = []
 for i in range(len(R)):
   v1 = R[i]*sp.Matrix(COM[i])
   com.append(v1)
-  v2 = (v1).dot(sp.Matrix([0,0,1,0]))
-  v3 = v2*g
-  U+= v3
+#  v2 = (v1).dot(sp.Matrix([0,0,1,0]))
+  U+= v1[2]*g
 
 #### T ####
 
 T = sp.Float(0)
 v_com = []
 w_com = []
+dw_com = []
+Kw_com = [] # Kw*dq = w
+dKw_com = []
 J_com = []
-dJ_com = []
+#dJ_com = []  # dJ = sum( dJ_dq * dq )
+dJ_dq_com = []
 t_start = time.time()
+
 for i in range(len(R)):
   t1 = time.time()
   v = lib_sp.apply_mat( com[i], sp.diff, t )
-
-#  J = sp.simplify(lib_sp.coeff_mat(v, dq))
-#  dJ = sp.simplify(lib_sp.apply_mat( J, sp.diff, t))
+  #### J ####
   J = lib_sp.coeff_mat(v, dq)
-  dJ = lib_sp.apply_mat( J, sp.diff, t)
+#  J = sp.simplify(J)
   J_com.append(J)
-  dJ_com.append(dJ)
+
+  #### dJ ####
+  dJ_dq_com.append([])
+  for j in range(len(R)):
+    dJ_dq_com[i].append( lib_sp.apply_mat( J, lib_sp.diff_subs, q[j]) )
+#  dJ = lib_sp.apply_mat( J, sp.diff, t)
+#  dJ_com.append(dJ)
+
+#  eq+= M[i]*(dJ.T*J*dq + J.T*dJ*dq + J.T*J*ddq)
+
+  #### w ####
+  # w'n = w1 + Rq1*(w2 + Rq2*(w3+...))
+  if i==0:
+    w_com.append(w0[i])
+  else:
+    w_com.append( w_com[-1] + R[i-1][0:3,0:3]*w0[i] )
+  dw_com.append( lib_sp.apply_mat( w_com[-1], sp.diff, t) )
+  Kw_com.append( lib_sp.coeff_mat(w_com[-1], dq) )
+  dKw_com.append( lib_sp.apply_mat( Kw_com[-1], sp.diff, t) )
+
+  # eq+= d/dt( Kw.T*R*I*R.T*dq )
+  # dR*I*Rt*w + R*I*dRt*w + R*I*Rt*dw
+#  eq+= dR[i]*I[i]*R[i].T*w_com[i] + R[i]*I[i]*dR[i].T*w_com[i] + R[i]*I[i]*R[i].T*dw_com[i]
+  '''
+  eq+= dKw_com[i]*R[i]*I[i]*R[i].T*Kw_com[i]*dq
+    + Kw_com[i]*dR[i]*I[i]*R[i].T*Kw_com[i]*dq
+    + Kw_com[i]*R[i]*I[i]*dR[i].T*Kw_com[i]*dq
+    + Kw_com[i]*R[i]*I[i]*R[i].T*dKw_com[i]*dq
+    + Kw_com[i]*R[i]*I[i]*R[i].T*Kw_com[i]*ddq
+  '''
+
+  #### dT/dq ####
+  # m*dq*dJ_dq.T*J*dq
+
+
+
   print('t[%d] : %f' % (i, (time.time() - t1)))
-  '''
-  if i==1:
-    lib_sp.save('test.pkl', [J_com, dJ_com], q)
-    J_com2, dJ_com2 = lib_sp.load('test.pkl', q)
-    lib_sp.save_text('J_com.txt', J_com)
-    exit()
-  '''
+
 
 print(time.time() - t_start)
-lib_sp.save('test.pkl', [J_com, dJ_com], q)
-lib_sp.save_text('J_com.txt', J_com)
-lib_sp.save_text('dJ_com.txt', dJ_com)
+#lib_sp.save('eq.pkl', [eq], q)
+#lib_sp.save_text('eq.txt', dJ_com)
 exit()
 
 if 0:
