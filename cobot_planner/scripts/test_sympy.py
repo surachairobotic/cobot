@@ -84,11 +84,12 @@ for i in range(len(Rq)):
   r = r*Rq[i]
   R.append(r)
   dR_dq.append([])
-#  dR2 = sp.Matrix(np.zeros([4,4]))
+  dR2 = sp.Matrix(np.zeros([4,4]))
   for j in range(len(Rq)):
     dR_dq[i].append( lib_sp.apply_mat( r, lib_sp.diff_subs, q[j]) )
-#    dR2+= dR_dq[i][-1]*dq[j]
-  dR.append( lib_sp.apply_mat( r, sp.diff, t) )
+    dR2+= dR_dq[i][-1]*dq[j]
+  dR.append( dR2 )
+#  dR.append( lib_sp.apply_mat( r, sp.diff, t) )
 #  print(sp.simplify(dR[-1] - dR2))
 
 #### U ####
@@ -110,6 +111,7 @@ w_com = []
 dw_com = []
 Kw_com = [] # Kw*dq = w
 dKw_com = []
+dKw_dq_com = []
 J_com = []
 #dJ_com = []  # dJ = sum( dJ_dq * dq )
 dJ_dq_com = []
@@ -140,7 +142,14 @@ for i in range(len(R)):
     w_com.append( w_com[-1] + R[i-1][0:3,0:3]*w0[i] )
   dw_com.append( lib_sp.apply_mat( w_com[-1], sp.diff, t) )
   Kw_com.append( lib_sp.coeff_mat(w_com[-1], dq) )
-  dKw_com.append( lib_sp.apply_mat( Kw_com[-1], sp.diff, t) )
+
+  dKw_dq_com.append([])
+  dKw2 = sp.Matrix(np.zeros(Kw_com[-1].shape))
+  for j in range(len(q)):
+    dKw_dq_com[i].append( lib_sp.diff_subs(Kw_com[-1], q[j]) )
+    dKw2+= dKw_dq_com[i][-1]*dq[j]
+  dKw_com.append( dKw2 )
+#  dKw_com.append( lib_sp.apply_mat( Kw_com[-1], sp.diff, t) )
 
   # eq+= d/dt( Kw.T*R*I*R.T*dq )
   # dR*I*Rt*w + R*I*dRt*w + R*I*Rt*dw
@@ -156,11 +165,7 @@ for i in range(len(R)):
   #### dT/dq ####
   # m*dq*dJ_dq.T*J*dq
 
-
-
   print('t[%d] : %f' % (i, (time.time() - t1)))
-
-
 print(time.time() - t_start)
 #lib_sp.save('eq.pkl', [eq], q)
 #lib_sp.save_text('eq.txt', dJ_com)
