@@ -53,15 +53,32 @@ if __name__ == "__main__":
   start_joints = kinematics.get_current_joints()
   start_pose = kinematics.get_pose(start_joints)
 #  start_pose.position.x -= 0.20
+
+
+
+  end_pose = copy.deepcopy(start_pose)
+  end_pose.position.x-= 0.25
+
   
-#  end_pose = copy.deepcopy(start_pose)
-#  end_pose.position.x -= 0.40
+  '''
+  import lib_controller
+  end_joints = kinematics.get_joints(start_pose)
+  end_motors = lib_controller.joint2motor(end_joints)
+  end_motors[3]-=10.0
+  end_joints2 = lib_controller.motor2joint(end_motors)
+  print(end_joints)
+  print(end_joints2)
+  end_pose = kinematics.get_pose(end_joints2)
+  '''
   
-  end_pose = kinematics.get_pose([0,0,0,0,0])
-  end_pose.position.x-= 0.40
+#  end_pose = kinematics.get_pose([0,0,0,0,0])
+#  end_pose.position.x-= 0.40
 
 #  end_pose = kinematics.get_pose([1.5707963267948966, -0.2687807048071268, 1.0471975511965976, -3.490658503988659, 0.0])
   
+  print(start_pose)
+  print(end_pose)
+#  exit()
 
   res = planning(start_pose, end_pose)
   if res.error_code==0:

@@ -264,11 +264,11 @@ def joint2motor(q):
   q_motor[0] = q_link[0]
   q_motor[1] = q_link[1]
   q_motor[2] = (q_link[1] + q_link[2])
-#  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
-#  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
-  # have to reverse q5 but why ?
-  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
-  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])  
+  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
+  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  # have to switch q[3] and q[4] ?
+#  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+#  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])  
 
   # reverse direction
   q_motor[2]*= -1.0

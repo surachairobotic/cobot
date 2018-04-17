@@ -101,7 +101,7 @@ def get_joints(xyz, xyzw=None):
       if math.isnan(v):
         print(target.pose)
         raise Exception("ik nan : " + str(resp.solution.joint_state.position))
-    return resp.solution.joint_state.position
+    return list(resp.solution.joint_state.position)
   except rospy.ServiceException, e:
     raise Exception("Service call failed: %s"%e)
     #print "Service call failed: %s"%e
