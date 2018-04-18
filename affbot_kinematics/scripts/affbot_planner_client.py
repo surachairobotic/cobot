@@ -17,7 +17,7 @@ from moveit_msgs.srv import GetPositionFK
 from moveit_msgs.srv import GetPositionIK
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
-
+import lib_controller
 
 srv_planning = None
 joint_names = kinematics.joint_names
@@ -32,7 +32,7 @@ def planning(start_pose, end_pose):
     , start_pose=start_pose
     , end_pose=end_pose
     , type="p2p"
-    , max_velocity=1.0
+    , max_velocity=0.7
     , max_acceleration=0.5
     , step_time=0.1)
     return res
@@ -54,14 +54,34 @@ if __name__ == "__main__":
   start_pose = kinematics.get_pose(start_joints)
 #  start_pose.position.x -= 0.20
 
-
-
-  end_pose = copy.deepcopy(start_pose)
-  end_pose.position.x-= 0.25
-
+  '''
+  end_joints = list(copy.deepcopy(start_joints))
+  end_joints[0]+= math.pi*0.49
+  end_pose = kinematics.get_pose(end_joints)
+  '''
   
   '''
-  import lib_controller
+  end_pose = copy.deepcopy(start_pose)
+  end_pose.position.x-= 0.4
+  end_pose.position.z+= 0.2
+  '''
+  
+  '''
+  end_joints = list(copy.deepcopy(start_joints))
+  end_motors = lib_controller.joint2motor(end_joints)
+  end_motors[4]+= 0.6
+  end_joints = lib_controller.motor2joint(end_motors)
+  end_pose = kinematics.get_pose(end_joints)
+  '''
+  
+  '''
+  end_joints = list(kinematics.get_joints(start_pose))
+  end_joints[4]+= 0.4
+  end_pose = kinematics.get_pose(end_joints)
+  '''
+  
+  '''
+  
   end_joints = kinematics.get_joints(start_pose)
   end_motors = lib_controller.joint2motor(end_joints)
   end_motors[3]-=10.0
@@ -74,7 +94,7 @@ if __name__ == "__main__":
 #  end_pose = kinematics.get_pose([0,0,0,0,0])
 #  end_pose.position.x-= 0.40
 
-#  end_pose = kinematics.get_pose([1.5707963267948966, -0.2687807048071268, 1.0471975511965976, -3.490658503988659, 0.0])
+  end_pose = kinematics.get_pose([1.5707963267948966, -0.2687807048071268, 1.0471975511965976, -3.490658503988659, 0.0])
   
   print(start_pose)
   print(end_pose)

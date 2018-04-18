@@ -18,10 +18,15 @@ from geometry_msgs.msg import Pose
 
 from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
+from threading import Lock
 
 ser = None
 srv_get_last_plan = None
 b_execute = False
+b_1_motor = False
+motor_id = 0
+lock_serial = Lock()
+
 
 class MyAffbotMoveLastPlanAction(object):
   # create messages that are used to publish feedback/result
@@ -57,7 +62,8 @@ class MyAffbotMoveLastPlanAction(object):
     return True
     
   def execute_cb(self, goal):
-    global ser, srv_get_last_plan, b_execute
+    global ser, srv_get_last_plan, b_execute, b_1_motor
+    lock_serial.acquire()
     try:
       b_execute = True
       self._feedback.progress = 0.0
@@ -74,15 +80,42 @@ class MyAffbotMoveLastPlanAction(object):
       #### move ####
       
       t_prev = 0
-      max_stack = 10
+      max_stack = 5
       print('start moving')
       t_start = time.time()
       t_top = 0
+      
+      
+      # test moving continuously
+      ''' 
+      p = [0]*5
+      i = 0
+      t = 0.1
+      print('p : ' + str(points[0].positions[0]))
+      while 1:
+        i+=1
+        if not self.small_loop():
+          return
+        
+        # move
+        p[0] = points[0].positions[0] + math.cos(2*math.pi*i*t*0.01) - 1
+        ser.set_target(t, p, b_1_motor)
+        print('%f : %f' % (i*t, p[0]))
+        if i>=max_stack-1:
+          while time.time()-t_start < (i-max_stack+1)*t*1.017:
+            time.sleep(0.01)
+            # read serial
+            if len(ser.serial_read())>0:
+              return
+            # shutdown
+            if rospy.is_shutdown():
+              return
+      '''
       for i in range(len(points)):
         # feedback
         self._feedback.progress = float(i)/len(points)
         self._as.publish_feedback(self._feedback)
-        print('feedback : ' + str(self._feedback.progress))
+#        print('feedback : ' + str(self._feedback.progress))
         
         
         if not self.small_loop():
@@ -94,17 +127,26 @@ class MyAffbotMoveLastPlanAction(object):
           t = p.time_from_start.to_sec() - points[i-1].time_from_start.to_sec()
         else:
           t = p.time_from_start.to_sec()
-        ser.set_target(t, p.positions, False)
+        ser.set_target(t, p.positions, b_1_motor)
         if i>=max_stack-1:
-          while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec():
+          while time.time()-t_start < points[i-max_stack+1].time_from_start.to_sec()*1.017:
             time.sleep(0.01)
             if not self.small_loop():
               return
-        
+      '''
+      print('end')
+      while 1:
+        print('who')
+        rospy.sleep(1.0)
+        ser.ser.write('who\r\n')
+        if len(ser.serial_read())>0:
+          break
+      '''
       self._result.error_code = 0
       self._as.set_succeeded(self._result)
     finally:
       b_execute = False
+      lock_serial.release()
     
 
 
@@ -126,11 +168,16 @@ def set_zero(req):
     print('robot is moving')
   else:
     print('reset_arduino')
-    ser.reset_arduino()
-    ser.reset_joint_state()
+    lock_serial.acquire()
+    try:
+      ser.reset_arduino()
+      ser.reset_joint_state()
+    finally:
+      lock_serial.release()
   return []
 
 if __name__ == "__main__":
+  rospy.init_node('affbot_controller')
   serial_id = '0'
   try:
     #### param ####
@@ -145,14 +192,20 @@ if __name__ == "__main__":
     '''
     print('port_id = ' + serial_id)
     ser = lib_controller.MySerial("/dev/ttyACM" + serial_id, 9600)
-    ser.wait_start('central_mega')
-    for i in range(5):
-      ser.set_limit(i, False)
-      ser.set_gear_microstep(i, False)
+    if b_1_motor:
+      rospy.sleep(1.0)
+      ser.wait_start('controller_pos_velo')
+      ser.set_limit(motor_id, True)
+      ser.set_gear_microstep(motor_id, True)
+    else:
+      ser.wait_start('central_mega')
+      for i in range(5):
+        ser.set_limit(i, False)
+        ser.set_gear_microstep(i, False)
     ser.reset_arduino()
     
     #### ros ####
-    rospy.init_node('affbot_controller')
+    
     print("waiting 'affbot_planning'")
     rospy.wait_for_service('affbot/planner/get_last_plan')
     srv_get_last_plan = rospy.ServiceProxy('affbot/planner/get_last_plan', AffbotGetLastPlan)
@@ -160,9 +213,11 @@ if __name__ == "__main__":
     server = MyAffbotMoveLastPlanAction()
     kinematics.init()
     print('start')
-    rospy.spin()
-#    while not rospy.is_shutdown():
-#      ser.serial_read()
+    while not rospy.is_shutdown():
+      rospy.sleep(0.01)
+      lock_serial.acquire()
+      ser.serial_read()
+      lock_serial.release()
 
   finally:
     if ser is not None:

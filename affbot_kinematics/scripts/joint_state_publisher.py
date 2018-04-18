@@ -30,6 +30,7 @@ def set_zero(req):
 
 
 if __name__ == "__main__":
+  rospy.init_node('affbot_joint_state_publisher')
   '''
   if len(sys.argv)<=1:
     print('no port num found : ')
@@ -62,7 +63,6 @@ if __name__ == "__main__":
     '''
       
     # init ros
-    rospy.init_node('affbot_joint_state_publisher')
     pub = rospy.Publisher("/joint_states", JointState, queue_size=10)
     srv = rospy.Service('affbot/joint_state_publisher/set_zero', AffbotSetZero, set_zero)
     

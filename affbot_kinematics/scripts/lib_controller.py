@@ -7,7 +7,6 @@ import time
 import serial
 import rospy
 from affbot_kinematics.srv import AffbotSetZero
-
 #!/usr/bin/env python
 
 import math
@@ -28,7 +27,7 @@ q_start = [90.0 * math.pi/180.0
 DEG2RAD = math.pi/180
 
 GEAR_RATIO = [100.0, 88.0, 37.5, 2.0, 2.0]
-MICROSTEP = [400, 400, 400, 400, 400]
+MICROSTEP = [800, 800, 800, 1600, 1600]
 JOINT_MIN_ANG = [-91*DEG2RAD, -15.49*DEG2RAD, -91*DEG2RAD, -201*DEG2RAD, -360*DEG2RAD]
 JOINT_MAX_ANG = [ 91*DEG2RAD, 91*DEG2RAD, 61*DEG2RAD, 31*DEG2RAD,  360*DEG2RAD]
 JOINT_MAX_VELO = [ 60*DEG2RAD,  60*DEG2RAD, 60*DEG2RAD, 90*DEG2RAD, 90*DEG2RAD]
@@ -90,7 +89,8 @@ class MySerial():
             b = self.serial_buf
             self.serial_buf = ''
             if self.b_print:
-              print('READ : ' + b)
+              rospy.logwarn('READ : ' + b)
+#              print('READ : ' + b)
             return b
         else:
           self.serial_buf+= c
@@ -107,7 +107,12 @@ class MySerial():
     cs = (sum & 127) + ord('0')
     msg2 = list(bytearray(msg.encode('ascii','ignore'))) + [cs, ord('\n')]
     self.ser.write(msg2)
-#    print(bytearray(msg2).decode("ascii"))
+    '''
+    try:
+      print(bytearray(msg2).decode("ascii"))
+    except:
+      print(bytearray(msg2[:-2]).decode("ascii"))
+    '''
 
   def set_gear_microstep(self, id, b_1_motor, gear=None, microstep=None):
     global GEAR_RATIO, MICROSTEP
@@ -119,13 +124,13 @@ class MySerial():
       self.print_checksum('g%.3f %d ' % (gear, microstep))
     else:
       self.print_checksum('g%d %.3f %d ' % (id, gear, microstep))
-    for i in range(5):
-      t = time.time() + 1
-      while time.time()<t:
-        s = self.serial_read()
-        if len(s)>2 and s[:2]=='g:':
-          return
-    raise Exception('set_gear_microstep() : timeout')
+      for i in range(5):
+        t = time.time() + 1
+        while time.time()<t:
+          s = self.serial_read()
+          if len(s)>2 and s[:2]=='g:':
+            return
+      raise Exception('set_gear_microstep() : timeout')
 
   def set_limit(self, id, b_1_motor, velo=None, min_ang=None, max_ang=None):
     global JOINT_MAX_VELO, JOINT_MIN_ANG, JOINT_MAX_ANG
@@ -151,13 +156,13 @@ class MySerial():
       self.print_checksum('l%.3f %.3f %.3f ' % ( abs(velo), min_ang, max_ang))
     else:
       self.print_checksum('l%d %.3f %.3f %.3f ' % (id, abs(velo), min_ang, max_ang))
-    for i in range(5):
-      t = time.time() + 1
-      while time.time()<t:
-        s = self.serial_read()
-        if len(s)>2 and s[:2]=='l:':
-          return
-    raise Exception('set_limit() : timeout')
+      for i in range(5):
+        t = time.time() + 1
+        while time.time()<t:
+          s = self.serial_read()
+          if len(s)>2 and s[:2]=='l:':
+            return
+      raise Exception('set_limit() : timeout')
 
   def set_target(self, time, positions, b_1_motor):
     global JOINT_MIN_ANG, JOINT_MAX_ANG
@@ -169,15 +174,15 @@ class MySerial():
     q_motor = joint2motor(positions)
 #    q_motor[2] = -q_motor[2]
     if b_1_motor:
-      cmd = 'p%.3f %.3f ' % (time, q_motor[0])
+      cmd = 'p%.6f %.5f ' % (time, q_motor[0])
     else:
-      cmd = 'p%.3f ' % (time)
+      cmd = 'p%.6f ' % (time)
       for q in q_motor:
-        cmd+= '%.3f ' % (q)
+        cmd+= '%.5f ' % (q)
 
     self.print_checksum(cmd)
-    print('set_target() pos : ' + str(positions))
-    print('set_target() : ' + cmd)
+#    print('set_target() pos : ' + str(positions))
+#    print('set_target() : ' + cmd)
   
   
   def reset_arduino(self):
@@ -232,7 +237,8 @@ def motor2joint(q_motor, add_q_start=True):
 #  q[2] = q_motor[2] - q[1]
   q[2] = -q_motor[2] - q[1] # reverse direction
   q[3] = (q_motor[3] + q_motor[4]) * 0.5 - q[1] - q[2]
-  q[4] = (q_motor[3] - q_motor[4]) * 0.5
+#  q[4] = (q_motor[3] - q_motor[4]) * 0.5
+  q[4] = (q_motor[4] - q_motor[3]) * 0.5  # opposite direction of Mach3's because of the different coordinate ?
   '''
   q[0] = q_motor[0] / GEAR_RATIO[0]
   q[1] = q_motor[1] / GEAR_RATIO[1]
@@ -264,11 +270,11 @@ def joint2motor(q):
   q_motor[0] = q_link[0]
   q_motor[1] = q_link[1]
   q_motor[2] = (q_link[1] + q_link[2])
-  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
-  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
-  # have to switch q[3] and q[4] ?
-#  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
-#  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])  
+#  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
+#  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  # opposite direction of Mach3's
+  q_motor[3] = (q_link[1] + q_link[2] + q_link[3] - q_link[4])
+  q_motor[4] = (q_link[1] + q_link[2] + q_link[3] + q_link[4])
 
   # reverse direction
   q_motor[2]*= -1.0
