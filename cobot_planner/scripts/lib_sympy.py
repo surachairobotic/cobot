@@ -4,7 +4,9 @@ import math
 import pickle
 
 simp_cs = None
-simp_q = None
+#simp_q = None
+_subs_q = None
+_desubs_q = None
 
 def diff_subs( val, d ):
   tmp = sp.Symbol('tmp')
@@ -32,7 +34,19 @@ def apply_mat(mat, func, var1=None):
       v.append(v2)
   return sp.Matrix(v)
 
-
+def apply_mat_recursive(func, mat, var1=None, var2=None):
+  if type(mat)==list:
+    v2 = []
+    for i in range(len(mat)):
+      v2.append(apply_mat_recursive( func, mat[i], var1, var2) )
+    return v2
+  else:
+    if var1 is None:
+      return func(mat)
+    elif var2 is None:
+      return func(mat,var1)
+    else:
+      return func(mat,var1,var2)
 
 def simplify_cs(val, q):
   global simp_cs
@@ -48,18 +62,22 @@ def simplify_cs(val, q):
   return sp.simplify(v)
 
 
-
-def subs_mat(mat, s1, s2):
+def subs_mat(mat, s1, s2=None):
+  if not hasattr(mat, 'shape'):
+    return mat
   s = mat.shape
   mat2 = sp.Matrix(np.zeros([s[0],s[1]]))
   for j in range(s[0]):
     for k in range(s[1]):
       mat2[j,k] = mat[j,k]
-      if len(s1)==1:
-        mat2[j,k] = mat2[j,k].subs(s1, s2)
+      if s2 is None:
+        mat2[j,k] = mat2[j,k].subs(s1)
       else:
-        for i in range(len(s1)):
-          mat2[j,k] = mat2[j,k].subs(s1[i], s2[i])
+        if len(s1)==1:
+          mat2[j,k] = mat2[j,k].subs(s1, s2)
+        else:
+          for i in range(len(s1)):
+            mat2[j,k] = mat2[j,k].subs(s1[i], s2[i])
   return mat2
 
 
@@ -85,23 +103,6 @@ def subs_mat(mat, s1, s2):
             mat2[j,k] = mat2[j,k].subs(s1[i], s2[i])
   return mat2
 '''
-
-def simplify_q(mat, q):
-  global simp_q
-  if simp_q is None:
-    simp_q = []
-    for i in range(len(q)):
-      simp_q.append(sp.Symbol('qt'+str(i)))
-  return subs_mat(mat, q, simp_q )
-
-def desimplify_q(mat, q):
-  global simp_q
-  if simp_q is None:
-    simp_q = []
-    for i in range(len(q)):
-      simp_q.append(sp.Symbol('qt'+str(i)))
-
-  return subs_mat(mat, simp_q, q )
 
 
 
@@ -131,7 +132,7 @@ def Rz(q, L):
     [0, 0, 0, 1]
   ])
 
-
+'''
 def recursive_simp(simp, var, q):
   if type(var)==list:
     var2 = [None]*len(var)
@@ -140,17 +141,69 @@ def recursive_simp(simp, var, q):
     return var2
   else:
     return simp(var, q)
+'''
+
+
+'''
+def simplify_q(mat, q):
+  global simp_q
+  if simp_q is None:
+    simp_q = []
+    for i in range(len(q)):
+      simp_q.append(sp.Symbol('qt'+str(i)))
+  return subs_mat(mat, q, simp_q )
+
+def desimplify_q(mat, q):
+  global simp_q
+  if simp_q is None:
+    simp_q = []
+    for i in range(len(q)):
+      simp_q.append(sp.Symbol('qt'+str(i)))
+  return subs_mat(mat, simp_q, q )
+'''
+
+
+def create_subs_q():
+  global _subs_q
+  _subs_q = []
+
+def subs_q(mat, q):
+  global _subs_q
+  '''
+  if _subs_q is None:
+    _subs_q = []
+    for i in range(len(q)):
+      _subs_q.append(sp.Symbol('qt'+str(i)))
+  return subs_mat(mat, q, _subs_q )
+  '''
+  if _subs_q is None:
+    _subs_q = []
+    for i in range(len(q)):
+      _subs_q.append([ sp.cos(q[i]),  sp.Symbol('c'+str(i)) ])
+      _subs_q.append([ sp.sin(q[i]),  sp.Symbol('s'+str(i)) ])
+      _subs_q.append([ sp.Derivative(q[i], sp.Symbol('t')), sp.Symbol('dq'+str(i)) ])
+  return subs_mat(mat, _subs_q )
+
+def desubs_q(mat, q):
+  global _subs_q
+  if _subs_q is None:
+    _subs_q = []
+    for i in range(len(q)):
+      _subs_q.append(sp.Symbol('qt'+str(i)))
+  return subs_mat(mat, _subs_q, q )
 
 def save(file_name, var, q):
-  v = recursive_simp(simplify_q, var, q)
+  v = apply_mat_recursive( subs_q, var, q )
+#  v = recursive_simp(simplify_q, var, q)
   with open(file_name, 'wb') as f:
     pickle.dump(v, f)
 
 def load(file_name, q):
   with open(file_name, 'rb') as f:
     var = pickle.load(f)
-    v = recursive_simp(desimplify_q, var, q)
-    return v
+#    v = apply_mat_recursive( desubs_q, var, q)
+#    v = recursive_simp(desimplify_q, var, q)
+    return var
 
 def save_text(file_name, var):
   with open(file_name, 'wt') as f:
