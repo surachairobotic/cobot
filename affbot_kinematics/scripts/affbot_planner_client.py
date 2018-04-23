@@ -60,11 +60,9 @@ if __name__ == "__main__":
   end_pose = kinematics.get_pose(end_joints)
   '''
   
-  '''
-  end_pose = copy.deepcopy(start_pose)
-  end_pose.position.x-= 0.4
-  end_pose.position.z+= 0.2
-  '''
+#  end_pose = copy.deepcopy(start_pose)
+#  end_pose.position.x-= 0.2
+#  end_pose.position.z+= 0.2
   
   '''
   end_joints = list(copy.deepcopy(start_joints))

@@ -174,7 +174,8 @@ def create_equation():
     com_z.append(com[i][2])
     d = []
     for j in range(len(q)):
-      d.append( com_z[i].diff(q[j]) )
+      d.append( lib_sp.diff_subs(com_z[i], q[j]) )
+#      d.append( com_z[i].diff(q[j]) )
     dz_dq.append(d)
   com_z = sp.Matrix(com_z)
   dz_dq = sp.Matrix(dz_dq)
@@ -213,7 +214,8 @@ def create_equation():
     dKw_dq.append([])
     dKw2 = sp.Matrix(np.zeros(Kw[-1].shape))
     for j in range(len(q)):
-      dKw_dq[i].append( lib_sp.diff_subs(Kw[-1], q[j]) )
+      dKw_dq[i].append( lib_sp.apply_mat( Kw[-1], lib_sp.diff_subs, q[j]) ) 
+#      dKw_dq[i].append( lib_sp.diff_subs(Kw[-1], q[j]) )
       dKw2+= dKw_dq[i][-1]*dq[j]
     dKw.append( dKw2 )
   #  dKw.append( lib_sp.apply_mat( Kw[-1], sp.diff, t) )

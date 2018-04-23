@@ -37,7 +37,7 @@ I = [np.diag([2,2,1])
 , np.diag([2,2,1])
 ]
 
-def exec(joint_num,b_load=False):
+def run(joint_num,b_load=False):
   global L_org, L,COM,M,I,g
 
   if b_load:
@@ -59,4 +59,4 @@ def exec(joint_num,b_load=False):
 
 
 if __name__ == "__main__":
-  exec(6,True)
+  run(6,True)
