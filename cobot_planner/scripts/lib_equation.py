@@ -14,6 +14,7 @@ g = sp.Symbol('g')  # g           (1)
 q = []      # angle               (1)
 dq = []     # angular velocity    (1)
 ddq = []    # angular acc         (1)
+L_org = []  # pos from world to link-0  (3x1)
 L = []      # position of link's tip (3x1)
 COM = []    # position of center of mass from i joint    (4x1)
 M = []      # mass                (1)
@@ -28,20 +29,49 @@ R = []          # rotation matrix from world to i link    (4x4)
 dR = []         # dR/dt    (4x4)
 dR_dq = []      # dR/dq    (4x4)
 com = []        # position of COM from world   (4x1)
-w_com = []      # angular velocity links       (3x1)
-dw_com = []     # d(w_com)/dt   (3x1)
-Kw_com = []     # Kw*dq = w_com (3x3)
-dKw_com = []    # d(Kw)/dt
-dKw_dq_com = [] # d(Kw)/dq
-J_com = []      # Jacobian , dx = J_com * dq    (3x6)
-dJ_com = []     # dJ_com = sum( dJ_dq_com * dq )
-dJ_dq_com = []  # d(J_com)/dq     (3x6x6)
+w = []      # angular velocity links       (3x1)
+dw = []     # d(w)/dt   (3x1)
+Kw = []     # Kw*dq = w (3x3)
+dKw = []    # d(Kw)/dt
+dKw_dq = [] # d(Kw)/dq
+J = []      # Jacobian , dx = J * dq    (3x6)
+dJ = []     # dJ = sum( dJ_dq * dq )
+dJ_dq = []  # d(J)/dq     (3x6x6)
 com_z = []      # pos-z of each link for U    (6x1)
 dz_dq = []      # d(com_z)/dq    (6x6)
 
-def create_symbol():
-  global xyz, t, g, q, dq, ddq, L, COM, M, I, Fr, w0
-  for i in range(2):
+def create_symbol(joint_num):
+  global xyz, t, g, q, dq, ddq, L_org, L, COM, M, I, Fr, w0
+  if len(q)>0:
+    global R,dR,dR_dq,com,w,dw,Kw,dKw,dKw_dq,J, dJ_dq \
+      ,dz_dq, com_z
+    q = []      # angle               (1)
+    dq = []     # angular velocity    (1)
+    ddq = []    # angular acc         (1)
+    L_org = []  # pos from world to link-0  (3x1)
+    L = []      # position of link's tip (3x1)
+    COM = []    # position of center of mass from i joint    (4x1)
+    M = []      # mass                (1)
+    I = []      # inertia             (3x3)
+    Fr = []     # friction            (1)
+    w0 = []     # angular veclocity in vector around rotation axis (3x1)
+    #eq = sp.Matrix([0]*6) # equation of motion
+    Rq = []         # rotation matrix from i-1 to i link    (4x4)
+    R = []          # rotation matrix from world to i link    (4x4)
+    dR = []         # dR/dt    (4x4)
+    dR_dq = []      # dR/dq    (4x4)
+    com = []        # position of COM from world   (4x1)
+    w = []      # angular velocity links       (3x1)
+    dw = []     # d(w)/dt   (3x1)
+    Kw = []     # Kw*dq = w (3x3)
+    dKw = []    # d(Kw)/dt
+    dKw_dq = [] # d(Kw)/dq
+    J = []      # Jacobian , dx = J * dq    (3x6)
+    dJ = []     # dJ = sum( dJ_dq * dq )
+    dJ_dq = []  # d(J)/dq     (3x6x6)
+    com_z = []      # pos-z of each link for U    (6x1)
+    dz_dq = []      # d(com_z)/dq    (6x6)
+  for i in range(joint_num):
     l = []
     c = []
     m = []
@@ -67,7 +97,8 @@ def create_symbol():
     COM.append(c)
     M.append(sp.Symbol('M' + str(i)))
     I.append(i2)
-
+  for i in range(len(xyz)):
+    L_org.append(sp.Symbol('L_org'+ xyz[i]))
   q = sp.Matrix(q)
   dq = sp.Matrix(dq)
   ddq = sp.Matrix(ddq)
@@ -89,17 +120,25 @@ def create_symbol():
 
 
 def create_equation():
-  global xyz, t, g, q, dq, ddq, L, COM, M, I, Fr, w0
-  global Rq,R,dR,dR_dq,com,w_com,dw_com,Kw_com,dKw_com,dKw_dq_com,J_com, dJ_dq_com, dz_dq, com_z
+  global xyz, t, g, q, dq, ddq, L_org, L, COM, M, I, Fr, w0
+  global Rq,R,dR,dR_dq,com,w,dw,Kw,dKw,dKw_dq,J, dJ_dq, dz_dq, com_z
   #### cal R ####
   r = sp.Matrix(np.diag([1,1,1,1]))
   try:
+    Rq.append( lib_sp.Rz(q[0], L_org ) )
+    Rq.append( lib_sp.Ry(q[1], L[0] ) )
+    Rq.append( lib_sp.Ry(q[2], L[1] ) )
+    Rq.append( lib_sp.Rx(q[3], L[2] ) )
+    Rq.append( lib_sp.Ry(q[4], L[3] ) )
+    Rq.append( lib_sp.Rx(q[5], L[4] ) )
+    '''
     Rq.append( lib_sp.Rz(q[0], L[0] ) )
     Rq.append( lib_sp.Ry(q[1], L[1] ) )
     Rq.append( lib_sp.Ry(q[2], L[2] ) )
     Rq.append( lib_sp.Rx(q[3], L[3] ) )
     Rq.append( lib_sp.Ry(q[4], L[4] ) )
     Rq.append( lib_sp.Rx(q[5], L[5] ) )
+    '''
   except:
     pass
 #Rq.append( lib_sp.Rx(q[6], L[6] ) )
@@ -133,7 +172,6 @@ def create_equation():
   com_z = []
   for i in range(len(q)):
     com_z.append(com[i][2])
-  for i in range(len(q)):
     d = []
     for j in range(len(q)):
       d.append( com_z[i].diff(q[j]) )
@@ -147,56 +185,58 @@ def create_equation():
     t1 = time.time()
     v = lib_sp.apply_mat( com[i], sp.diff, t )
     #### J ####
-    J = lib_sp.coeff_mat(v, dq)
+    J2 = lib_sp.coeff_mat(v, dq)
   #  J = sp.simplify(J)
-    J_com.append(J)
+    J.append(J2)
 
     #### dJ ####
-    dJ_dq_com.append([])
-    dJ2 = sp.Matrix(np.zeros(J_com[-1].shape))
+    dJ_dq.append([])
+    dJ2 = sp.Matrix(np.zeros(J[-1].shape))
     for j in range(len(R)):
-      dJ_dq_com[i].append( lib_sp.apply_mat( J, lib_sp.diff_subs, q[j]) )
-      dJ2+= dJ_dq_com[i][-1]*dq[j]
-    dJ_com.append(dJ2)
+      dJ_dq[i].append( lib_sp.apply_mat( J2, lib_sp.diff_subs, q[j]) )
+      dJ2+= dJ_dq[i][-1]*dq[j]
+    dJ.append(dJ2)
   #  dJ = lib_sp.apply_mat( J, sp.diff, t)
-  #  dJ_com.append(dJ)
+  #  dJ.append(dJ)
 
   #  eq+= M[i]*(dJ.T*J*dq + J.T*dJ*dq + J.T*J*ddq)
 
     #### w ####
     # w'n = w1 + Rq1*(w2 + Rq2*(w3+...))
     if i==0:
-      w_com.append(w0[i])
+      w.append(w0[i])
     else:
-      w_com.append( w_com[-1] + R[i-1][0:3,0:3]*w0[i] )
-    dw_com.append( lib_sp.apply_mat( w_com[-1], sp.diff, t) )
-    Kw_com.append( lib_sp.coeff_mat(w_com[-1], dq) )
+      w.append( w[-1] + R[i-1][0:3,0:3]*w0[i] )
+    dw.append( lib_sp.apply_mat( w[-1], sp.diff, t) )
+    Kw.append( lib_sp.coeff_mat(w[-1], dq) )
 
-    dKw_dq_com.append([])
-    dKw2 = sp.Matrix(np.zeros(Kw_com[-1].shape))
+    dKw_dq.append([])
+    dKw2 = sp.Matrix(np.zeros(Kw[-1].shape))
     for j in range(len(q)):
-      dKw_dq_com[i].append( lib_sp.diff_subs(Kw_com[-1], q[j]) )
-      dKw2+= dKw_dq_com[i][-1]*dq[j]
-    dKw_com.append( dKw2 )
-  #  dKw_com.append( lib_sp.apply_mat( Kw_com[-1], sp.diff, t) )
+      dKw_dq[i].append( lib_sp.diff_subs(Kw[-1], q[j]) )
+      dKw2+= dKw_dq[i][-1]*dq[j]
+    dKw.append( dKw2 )
+  #  dKw.append( lib_sp.apply_mat( Kw[-1], sp.diff, t) )
 
     # eq+= d/dt( Kw.T*R*I*R.T*dq )
     # dR*I*Rt*w + R*I*dRt*w + R*I*Rt*dw
-  #  eq+= dR[i]*I[i]*R[i].T*w_com[i] + R[i]*I[i]*dR[i].T*w_com[i] + R[i]*I[i]*R[i].T*dw_com[i]
+  #  eq+= dR[i]*I[i]*R[i].T*w[i] + R[i]*I[i]*dR[i].T*w[i] + R[i]*I[i]*R[i].T*dw[i]
     '''
-    eq+= dKw_com[i]*R[i]*I[i]*R[i].T*Kw_com[i]*dq
-      + Kw_com[i]*dR[i]*I[i]*R[i].T*Kw_com[i]*dq
-      + Kw_com[i]*R[i]*I[i]*dR[i].T*Kw_com[i]*dq
-      + Kw_com[i]*R[i]*I[i]*R[i].T*dKw_com[i]*dq
-      + Kw_com[i]*R[i]*I[i]*R[i].T*Kw_com[i]*ddq
+    eq+= dKw[i]*R[i]*I[i]*R[i].T*Kw[i]*dq
+      + Kw[i]*dR[i]*I[i]*R[i].T*Kw[i]*dq
+      + Kw[i]*R[i]*I[i]*dR[i].T*Kw[i]*dq
+      + Kw[i]*R[i]*I[i]*R[i].T*dKw[i]*dq
+      + Kw[i]*R[i]*I[i]*R[i].T*Kw[i]*ddq
     '''
     #### dT/dq ####
     # m*dq*dJ_dq.T*J*dq
 
-def set_const(_L,_COM,_M,_I,_g):
-  global L, COM, M, I
-  global J_com, dJ_dq_com, R, dR_dq, Kw_com, dKw_dq_com, dz_dq, com_z, g
+def set_const(_L_org, _L,_COM,_M,_I,_g):
+  global L_org, L, COM, M, I
+  global J, dJ_dq, R, dR_dq, Kw, dKw_dq, dz_dq, com_z, g
   sub = []
+  for i in range(len(L_org)):
+    sub.append([L_org[i], _L_org[i]])
   for i in range(len(L)):
     for j in range(len(L[i])):
       sub.append([L[i][j], _L[i][j]])
@@ -205,28 +245,28 @@ def set_const(_L,_COM,_M,_I,_g):
       sub.append([COM[i][j], _COM[i][j]])
 
   '''
-  for i in range(len(J_com)):
-    J_com[i] = J_com[i].subs(sub)
+  for i in range(len(J)):
+    J[i] = J[i].subs(sub)
     R[i] = R[i].subs(sub)
-    Kw_com[i] = Kw_com[i].subs(sub)
-    for j in range(len(dKw_dq_com[i])):
-      dJ_dq_com[i][j] = dJ_dq_com[i][j].subs(sub)
+    Kw[i] = Kw[i].subs(sub)
+    for j in range(len(dKw_dq[i])):
+      dJ_dq[i][j] = dJ_dq[i][j].subs(sub)
       dR_dq[i][j] = dR_dq[i][j].subs(sub)
-      dKw_dq_com[i][j] = dKw_dq_com[i][j].subs(sub)
+      dKw_dq[i][j] = dKw_dq[i][j].subs(sub)
   '''
-  vars = [J_com, dJ_dq_com, R, dR_dq, Kw_com, dKw_dq_com, dz_dq, com_z]
-  J_com, dJ_dq_com, R, dR_dq, Kw_com, dKw_dq_com, dz_dq, com_z = \
+  vars = [J, dJ_dq, R, dR_dq, Kw, dKw_dq, dz_dq, com_z]
+  J, dJ_dq, R, dR_dq, Kw, dKw_dq, dz_dq, com_z = \
     lib_sp.apply_mat_recursive( lib_sp.subs_mat, vars, sub )
   '''
   R[i] = R[i].subs(sub)
-  Kw_com[i] = Kw_com[i].subs(sub)
-  for j in range(len(dKw_dq_com[i])):
-    dJ_dq_com[i][j] = dJ_dq_com[i][j].subs(sub)
+  Kw[i] = Kw[i].subs(sub)
+  for j in range(len(dKw_dq[i])):
+    dJ_dq[i][j] = dJ_dq[i][j].subs(sub)
     dR_dq[i][j] = dR_dq[i][j].subs(sub)
-    dKw_dq_com[i][j] = dKw_dq_com[i][j].subs(sub)
+    dKw_dq[i][j] = dKw_dq[i][j].subs(sub)
   '''
 
-#  print(J_com[4])
+#  print(J[4])
   M = sp.Matrix(_M)
   I = []
   g = _g
@@ -237,11 +277,11 @@ def set_const(_L,_COM,_M,_I,_g):
 
 
 def save_txt(file_name):
-  global R,dR_dq,w_com,dw_com,Kw_com,dKw_dq_com,J_com \
-  , dJ_dq_com,com, q,dz_dq, com_z, M, I, g
+  global R,dR_dq,Kw,dKw_dq,J \
+  , dJ_dq,com, q,dz_dq, com_z, M, I, g
 
-  vars = [R,dR_dq,w_com,dw_com,Kw_com,dKw_dq_com,J_com \
-  , dJ_dq_com,dz_dq, M, I, g]
+  vars = [R,dR_dq,Kw,dKw_dq,J \
+  , dJ_dq,dz_dq, M, I, g]
   s = 'import numpy as np\nimport math\n\n'
   s+= 'def get_vars(q):\n'
   for i in range(len(R)):
@@ -262,16 +302,16 @@ def save_txt(file_name):
     f.write(s)
 
 def save(file_name):
-  global R,dR,dR_dq,com,w_com,dw_com,Kw_com,dKw_com,dKw_dq_com,J_com, dJ_dq_com, dJ_com,q, M, I,dz_dq, g
-  lib_sp.save(file_name, [J_com, dJ_dq_com, dJ_com
-    , Kw_com, dKw_dq_com,dz_dq, com_z
+  global R,dR,dR_dq,com,Kw,dKw,dKw_dq,J, dJ_dq, dJ,q, M, I,dz_dq, g
+  lib_sp.save(file_name, [J, dJ_dq, dJ
+    , Kw, dKw_dq,dz_dq, com_z
     , R, dR_dq, M, I, g], q)
 
 def load(file_name):
-  global R,dR,dR_dq,com,w_com,dw_com,Kw_com,dKw_com,dKw_dq_com,J_com, dJ_dq_com \
+  global R,dR,dR_dq,com,Kw,dKw,dKw_dq,J, dJ_dq \
     ,q,dq,ddq, M, I,dz_dq, com_z, g
-  [J_com, dJ_dq_com, dJ_com \
-    , Kw_com, dKw_dq_com,dz_dq, com_z \
+  [J, dJ_dq, dJ \
+    , Kw, dKw_dq,dz_dq, com_z \
     , R, dR_dq, M, I, g] = lib_sp.load(file_name, q)
   q = lib_sp.apply_mat_recursive( lib_sp.subs_q, q, q)
   dq = lib_sp.apply_mat_recursive( lib_sp.subs_q, dq, q)

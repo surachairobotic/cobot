@@ -223,4 +223,12 @@ def coeff_mat(var, q):
           n = 0
         c = c.subs(q[k2], n)
       v[j,k1] = c
+  v2 = sp.simplify(v*q - var).doit()
+  for i in range(v2.shape[0]):
+    if v2[i]!=0:
+      print(v)
+      print(q)
+      print(var)
+      print(v2)
+      assert(v2[i]==0)
   return v
