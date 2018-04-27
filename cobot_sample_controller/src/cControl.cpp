@@ -27,9 +27,10 @@ void cControl::init(){
 
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
+  
+  sub_joints = n.subscribe("joint_states", 10, &cControl::joint_states_callback, this);
 
-/*  sub_joints = n.subscribe("joint_states", 10
-    , &cControl::joint_states_callback, this);
+/*  
 
   ros::Rate r(10);
   ROS_INFO("waiting for joint_states ...\n");

@@ -1,6 +1,7 @@
 #ifndef __CCONTROL_H__
 #define __CCONTROL_H__
 
+#include <mutex>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/DisplayRobotState.h>
@@ -36,6 +37,7 @@ private:
   ros::Publisher pub_goal;
   ros::Subscriber sub_joints;
   sensor_msgs::JointState joint_state, goal;
+  std::mutex mutex_joint_state;
 
   robot_model_loader::RobotModelLoader robot_model_loader;
   robot_model::RobotModelPtr kinematic_model;
@@ -64,6 +66,12 @@ public:
 
   const geometry_msgs::Pose get_current_pose();
   const std::vector<double> get_current_joints();
+  const void get_current_joint_state(sensor_msgs::JointState *p_joint_state){
+    sensor_msgs::JointState j;
+    mutex_joint_state.lock();
+    *p_joint_state = joint_state;
+    mutex_joint_state.unlock();
+  }
   const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
   const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
     , const std::vector<double> &joint_velo);
