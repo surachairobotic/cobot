@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  cobot_dynamixel_driver
 )
 
 ## System dependencies are found with CMake's conventions

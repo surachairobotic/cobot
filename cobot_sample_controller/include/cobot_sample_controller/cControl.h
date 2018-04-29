@@ -36,8 +36,10 @@ private:
   std::vector<double> joints;
   ros::Publisher pub_goal;
   ros::Subscriber sub_joints;
+  ros::ServiceClient srv_set_acc;
   sensor_msgs::JointState joint_state, goal;
   std::mutex mutex_joint_state;
+  bool b_new_joint_state;  // check if the new one come
 
   robot_model_loader::RobotModelLoader robot_model_loader;
   robot_model::RobotModelPtr kinematic_model;
@@ -63,18 +65,26 @@ public:
 
   void move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo);
   void move_velo(const std::vector<double> &joint_velo);
+  void set_acc(const std::vector<double> &acc);
 
-  const geometry_msgs::Pose get_current_pose();
-  const std::vector<double> get_current_joints();
-  const void get_current_joint_state(sensor_msgs::JointState *p_joint_state){
-    sensor_msgs::JointState j;
-    mutex_joint_state.lock();
-    *p_joint_state = joint_state;
-    mutex_joint_state.unlock();
-  }
-  const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
-  const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
-    , const std::vector<double> &joint_velo);
+  const geometry_msgs::Pose get_current_pose(); // get xyz position
+  const std::vector<double> get_current_joints(); // get joint angles
+  
+  // get all joints'angle, velo and load
+  bool get_last_joint_state(sensor_msgs::JointState *p_joint_state); // get the last state
+  bool get_new_joint_state(sensor_msgs::JointState *p_joint_state); // return false if the new state does not come
+  bool wait_new_joint_state(sensor_msgs::JointState *p_joint_state, double timeout); // wait until the new one come or timeout
+  
+  // FK
+  void get_joint_positions(const geometry_msgs::Pose &pose, std::vector<double> &joint_pos);
+  // IK
+  void get_cartesian_position(const std::vector<double> &joint_pos, geometry_msgs::Pose &pose);
+  void get_cartesian_velocity(const std::vector<double> &joint_pos
+    , const std::vector<double> &joint_velo, std::vector<double> &xyz_velo);
+  
+//  const geometry_msgs::Pose get_cartesian_position(const std::vector<double> &joint_pos);
+//  const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
+//    , const std::vector<double> &joint_velo);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
   bool is_valid_pose(const geometry_msgs::Pose &pose);
   

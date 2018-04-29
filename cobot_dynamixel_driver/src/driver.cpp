@@ -16,6 +16,7 @@
 //#include "test_dynamixel/Goal.h"
 #include "cobot_dynamixel_driver/get_motor_number.h"
 #include "cobot_dynamixel_driver/set_home.h"
+#include "cobot_dynamixel_driver/set_acc.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 
@@ -105,6 +106,20 @@ bool set_home(cobot_dynamixel_driver::set_home::Request  &req, cobot_dynamixel_d
   return true;
 }
 
+bool set_acc(cobot_dynamixel_driver::set_acc::Request &req, cobot_dynamixel_driver::set_home::Response &res){
+  for(int i=req.joint_names.size()-1;i>=0;i--){
+    cJoint *j = cJoint::get_joint(std::string(req.joint_names[i]));
+    if( j ){
+      if( !j->set_acc((double)req.accelerations[i]) ){
+        break;
+      }
+    }
+    //else
+    //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
+  }
+  return true;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -112,8 +127,9 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
   ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
-  ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
-  ros::ServiceServer service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home);
+  ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number)
+    , service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home)
+    , service_set_acc = n.advertiseService("cobot_dynamixel_driver/set_acc", set_acc);
   ros::Rate loop_rate(50);
   int fake_joints = 0;
   try{

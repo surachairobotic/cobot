@@ -92,8 +92,10 @@ void print_trajectory(cControl &control, const std::string &file_name){
   }
   for(int i=0;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
-    const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
-    const std::vector<double> velo = control.get_cartesian_velocity(p.positions, p.velocities );
+    geometry_msgs::Pose pose;
+    std::vector<double> velo;
+    control.get_cartesian_position(p.positions, pose);
+    control.get_cartesian_velocity(p.positions, p.velocities, velo );
     printf("point [%d]  time : %lf\n", i, p.time_from_start.toSec() );
     printf("angle :");
     if( fp )
@@ -146,7 +148,8 @@ void print_trajectory(cControl &control, const std::string &file_name){
     const int ii[] = { 0, (int)traj.points.size()-1 };
     for(int i=0;i<2;i++){
       const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
-      const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
+      geometry_msgs::Pose pose;
+      control.get_cartesian_position(p.positions, pose);
       printf("xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
         , pose.position.x, pose.position.y, pose.position.z
         , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
@@ -171,11 +174,20 @@ void move_trajectory(cControl &control){
   }
   ros::Rate r(100);
   ros::Time t_start = ros::Time::now(), t_print = t_start;
+  
+  { // set acc to 3.14 rad/sec^2
+    std::vector<double> acc(6);
+    for(int i=0;i<acc.size();i++)
+      acc[i] = M_PI;
+    control.set_acc(acc);
+  }
+
   for(int i=1;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
-    const geometry_msgs::Pose pose = control.get_cartesian_position(p.positions);
+    geometry_msgs::Pose pose;
     char target_str[512];
     
+    control.get_cartesian_position(p.positions, pose);
     // show target joint angle and velocity
     printf("waypoint %d\njoints : ", i);
     printf("\nangle : ");
@@ -186,11 +198,11 @@ void move_trajectory(cControl &control){
       printf(" %.3lf", p.velocities[j]);
     printf("\n");
     
+    // write to file
     if(fp){
-      // write to file
       target_str[0] = 0;
       for(int j=0;j<p.positions.size();j++){
-        sprintf(target_str +strlen(target_str), " %lf", p.positions[j]); // target joint angel
+        sprintf(target_str +strlen(target_str), " %lf", p.positions[j]); // target joint angle
       }
       for(int j=0;j<p.velocities.size();j++){
         sprintf(target_str +strlen(target_str), " %lf", p.velocities[j]); // target joint velocity
@@ -214,12 +226,15 @@ void move_trajectory(cControl &control){
       dt[1] = ros::Time::now() - t_start;
 //      const std::vector<double> cur_joints = control.get_current_joints(); // get only joints'position
       sensor_msgs::JointState joint_state;
-      control.get_current_joint_state(&joint_state); // get joints'position, velocity, load
+      // get joints'position, velocity, load
+      if( !control.wait_new_joint_state(&joint_state, 0.2) ){
+        goto LB_EXIT_MOVE;  // exit program if the new state does not come within 0.2 seconds
+      }
       dt[2] = ros::Time::now() - t_start;
       b_reach = true;
       for(int j=2;j>=0;j--){
   //  for(int j=cur_joints.size()-1;j>=0;j--){
-        if( !reach_angle(joint_state.position[j], p.positions[j]) ){ // check if reached the target angle
+        if( !reach_angle(joint_state.position[j], p.positions[j]) ){ // check if reached the target angles
           b_reach = false;
           break;
         }
@@ -228,7 +243,8 @@ void move_trajectory(cControl &control){
       ros::Time t = ros::Time::now();
       // write to file
       if( fp ){
-        const geometry_msgs::Pose pose2 = control.get_cartesian_position(joint_state.position);
+        geometry_msgs::Pose pose2;
+        control.get_cartesian_position(joint_state.position, pose2);
         fprintf(fp, "%lf", (t-t_start).toSec());
         for(int j=0;j<joint_state.position.size();j++){
           fprintf(fp, " %lf", joint_state.position[j]); // current joint angle
@@ -240,9 +256,9 @@ void move_trajectory(cControl &control){
           fprintf(fp, " %lf", joint_state.effort[j]); // current joint load
         }
         fprintf(fp, " %lf %lf %lf %lf %lf %lf %lf%s"
-          , pose2.position.x, pose2.position.y, pose2.position.z  // current position in xyz
+          , pose2.position.x, pose2.position.y, pose2.position.z  // current pose in xyz and quaternion
           , pose2.orientation.x, pose2.orientation.y, pose2.orientation.z, pose2.orientation.w
-          , target_str); // current pose in quaternion
+          , target_str);
       }
       dt[4] = ros::Time::now() - t_start;
       if( (t-t_print).toSec() > 1.0 ){
@@ -261,8 +277,9 @@ void move_trajectory(cControl &control){
     }
     while(!b_reach);
   }
+  printf("move_traj end\n");
+LB_EXIT_MOVE:
   if( fp ){
     fclose(fp);
   }
-  printf("move_traj end\n");
 }

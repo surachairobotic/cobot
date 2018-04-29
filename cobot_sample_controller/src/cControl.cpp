@@ -5,6 +5,7 @@
 //#include <moveit_msgs/CollisionObject.h>
 //#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <eigen_conversions/eigen_msg.h>
+#include "cobot_dynamixel_driver/set_acc.h"
 
 
 #define POW2(x) ((x)*(x))
@@ -12,7 +13,7 @@
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
     :spinner(1), group_name(_group_name), end_effector_name(_end_effector_name)
   ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description")
-  ,joint_model_group(NULL)
+  ,joint_model_group(NULL), b_new_joint_state(false)
 {
 }
 
@@ -29,6 +30,7 @@ void cControl::init(){
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
   
   sub_joints = n.subscribe("joint_states", 10, &cControl::joint_states_callback, this);
+  srv_set_acc = n.serviceClient<cobot_dynamixel_driver::set_acc>("cobot_dynamixel_driver/set_acc");
 
 /*  
 
@@ -58,8 +60,49 @@ void cControl::init(){
 }
 
 void cControl::joint_states_callback(const sensor_msgs::JointState::ConstPtr& msg){
-  b_start_sub = true;
+  mutex_joint_state.lock();
   joint_state = *msg;
+  b_start_sub = b_new_joint_state = true;
+  mutex_joint_state.unlock();
+}
+
+
+bool cControl::get_last_joint_state(sensor_msgs::JointState *p_joint_state){
+  if( b_start_sub ){
+    sensor_msgs::JointState j;
+    mutex_joint_state.lock();
+    *p_joint_state = joint_state;
+    mutex_joint_state.unlock();
+    return true;
+  }
+  else
+    return false;
+}
+bool cControl::get_new_joint_state(sensor_msgs::JointState *p_joint_state){
+  if( b_new_joint_state ){
+    sensor_msgs::JointState j;
+    mutex_joint_state.lock();
+    *p_joint_state = joint_state;
+    b_new_joint_state = false;
+    mutex_joint_state.unlock();
+    return true;
+  }
+  else
+    return false;
+}
+bool cControl::wait_new_joint_state(sensor_msgs::JointState *p_joint_state, double timeout){
+  ros::Time t = ros::Time::now();
+  ros::Rate r(1000.0);
+  while(1){
+    if( get_new_joint_state(p_joint_state) ){
+      return true;
+    }
+    if( (ros::Time::now() - t).toSec() > timeout ){
+      ROS_WARN("cControl::wait_new_joint_state() : timeout");
+      return false;
+    }
+    r.sleep();
+  }
 }
 
 
@@ -95,15 +138,15 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
   }*/
   move_group.setStartState(*rb);
   move_group.setPoseTarget(p2);
-  {
+/*  {
     moveit_msgs::OrientationConstraint ocm;
     ocm.link_name = "link_6";
     ocm.header.frame_id = "base_link";
     ocm.orientation.w = 1;
-/*    ocm.orientation.w = p1.orientation.w;
-    ocm.orientation.x = p1.orientation.x;
-    ocm.orientation.y = p1.orientation.y;
-    ocm.orientation.z = p1.orientation.z;*/
+    //ocm.orientation.w = p1.orientation.w;
+    //ocm.orientation.x = p1.orientation.x;
+    //ocm.orientation.y = p1.orientation.y;
+    //ocm.orientation.z = p1.orientation.z;
     ocm.absolute_x_axis_tolerance = 0.1;
     ocm.absolute_y_axis_tolerance = 0.1;
     ocm.absolute_z_axis_tolerance = 0.1;
@@ -113,7 +156,7 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
     con.orientation_constraints.push_back(ocm);
 //    move_group.setPathConstraints(con);
     move_group.setPlanningTime(10.0);
-  }
+  }*/
 
   /*
   if( !move_group.plan(plan) ){
@@ -204,6 +247,22 @@ void cControl::move_velo(const std::vector<double> &joint_velo){
 }
 
 
+void cControl::set_acc(const std::vector<double> &acc){
+  cobot_dynamixel_driver::set_acc srv;
+  if( !joint_model_group ){
+    mythrow("cControl::set_acc() : joint_model_group is NULL\n");
+  }
+  srv.request.joint_names = joint_model_group->getJointModelNames();
+  srv.request.accelerations = acc;
+  if( srv.request.joint_names.size()!=acc.size() ){
+    mythrow("cControl::set_acc() : joint_names and acc is not the same size\n");
+  }
+  if( !srv_set_acc.call(srv) ){
+    ROS_ERROR("Cannot set acc");
+  }
+}
+
+
 
 const std::vector<double> cControl::get_current_joints(){
   moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
@@ -220,7 +279,7 @@ const geometry_msgs::Pose cControl::get_current_pose(){
 }
 
 
-const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<double> &joint_pos){
+void cControl::get_cartesian_position(const std::vector<double> &joint_pos, geometry_msgs::Pose &pose){
 //  robot_state::RobotState robot_state(*move_group.getCurrentState());
   robot_state::RobotStatePtr robot_state_tmp = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
   robot_state_tmp->setJointGroupPositions(joint_model_group, joint_pos);
@@ -229,7 +288,6 @@ const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<dou
   kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
   const Eigen::Affine3d &e = kinematic_state->getGlobalLinkTransform(end_effector_name);
   */
-  geometry_msgs::Pose pose;
   tf::poseEigenToMsg(e, pose);
   if( pose.position.x<-10000 || pose.position.x>10000 ){
     for(int i=0;i<4;i++){
@@ -241,11 +299,10 @@ const geometry_msgs::Pose cControl::get_cartesian_position(const std::vector<dou
     print_pose(pose);
     mythrow("cControl::get_cartesian_position() : invalid xyz\n");
   }
-  return pose;
 }
 
-const std::vector<double> cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
-  , const std::vector<double> &joint_velo){
+void cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
+  , const std::vector<double> &joint_velo, std::vector<double> &xyz_velo){
   robot_state::RobotStatePtr robot_state_tmp = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
   robot_state_tmp->setJointGroupPositions(joint_model_group, joint_pos);
 //  kinematic_state->setJointGroupPositions(joint_model_group, joint_pos);
@@ -258,10 +315,9 @@ const std::vector<double> cControl::get_cartesian_velocity(const std::vector<dou
   for(int i=dq.size()-1;i>=0;i--)
     dq(i) = joint_velo[i];
   dx = jacobian * dq;
-  std::vector<double> dx2(dx.size());
-  for(int i=dx2.size()-1;i>=0;i--)
-    dx2[i] = dx(i);
-  return dx2;
+  xyz_velo.resize(dx.size());
+  for(int i=xyz_velo.size()-1;i>=0;i--)
+    xyz_velo[i] = dx(i);
 }
 
 void cControl::replan_velocity(double velo, double acc){
@@ -280,8 +336,9 @@ void cControl::replan_velocity(double velo, double acc){
   for(int i=0;i<traj.points.size();i++){
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
     tCartesianPose &tc = traj_car[i];
-    tc.pose = get_cartesian_position(p.positions);
-    std::vector<double> velo = get_cartesian_velocity(p.positions, p.velocities );
+    get_cartesian_position(p.positions, tc.pose);
+    std::vector<double> velo;
+    get_cartesian_velocity(p.positions, p.velocities, velo );
     tc.velocity.linear.x = velo[0];
     tc.velocity.linear.y = velo[1];
     tc.velocity.linear.z = velo[2];
