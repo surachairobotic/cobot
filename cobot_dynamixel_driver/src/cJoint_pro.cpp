@@ -166,7 +166,7 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
     return false;
   }
-  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
+//  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
   goal_pos = p;
   goal_velo = v;
   b_goal_pos_velo = true;
