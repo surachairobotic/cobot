@@ -20,7 +20,6 @@ from sensor_msgs.msg import JointState
 
 srv_planning = None
 start_joints = None
-sub_joint_state = None
 ser = None
 
 
