@@ -168,10 +168,17 @@ int main(int argc, char **argv)
     std::vector<cJoint> &joints = cJoint::init();
     ROS_INFO("running ...\n");
     int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
+    ros::Time t_prev = ros::Time::now();
     while (ros::ok()){
       if( cJoint::sync_read() ){
         sensor_msgs::JointState joint_state;
-        joint_state.header.stamp = ros::Time::now();
+        ros::Time t = ros::Time::now();
+        double dt = (t-t_prev).toSec();
+        if( dt > 0.2 ){
+          ROS_WARN("Low update rate : %.3lf sec", dt);
+        }
+        t_prev = t;
+        joint_state.header.stamp = t;
         joint_state.name.resize(joint_num);
         joint_state.position.resize(joint_num);
         joint_state.velocity.resize(joint_num);

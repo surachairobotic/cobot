@@ -449,6 +449,7 @@ const robot_state::RobotStatePtr cControl::get_robot_state(const geometry_msgs::
 //  robot_state::RobotState robot_state(*move_group.getCurrentState());
 //  robot_state.setToDefaultValues();
   robot_state::RobotStatePtr robot_state_tmp = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
+  const robot_state::JointModelGroup *joint_model_group = move_group.getCurrentState()->getJointModelGroup(group_name);
   if( !robot_state_tmp->setFromIK( joint_model_group
     , pose, end_effector_name, 5, 0.1) ){
     mythrow("cControl::get_robot_state : setFromIK failed\n");
