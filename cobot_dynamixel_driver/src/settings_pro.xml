@@ -14,10 +14,10 @@
       <velocity_limit value="360" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
-      <gear_ratio value="303.8" />
-      <position_value value="151875" />
-      <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
-      <current_max value="8250" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
   </joint>
@@ -36,10 +36,10 @@
       <velocity_limit value="360" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
-      <gear_ratio value="303.8" />
-      <position_value value="151875" />
-      <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
-      <current_max value="8250" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
   </joint>
@@ -58,10 +58,10 @@
       <velocity_limit value="360" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
-      <gear_ratio value="303.8" />
-      <position_value value="151875" />
-      <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
-      <current_max value="8250" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
   </joint>
@@ -80,10 +80,10 @@
       <velocity_limit value="360" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
-      <gear_ratio value="303.8" />
-      <position_value value="151875" />
-      <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
-      <current_max value="8250" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
   </joint>
