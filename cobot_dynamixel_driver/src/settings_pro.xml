@@ -1,25 +1,6 @@
 <?xml version="1.0" ?>
 <joints>
-  <joint>
-    <motor>
-      <name value="H54_100_S500_R" />
-      <model_number value="53768" />
-      <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
-      <!-- 0-1024 -->
-      <torque_limit value="900" />
-      <!-- degree/sec -->
-      <velocity_limit value="360" />
-      <!-- degree/sec^2 -->
-      <acceleration_limit value="360" />
-      <gear_ratio value="303.8" />
-      <position_value value="151875" />
-      <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
-      <current_max value="8250" />
-    </motor>
-    <gear_ratio value="1" />
-  </joint>
+  <!-- 1 -->
   <joint>
     <motor>
       <name value="H54_200_S500_R" />
@@ -33,6 +14,94 @@
       <velocity_limit value="360" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
+    </motor>
+    <gear_ratio value="1" />
+  </joint>
+  
+  <!-- 2 -->
+  <joint>
+    <motor>
+      <name value="H54_200_S500_R" />
+      <model_number value="54024" />
+      <!-- degree -->
+      <cw_angle_limit value="-180" />
+      <ccw_angle_limit value="180" />
+      <!-- 0-1024 -->
+      <torque_limit value="900" />
+      <!-- degree/sec -->
+      <velocity_limit value="360" />
+      <!-- degree/sec^2 -->
+      <acceleration_limit value="360" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
+    </motor>
+    <gear_ratio value="1" />
+  </joint>
+  
+  <!-- 3 -->
+  <joint>
+    <motor>
+      <name value="H54_100_S500_R" />
+      <model_number value="53768" />
+      <!-- degree -->
+      <cw_angle_limit value="-180" />
+      <ccw_angle_limit value="180" />
+      <!-- 0-1024 -->
+      <torque_limit value="900" />
+      <!-- degree/sec -->
+      <velocity_limit value="360" />
+      <!-- degree/sec^2 -->
+      <acceleration_limit value="360" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
+    </motor>
+    <gear_ratio value="1" />
+  </joint>
+  
+  <!-- 4 -->
+  <joint>
+    <motor>
+      <name value="H54_100_S500_R" />
+      <model_number value="53768" />
+      <!-- degree -->
+      <cw_angle_limit value="-180" />
+      <ccw_angle_limit value="180" />
+      <!-- 0-1024 -->
+      <torque_limit value="900" />
+      <!-- degree/sec -->
+      <velocity_limit value="360" />
+      <!-- degree/sec^2 -->
+      <acceleration_limit value="360" />
+      <gear_ratio value="501.9" />
+      <position_value value="250961.5" />
+      <!-- H54 : current (mA) = torque val * 33000 / 2048 -->
+      <current_max value="33000" />
+    </motor>
+    <gear_ratio value="1" />
+  </joint>
+
+  <!-- 5 -->
+  <joint>
+    <motor>
+      <name value="H42_20_S300_R" />
+      <model_number value="51200" />
+      <!-- degree -->
+      <cw_angle_limit value="-180" />
+      <ccw_angle_limit value="180" />
+      <!-- 0-1024 -->
+      <torque_limit value="900" />
+      <!-- degree/sec -->
+      <velocity_limit value="360" />
+      <!-- degree/sec^2 -->
+      <acceleration_limit value="360" />
       <gear_ratio value="303.8" />
       <position_value value="151875" />
       <!-- H42 : current (mA) = torque val * 8250 / 2048 -->
@@ -40,6 +109,8 @@
     </motor>
     <gear_ratio value="1" />
   </joint>
+  
+  <!-- 6 -->
   <joint>
     <motor>
       <name value="H42_20_S300_R" />

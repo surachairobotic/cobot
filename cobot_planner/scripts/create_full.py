@@ -11,6 +11,6 @@ import set_const
 import create_txt
 
 joint_num = 6
-create_eq.exec(joint_num)
-set_const.exec(joint_num,True)
-create_txt.exec(joint_num,True)
+create_eq.run(joint_num)
+set_const.run(joint_num,True)
+create_txt.run(joint_num,True)

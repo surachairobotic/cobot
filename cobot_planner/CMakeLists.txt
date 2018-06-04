@@ -10,7 +10,10 @@ add_compile_options(-std=c++11 -g -O0)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  message_generation
   std_msgs
+  geometry_msgs
+  trajectory_msgs
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
@@ -39,6 +42,12 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS
+    message_runtime
+    roscpp
+    rospy
+    std_msgs
+    geometry_msgs
+    trajectory_msgs
     moveit_core
     moveit_ros_planning_interface
   DEPENDS
@@ -63,6 +72,7 @@ include_directories(
 
 
 add_executable(cobot_planner src/main.cpp src/cControl.cpp)
+add_dependencies(cobot_planner cobot_planner_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(cobot_planner
   ${catkin_LIBRARIES}

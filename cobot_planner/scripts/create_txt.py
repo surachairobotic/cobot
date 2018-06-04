@@ -6,7 +6,7 @@ import pickle
 import lib_sympy as lib_sp
 import lib_equation as lib_eq
 
-def exec(joint_num,b_load=False):
+def run(joint_num,b_load=False):
   if b_load:
     t_start = time.time()
     lib_eq.create_symbol(joint_num)
@@ -21,4 +21,4 @@ def exec(joint_num,b_load=False):
   print('Save txt : %f s' % (time.time()-t_start))
 
 if __name__ == "__main__":
-  exec(6,True)
+  run(6,True)

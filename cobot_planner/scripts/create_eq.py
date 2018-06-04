@@ -6,7 +6,7 @@ import pickle
 import lib_sympy as lib_sp
 import lib_equation as lib_eq
 
-def exec(joint_num):
+def run(joint_num):
   t_start = time.time()
   lib_eq.create_symbol(joint_num)
   print('Create symbols : %f s' % (time.time()-t_start))
@@ -19,4 +19,4 @@ def exec(joint_num):
   t_start = time.time()
 
 if __name__ == "__main__":
-  exec(6)
+  run(6)

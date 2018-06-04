@@ -89,10 +89,8 @@ add_message_files(
 add_service_files(
   FILES
   get_motor_number.srv
-)
-add_service_files(
-  FILES
   set_home.srv
+  set_acc.srv
 )
 generate_messages(
   DEPENDENCIES
@@ -231,6 +229,7 @@ target_link_libraries(cobot_joint_mx64
 )
 
 add_executable(cobot_dynamixel_driver_pro src/driver.cpp)
+add_dependencies(cobot_dynamixel_driver_pro cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cobot_dynamixel_driver_pro
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -239,11 +238,13 @@ target_link_libraries(cobot_dynamixel_driver_pro
 
 
 add_executable(cobot_dynamixel_driver_mx64 src/driver.cpp)
+add_dependencies(cobot_dynamixel_driver_mx64 cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cobot_dynamixel_driver_mx64
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   cobot_joint_mx64
 )
+
 #############
 ## Install ##
 #############

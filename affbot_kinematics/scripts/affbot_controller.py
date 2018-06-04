@@ -220,5 +220,6 @@ if __name__ == "__main__":
       lock_serial.release()
 
   finally:
+    lock_serial.release()
     if ser is not None:
       ser.ser.close()

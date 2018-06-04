@@ -113,6 +113,7 @@ void cJoint::load_settings(const std::string &xml_file){
           j.gear_ratio = mystof(get_attr( p_motor, "gear_ratio", "value"))
               * mystof(get_attr( p_joint, "gear_ratio", "value"));
           j.velo2val = 60.0 * j.gear_ratio / (2*M_PI); // val = rpm * gear_ratio
+          j.acc2val = 3600.0 * j.gear_ratio / (2*M_PI*58000.0); // val = rpm^2 * gear_ratio / 58000
           j.cw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
               * M_PI / 180.0 * j.rad2val; // deg -> rad
           j.ccw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))
@@ -121,7 +122,7 @@ void cJoint::load_settings(const std::string &xml_file){
           j.velocity_limit = mystof(get_attr( p_motor, "velocity_limit", "value"))
               * M_PI / 180.0 * j.velo2val;
           j.acceleration_limit = mystof(get_attr( p_motor, "acceleration_limit", "value"))
-              * M_PI / 180.0 * j.velo2val;
+              * M_PI / 180.0 * j.acc2val;
           j.current_max = mystof(get_attr( p_motor, "current_max", "value"));
           if( j.cw_angle_limit >= j.ccw_angle_limit ){
             throw std::string(" joint ") + tostr(joints.size()) + " : cw is smaller than ccw : "
@@ -165,11 +166,21 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
     return false;
   }
-  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
+//  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
   goal_pos = p;
   goal_velo = v;
   b_goal_pos_velo = true;
 //  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
+  return true;
+}
+
+bool cJoint::set_acc(double _acc){
+  int a = _acc * this->acc2val;
+  if( a > this->acceleration_limit || a < -this->acceleration_limit ){
+    ROS_WARN("[%d] set_acceleration() : invalid acc : %lf\n", id, _acc);
+    return false;
+  }
+  write( P_GOAL_ACCELERATION, a );
   return true;
 }
 
