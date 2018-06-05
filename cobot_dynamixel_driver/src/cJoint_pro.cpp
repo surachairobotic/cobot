@@ -115,10 +115,18 @@ void cJoint::load_settings(const std::string &xml_file){
               * mystof(get_attr( p_joint, "gear_ratio", "value"));
           j.velo2val = 60.0 * j.gear_ratio / (2*M_PI) * j.direction; // val = rpm * gear_ratio
           j.acc2val = 3600.0 * j.gear_ratio / (2*M_PI*58000.0) * j.direction; // val = rpm^2 * gear_ratio / 58000
-          j.cw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
-              * M_PI / 180.0 * j.rad2val; // deg -> rad
-          j.ccw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))
-              * M_PI / 180.0 * j.rad2val;
+          if( j.direction>0.0 ){
+            j.cw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
+                * M_PI / 180.0 * j.rad2val; // deg -> rad
+            j.ccw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))
+                * M_PI / 180.0 * j.rad2val;
+          }
+          else{
+            j.cw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))
+                * M_PI / 180.0 * j.rad2val; // deg -> rad
+            j.ccw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
+                * M_PI / 180.0 * j.rad2val;
+          }
           j.torque_limit = mystof(get_attr( p_motor, "torque_limit", "value"));
           j.velocity_limit = mystof(get_attr( p_motor, "velocity_limit", "value"))
               * M_PI / 180.0 * j.velo2val;
