@@ -252,7 +252,7 @@ void cControl::set_acc(const std::vector<double> &acc){
   if( !joint_model_group ){
     mythrow("cControl::set_acc() : joint_model_group is NULL\n");
   }
-  srv.request.joint_names = joint_model_group->getJointModelNames();
+  srv.request.joint_names = joint_model_group->getActiveJointModelNames();
   srv.request.accelerations = acc;
   if( srv.request.joint_names.size()!=acc.size() ){
     mythrow("cControl::set_acc() : joint_names and acc is not the same size\n");
