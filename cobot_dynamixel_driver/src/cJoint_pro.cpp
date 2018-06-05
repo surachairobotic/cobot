@@ -129,9 +129,9 @@ void cJoint::load_settings(const std::string &xml_file){
           }
           j.torque_limit = mystof(get_attr( p_motor, "torque_limit", "value"));
           j.velocity_limit = mystof(get_attr( p_motor, "velocity_limit", "value"))
-              * M_PI / 180.0 * j.velo2val;
+              * M_PI / 180.0 * fabs(j.velo2val);
           j.acceleration_limit = mystof(get_attr( p_motor, "acceleration_limit", "value"))
-              * M_PI / 180.0 * j.acc2val;
+              * M_PI / 180.0 * fabs(j.acc2val);
           j.current_max = mystof(get_attr( p_motor, "current_max", "value"));
           if( j.cw_angle_limit >= j.ccw_angle_limit ){
             throw std::string(" joint ") + tostr(joints.size()) + " : cw is smaller than ccw : "
