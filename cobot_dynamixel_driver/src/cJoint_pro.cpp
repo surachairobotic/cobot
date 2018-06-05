@@ -171,7 +171,7 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
       , this->ccw_angle_limit / rad2val, this->ccw_angle_limit);
     return false;
   }
-  else if( v<-this->velocity_limit || v>this->velocity_limit){
+  else if( v<-this->velocity_limit || v>this->velocity_limit || v==0){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
     return false;
   }
