@@ -108,12 +108,13 @@ void cJoint::load_settings(const std::string &xml_file){
           }
           j.motor_name = get_attr( p_motor, "name", "value");
           j.motor_model_number = mystof(get_attr( p_motor, "model_number", "value"));
+          j.direction = mystof(get_attr( p_joint, "direction", "value"));
           j.position_value = mystof(get_attr( p_motor, "position_value", "value"));
-          j.rad2val = j.position_value / M_PI;
+          j.rad2val = j.position_value / M_PI * j.direction;
           j.gear_ratio = mystof(get_attr( p_motor, "gear_ratio", "value"))
               * mystof(get_attr( p_joint, "gear_ratio", "value"));
-          j.velo2val = 60.0 * j.gear_ratio / (2*M_PI); // val = rpm * gear_ratio
-          j.acc2val = 3600.0 * j.gear_ratio / (2*M_PI*58000.0); // val = rpm^2 * gear_ratio / 58000
+          j.velo2val = 60.0 * j.gear_ratio / (2*M_PI) * j.direction; // val = rpm * gear_ratio
+          j.acc2val = 3600.0 * j.gear_ratio / (2*M_PI*58000.0) * j.direction; // val = rpm^2 * gear_ratio / 58000
           j.cw_angle_limit = mystof(get_attr( p_motor, "cw_angle_limit", "value"))
               * M_PI / 180.0 * j.rad2val; // deg -> rad
           j.ccw_angle_limit = mystof(get_attr( p_motor, "ccw_angle_limit", "value"))

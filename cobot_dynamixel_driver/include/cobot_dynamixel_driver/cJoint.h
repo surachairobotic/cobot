@@ -50,7 +50,7 @@ private:
   std::string motor_name;
   int motor_model_number;
   double cw_angle_limit, ccw_angle_limit, torque_limit, velocity_limit, acceleration_limit
-  , gear_ratio, position_value, current_max;
+  , gear_ratio, position_value, current_max, direction;
 
   static dynamixel::PacketHandler *packetHandler;
   static dynamixel::PortHandler *portHandler;
