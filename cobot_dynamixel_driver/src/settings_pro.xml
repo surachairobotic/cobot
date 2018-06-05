@@ -20,6 +20,7 @@
       <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
   
   <!-- 2 -->
@@ -42,6 +43,7 @@
       <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="-1.0" />
   </joint>
   
   <!-- 3 -->
@@ -64,6 +66,7 @@
       <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
   
   <!-- 4 -->
@@ -86,6 +89,7 @@
       <current_max value="33000" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
 
   <!-- 5 -->
@@ -108,6 +112,7 @@
       <current_max value="8250" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
   
   <!-- 6 -->
@@ -130,5 +135,6 @@
       <current_max value="8250" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
 </joints>
