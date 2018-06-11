@@ -125,7 +125,7 @@ void IMarker::initialize( interactive_markers::InteractiveMarkerServer& server,
   imarker_.header.frame_id = frame_id;
   tf::pointEigenToMsg(position, imarker_.pose.position);
   tf::quaternionEigenToMsg(orientation, imarker_.pose.orientation);
-  imarker_.scale = 0.3;
+  imarker_.scale = 0.1;
 
   imarker_.name = name;
   imarker_.description = name;
