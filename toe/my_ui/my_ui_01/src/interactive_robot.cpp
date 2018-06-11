@@ -47,7 +47,7 @@ const Eigen::Affine3d InteractiveRobot::DEFAULT_WORLD_OBJECT_POSE_(Eigen::Affine
 const double InteractiveRobot::WORLD_BOX_SIZE_ = 0.15;
 
 // minimum delay between calls to callback function
-const ros::Duration InteractiveRobot::min_delay_(0.01);
+const ros::Duration InteractiveRobot::min_delay_(0.00001);
 
 InteractiveRobot::InteractiveRobot(const std::string& robot_description,
 																	 const std::string& robot_topic,
@@ -60,6 +60,9 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
   :  // this node handle is used to create the publishers
   nh_(),
 
+  // load the robot description
+  rm_loader_(robot_description),
+
   // create publishers for markers and robot state
   robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(robot_topic, 1)), 
   world_state_publisher_(nh_.advertise<visualization_msgs::Marker>(marker_topic, 100)),
@@ -69,12 +72,11 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
 	imarker_robot_(0), 
 	imarker_world_(0),
 
-  // load the robot description
-  rm_loader_(robot_description), 
 	group_(0), 
 	user_data_(0), 
 	user_callback_(0),
 	my_display(pDisplay)
+//	robot_state_(robot_state)
 {
 	ROS_INFO("InteractiveRobot");
 	ROS_INFO_STREAM("robot_topic : " << robot_topic);
@@ -105,6 +107,11 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
   end_link = group_->getLinkModelNames().back();
   desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link);
 
+	color_rgba.r = 255;
+	color_rgba.g = 0;
+	color_rgba.b = 0;
+	color_rgba.a = 1;
+
   // Create a marker to control the "right_arm" group
   imarker_robot_ = new IMarker(interactive_marker_server_,
 															 name_id, 
@@ -119,7 +126,7 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
                                boost::bind(movedWorldMarkerCallback, this, _1), IMarker::POS),
 */
   // start publishing timer.
-      init_time_ = ros::Time::now();
+  init_time_ = ros::Time::now();
   last_callback_time_ = init_time_;
   average_callback_duration_ = min_delay_;
   schedule_request_count_ = 0;
@@ -142,9 +149,13 @@ InteractiveRobot::~InteractiveRobot()
 void InteractiveRobot::movedRobotMarkerCallback(InteractiveRobot* robot,
                                                 const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback)
 {
-  Eigen::Affine3d pose;
-  tf::poseMsgToEigen(feedback->pose, pose);
-  robot->setGroupPose(pose);
+//  Eigen::Affine3d pose;
+//  tf::poseMsgToEigen(feedback->pose, pose);
+	
+  ros::Time t1 = ros::Time::now();
+  robot->setGroupPose(feedback->pose);
+  ros::Time t2 = ros::Time::now();
+	ROS_WARN("InteractiveRobot::movedRobotMarkerCallback() : %lf , %lf", t2.toSec()-t1.toSec(), ((double)(t2.toNSec()-t1.toNSec()))/1000000.0);
 }
 
 // callback called when marker moves.  Moves world object to new pose.
@@ -222,6 +233,8 @@ bool InteractiveRobot::setCallbackTimer(bool new_update_request)
 // the new state needs to be updated and published to rviz
 void InteractiveRobot::scheduleUpdate()
 {
+  //updateAll();
+
   // schedule an update callback for the future.
   // If the callback should run now, call it.
   if (setCallbackTimer(true))
@@ -250,6 +263,7 @@ void InteractiveRobot::updateCallback(const ros::TimerEvent& e)
 /* Calculate new positions and publish results to rviz */
 void InteractiveRobot::updateAll()
 {
+  ros::Time t1 = ros::Time::now();
   publishWorldState();
 
   if (robot_state_->setFromIK(group_, desired_group_end_link_pose_, 10, 0.1))
@@ -259,6 +273,8 @@ void InteractiveRobot::updateAll()
     if (user_callback_)
       user_callback_(*this);
   }
+  ros::Time t4 = ros::Time::now();
+	ROS_WARN("InteractiveRobot::updateAll() : %lf , %lf", t4.toSec()-t1.toSec(), ((double)(t4.toNSec()-t1.toNSec()))/1000000.0);
 }
 
 // change which group is being manipulated
@@ -291,6 +307,22 @@ bool InteractiveRobot::setGroupPose(const Eigen::Affine3d& pose)
 {
   desired_group_end_link_pose_ = pose;
   scheduleUpdate();
+//	this->setGroup(this->getGroupName());
+  if (imarker_robot_)
+	{
+		ROS_INFO("imarker_robot_");
+		imarker_robot_->move(pose);
+	}
+	else
+		ROS_INFO("imarker_robot_ is NULL");
+
+}
+
+bool InteractiveRobot::setGroupPose(const geometry_msgs::Pose& pose)
+{
+  Eigen::Affine3d aff_pose;
+  tf::poseMsgToEigen(pose, aff_pose);
+  this->setGroupPose(aff_pose);
 }
 
 /* publish robot pose to rviz */
@@ -298,6 +330,25 @@ void InteractiveRobot::publishRobotState()
 {
   moveit_msgs::DisplayRobotState msg;
   robot_state::robotStateToRobotStateMsg(*robot_state_, msg.state);
+
+	//ROS_INFO("ObjectColor[] highlight_links --> %d", msg.highlight_links.size());
+
+   // Check if a robot state message already exists for this color
+   if (msg.highlight_links.size() == 0)  // has not been colored yet, lets create that
+   {
+       // Get links names
+       const std::vector<const moveit::core::LinkModel*>& link_names = robot_state_->getRobotModel()->getLinkModelsWithCollisionGeometry();
+       
+			 msg.highlight_links.resize(link_names.size());
+  
+       // Color every link
+       for (std::size_t i = 0; i < link_names.size(); ++i)
+       {
+         msg.highlight_links[i].id = link_names[i]->getName();
+         msg.highlight_links[i].color = color_rgba;
+       }
+	}
+
   robot_state_publisher_.publish(msg);
 }
 
@@ -346,8 +397,66 @@ std::vector<geometry_msgs::Pose> InteractiveRobot::getPose()
 	std::string str_pose;
 	for(int i=0; i < group_->getLinkModelNames().size(); i++) {
 		link = robot_state_->getGlobalLinkTransform(group_->getLinkModelNames()[i]);
+		ROS_INFO("link name : %s", group_->getLinkModelNames()[i].c_str());
   	tf::poseEigenToMsg(link, pose);
 		v_pose.push_back(pose);
 	}
 	return v_pose;
 }
+
+geometry_msgs::Pose InteractiveRobot::getBackPose()
+{
+  desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link);
+	geometry_msgs::Pose pose;
+	tf::poseEigenToMsg(desired_group_end_link_pose_, pose);
+
+	return pose;
+}
+
+bool InteractiveRobot::setColor(std_msgs::ColorRGBA color)
+{
+	color_rgba = color;
+	return true;
+}
+
+std_msgs::ColorRGBA InteractiveRobot::createRandColor()
+{
+	std_msgs::ColorRGBA result;
+
+	const std::size_t MAX_ATTEMPTS = 20;  // bound the performance
+	std::size_t attempts = 0;
+
+	// Make sure color is not *too* dark
+	do
+	{
+		result.r = fRand(0.0, 1.0);
+		result.g = fRand(0.0, 1.0);
+		result.b = fRand(0.0, 1.0);
+		// ROS_DEBUG_STREAM_NAMED(name_, "Looking for random color that is not too light, current value is "
+		//<< (result.r + result.g + result.b) << " attempt #" << attempts);
+		attempts++;
+		if (attempts > MAX_ATTEMPTS)
+		{
+//			ROS_WARN_STREAM_NAMED(name_, "Unable to find appropriate random color after " << MAX_ATTEMPTS << " attempts");
+			break;
+		}
+
+	} while (result.r + result.g + result.b < 1.5);  // 3 would be white
+
+	// Set alpha value
+	result.a = 1.0;
+
+	return result;
+}
+
+float InteractiveRobot::fRand(float dMin, float dMax)
+{
+	float d = static_cast<float>(rand()) / RAND_MAX;
+	return dMin + d * (dMax - dMin);
+}
+
+bool InteractiveRobot::setGroupJointPosition(const std::vector<double>& position)
+{
+	robot_state_->setVariablePositions(position);
+}
+

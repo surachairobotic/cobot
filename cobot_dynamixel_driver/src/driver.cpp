@@ -16,6 +16,7 @@
 //#include "test_dynamixel/Goal.h"
 #include "cobot_dynamixel_driver/get_motor_number.h"
 #include "cobot_dynamixel_driver/set_home.h"
+#include "cobot_dynamixel_driver/set_acc.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 
@@ -105,6 +106,20 @@ bool set_home(cobot_dynamixel_driver::set_home::Request  &req, cobot_dynamixel_d
   return true;
 }
 
+bool set_acc(cobot_dynamixel_driver::set_acc::Request &req, cobot_dynamixel_driver::set_acc::Response &res){
+  for(int i=req.joint_names.size()-1;i>=0;i--){
+    cJoint *j = cJoint::get_joint(std::string(req.joint_names[i]));
+    if( j ){
+      if( !j->set_acc((double)req.accelerations[i]) ){
+        break;
+      }
+    }
+    //else
+    //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
+  }
+  return true;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -114,6 +129,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
   ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
   ros::ServiceServer service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home);
+  ros::ServiceServer service_set_acc = n.advertiseService("cobot_dynamixel_driver/set_acc", set_acc);
   ros::Rate loop_rate(50);
   int fake_joints = 0;
   try{
@@ -152,10 +168,17 @@ int main(int argc, char **argv)
     std::vector<cJoint> &joints = cJoint::init();
     ROS_INFO("running ...\n");
     int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
+    ros::Time t_prev = ros::Time::now();
     while (ros::ok()){
       if( cJoint::sync_read() ){
         sensor_msgs::JointState joint_state;
-        joint_state.header.stamp = ros::Time::now();
+        ros::Time t = ros::Time::now();
+        double dt = (t-t_prev).toSec();
+        if( dt > 0.2 ){
+          ROS_WARN("Low update rate : %.3lf sec", dt);
+        }
+        t_prev = t;
+        joint_state.header.stamp = t;
         joint_state.name.resize(joint_num);
         joint_state.position.resize(joint_num);
         joint_state.velocity.resize(joint_num);

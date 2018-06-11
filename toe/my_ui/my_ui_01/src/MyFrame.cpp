@@ -1,4 +1,7 @@
 #include <MyFrame.h>
+#include <MyDisplay.h>
+#include <QtMath>
+
 #include "ui_multimovedisplay.h"
 
 using namespace my_plugin;
@@ -9,12 +12,16 @@ const ros::Duration MyFrame::min_delay_(0.5);
 MyFrame::MyFrame( MyDisplay* pdisplay, 
 									rviz::DisplayContext* context,
                   QWidget* parent)
-//									const std::string& robot_description )
   : QWidget(parent)
 	, planning_display_(pdisplay)
   , context_(context)
   , ui_(new Ui::MultiMoveDisplayUI)
-//  , rm_loader_("robot_description")
+	, move_group_(new moveit::planning_interface::MoveGroupInterface("arm"))
+	, joint_state_pub(nh_.advertise<sensor_msgs::JointState>("/cobot/goal", 1))
+
+/*	, joint_state_pub(nh_.advertise<sensor_msgs::JointState>("/move_group/fake_controller_joint_states", 1))
+*/
+	, joint_debug_publisher_(nh_.advertise<sensor_msgs::JointState>("/my_ui/joint_solution", 1))
 {
 	ROS_WARN("Frame");
   ui_->setupUi(this);
@@ -24,49 +31,195 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
 
   connect(ui_->pushButton_step_01, SIGNAL(clicked()), this, SLOT(step_01_Clicked()));
 
-  // start publishing timer.
+  connect(ui_->plan_button, SIGNAL(clicked()), this, SLOT(planButtonClicked()));
+  connect(ui_->execute_button, SIGNAL(clicked()), this, SLOT(executeButtonClicked()));
+  connect(ui_->stop_button, SIGNAL(clicked()), this, SLOT(stopButtonClicked()));
+
+/*  connect(ui_->lineEdit_j1, SIGNAL(textChanged(const QString &)), this, SLOT(linej1Changed(const QString &)));
+  connect(ui_->lineEdit_j1, SIGNAL(&QLineEdit::textEdited), this, SLOT(&MyFrame::linej1Changed));
+*/
+
+  connect(ui_->btnDownJ1, SIGNAL(clicked()), this, SLOT(downJ1Clicked()));
+  connect(ui_->btnDownJ2, SIGNAL(clicked()), this, SLOT(downJ2Clicked()));
+  connect(ui_->btnDownJ3, SIGNAL(clicked()), this, SLOT(downJ3Clicked()));
+  connect(ui_->btnDownJ4, SIGNAL(clicked()), this, SLOT(downJ4Clicked()));
+  connect(ui_->btnDownJ5, SIGNAL(clicked()), this, SLOT(downJ5Clicked()));
+  connect(ui_->btnDownJ6, SIGNAL(clicked()), this, SLOT(downJ6Clicked()));
+  connect(ui_->btnUpJ1, SIGNAL(clicked()), this, SLOT(upJ1Clicked()));
+  connect(ui_->btnUpJ2, SIGNAL(clicked()), this, SLOT(upJ2Clicked()));
+  connect(ui_->btnUpJ3, SIGNAL(clicked()), this, SLOT(upJ3Clicked()));
+  connect(ui_->btnUpJ4, SIGNAL(clicked()), this, SLOT(upJ4Clicked()));
+  connect(ui_->btnUpJ5, SIGNAL(clicked()), this, SLOT(upJ5Clicked()));
+  connect(ui_->btnUpJ6, SIGNAL(clicked()), this, SLOT(upJ6Clicked()));
+  connect(ui_->btnDownX, SIGNAL(clicked()), this, SLOT(downXClicked()));
+  connect(ui_->btnDownY, SIGNAL(clicked()), this, SLOT(downYClicked()));
+  connect(ui_->btnDownZ, SIGNAL(clicked()), this, SLOT(downZClicked()));
+  connect(ui_->btnDownRX, SIGNAL(clicked()), this, SLOT(downRXClicked()));
+  connect(ui_->btnDownRY, SIGNAL(clicked()), this, SLOT(downRYClicked()));
+  connect(ui_->btnDownRZ, SIGNAL(clicked()), this, SLOT(downRZClicked()));
+  connect(ui_->btnUpX, SIGNAL(clicked()), this, SLOT(upXClicked()));
+  connect(ui_->btnUpY, SIGNAL(clicked()), this, SLOT(upYClicked()));
+  connect(ui_->btnUpZ, SIGNAL(clicked()), this, SLOT(upZClicked()));
+  connect(ui_->btnUpRX, SIGNAL(clicked()), this, SLOT(upRXClicked()));
+  connect(ui_->btnUpRY, SIGNAL(clicked()), this, SLOT(upRYClicked()));
+  connect(ui_->btnUpRZ, SIGNAL(clicked()), this, SLOT(upRZClicked()));
+
+  connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));	
+  connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));	
+
+	pub_plan_1 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_1", 1, true);
+	pub_plan_2 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_2", 1, true);
+	pub_plan_3 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_3", 1, true);
+
   init_time_ = ros::Time::now();
   last_callback_time_ = init_time_;
   average_callback_duration_ = min_delay_;
   schedule_request_count_ = 0;
-//  publish_timer_ = nh_.createTimer( average_callback_duration_, 
-//																		&MyFrame::updateCallback, this, true);
 
-	if(planning_display_) {
-		ROS_ERROR("planning_display_ in MyFrame");
-//		if(planning_display_.irobot_start_state)
-			ROS_ERROR("planning_display_->irobot_start_state in MyFrame");	
-	}
+//  robotCurrentState.reset(new robot_state::RobotState(robot_model_));
+//  if (!robotCurrentState)
+//    ROS_ERROR("Could not get RobotState from Model");
 
-//	robot_pose = planning_display_->irobot_start_state->getPose();
+	ui_->lineEdit_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_rw->setAlignment(Qt::AlignRight);
 
-/*
-	connect(this, 
-					SIGNAL(requestNewLabel(const std::vector<geometry_msgs::Pose>)), 
-					this,
-					SLOT(updateTextbox(const std::vector<geometry_msgs::Pose>) ));
-*/
+	ui_->lineEdit_j1_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j1_rw->setAlignment(Qt::AlignRight);
+
+	ui_->lineEdit_j2_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j2_rw->setAlignment(Qt::AlignRight);
+
+	ui_->lineEdit_j3_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j3_rw->setAlignment(Qt::AlignRight);
+
+	ui_->lineEdit_j4_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j4_rw->setAlignment(Qt::AlignRight);
+
+	ui_->lineEdit_j5_x->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_y->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_z->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_rx->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_ry->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_rz->setAlignment(Qt::AlignRight);
+	ui_->lineEdit_j5_rw->setAlignment(Qt::AlignRight);
+
+	ui_textbox.push_back(ui_->lineEdit_j1);
+	ui_textbox.push_back(ui_->lineEdit_j2);
+	ui_textbox.push_back(ui_->lineEdit_j3);
+	ui_textbox.push_back(ui_->lineEdit_j4);
+	ui_textbox.push_back(ui_->lineEdit_j5);
+	ui_textbox.push_back(ui_->lineEdit_j6);
 }
 
 MyFrame::~MyFrame()
 {
+	ROS_INFO("MyFrame::~MyFrame()");
+	//planning_display_->joint_state_subscriber_.shutdown();
+
   delete ui_;
+	ROS_INFO("MyFrame::~MyFrame() end");
 }
 
 void MyFrame::tabChanged(int index)
 {
-	ROS_INFO("tabChanged : index = %d", index);
-//  if (scene_marker_ && ui_->tabWidget->tabText(index).toStdString() != TAB_OBJECTS)
-//    scene_marker_.reset();
-//  else if (ui_->tabWidget->tabText(index).toStdString() == TAB_OBJECTS)
-//    selectedCollisionObjectChanged();
-	;
+	QString currentTabText = ui_->tabWidget->tabText(index);
+	ROS_INFO("tabChanged : index = %s", currentTabText.toStdString().c_str());
 }
 
 void MyFrame::step_01_Clicked()
 {
 	ROS_INFO("step_01_Clicked !!!");
 	ui_->plainTextEdit_info->setPlainText("");
+}
+
+void MyFrame::changePlanningGroupHelper()
+{
+	;
+//  if (!planning_display_->getPlanningSceneMonitor())
+//    return;
+
+//  planning_display_->addMainLoopJob(boost::bind(&MotionPlanningFrame::fillStateSelectionOptions, this));
+//  planning_display_->addMainLoopJob(
+//      boost::bind(&MotionPlanningFrame::populateConstraintsList, this, std::vector<std::string>()));
+
+/*  const robot_model::RobotModelConstPtr& kmodel = planning_display_->getRobotModel();
+  std::string group = planning_display_->getCurrentPlanningGroup();
+  planning_display_->addMainLoopJob(
+      boost::bind(&MotionPlanningParamWidget::setGroupName, ui_->planner_param_treeview, group));
+
+  if (!group.empty() && kmodel)
+  {
+    if (move_group_ && move_group_->getName() == group)
+      return;
+    ROS_INFO("Constructing new MoveGroup connection for group '%s' in namespace '%s'", group.c_str(),
+             planning_display_->getMoveGroupNS().c_str());
+    moveit::planning_interface::MoveGroupInterface::Options opt(group);
+    opt.robot_model_ = kmodel;
+    opt.robot_description_.clear();
+    opt.node_handle_ = ros::NodeHandle(planning_display_->getMoveGroupNS());
+    try
+    {
+      move_group_.reset(new moveit::planning_interface::MoveGroupInterface(
+          opt, context_->getFrameManager()->getTFClientPtr(), ros::WallDuration(30, 0)));
+      if (planning_scene_storage_)
+        move_group_->setConstraintsDatabase(ui_->database_host->text().toStdString(), ui_->database_port->value());
+    }
+    catch (std::exception& ex)
+    {
+      ROS_ERROR("%s", ex.what());
+    }
+    planning_display_->addMainLoopJob(
+        boost::bind(&MotionPlanningParamWidget::setMoveGroup, ui_->planner_param_treeview, move_group_));
+    if (move_group_)
+    {
+      move_group_->allowLooking(ui_->allow_looking->isChecked());
+      move_group_->allowReplanning(ui_->allow_replanning->isChecked());
+      moveit_msgs::PlannerInterfaceDescription desc;
+      if (move_group_->getInterfaceDescription(desc))
+        planning_display_->addMainLoopJob(boost::bind(&MotionPlanningFrame::populatePlannersList, this, desc));
+      planning_display_->addBackgroundJob(boost::bind(&MotionPlanningFrame::populateConstraintsList, this),
+                                          "populateConstraintsList");
+
+      if (first_time_)
+      {
+        first_time_ = false;
+        const planning_scene_monitor::LockedPlanningSceneRO& ps = planning_display_->getPlanningSceneRO();
+        if (ps)
+        {
+          planning_display_->setQueryStartState(ps->getCurrentState());
+          planning_display_->setQueryGoalState(ps->getCurrentState());
+        }
+        // This ensures saved UI settings applied after planning_display_ is ready
+        planning_display_->useApproximateIK(ui_->approximate_ik->isChecked());
+      }
+    }
+  }
+*/
 }
 
 void MyFrame::updateTextbox(const std::vector<geometry_msgs::Pose> image)
@@ -280,8 +433,46 @@ void MyFrame::enable()
 
 void MyFrame::disable()
 {
-  move_group_.reset();
+	ROS_INFO("MyFrame::disable()");
+//  move_group_.reset();
   parentWidget()->hide();
   hide();
 }
 
+void MyFrame::pubCurrentRobotState(std::vector<double>& vPosition)
+{
+//	pubUiSeed(vPosition);
+
+	sensor_msgs::JointState msgJoint;
+	msgJoint.name = planning_display_->sJointsName;
+	msgJoint.position = vPosition;
+	std::vector<double> velocity;
+	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.5);
+	msgJoint.velocity = velocity;
+  joint_state_pub.publish(msgJoint);
+}
+
+void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
+{
+	for(int i=0; i<vPosition.size(); i++)
+		ui_textbox[i]->setText(QString::number(qRadiansToDegrees(vPosition[i]), 'f', 4));
+
+	std::vector<geometry_msgs::Pose> pose_fk;
+	std::vector<std::string> link_names;
+	link_names.push_back(planning_display_->end_link);
+	planning_display_->solver->getPositionFK(link_names, 
+														 vPosition, 
+														 pose_fk);
+	
+	geometry_msgs::Pose pose = pose_fk[0];
+	ui_->lineEdit_eef_x->setText(QString::number(pose.position.x, 'f', 4));
+	ui_->lineEdit_eef_y->setText(QString::number(pose.position.y, 'f', 4));
+	ui_->lineEdit_eef_z->setText(QString::number(pose.position.z, 'f', 4));
+	double angle = qRadiansToDegrees(pose.orientation.x);
+	ui_->lineEdit_eef_rx->setText(QString::number(angle, 'f', 4));
+	angle = qRadiansToDegrees(pose.orientation.y);
+	ui_->lineEdit_eef_ry->setText(QString::number(angle, 'f', 4));
+	angle = qRadiansToDegrees(pose.orientation.z);
+	ui_->lineEdit_eef_rz->setText(QString::number(angle, 'f', 4));
+
+}

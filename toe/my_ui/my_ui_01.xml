@@ -1,14 +1,5 @@
 <library path="libmy_ui_01">
   <class name="my_plugin/MyDisplay" type="my_plugin::MyDisplay" base_class_type="rviz::Display">
-
-<!--//CLASS_LOADER_REGISTER_CLASS(multi_state_planning::MultiMoveGroupDisplay, rviz::Panel)
-CLASS_LOADER_REGISTER_CLASS(Ui::MultiMoveDisplay, QWidget)
-CLASS_LOADER_REGISTER_CLASS(moveit_rviz_plugin::MultiMoveDisplay, QWidget)
-CLASS_LOADER_REGISTER_CLASS(moveit_rviz_plugin::MultiPanel, rviz::Display)
--->
-
-<!--  <class name="multi_move_group_rviz_plugin/MultiMoveGroup" type="multi_state_planning::MultiMovegGroupDisplay" base_class_type="rviz::Display">
--->
     <description>
       Displays my scene.
     </description>

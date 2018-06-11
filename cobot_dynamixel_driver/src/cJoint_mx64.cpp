@@ -161,6 +161,17 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
   return true;
 }
 
+bool cJoint::set_acc(double _acc){
+  int a = f_acc2val(_acc);
+  if( a > this->acceleration_limit || a < -this->acceleration_limit ){
+    ROS_WARN("[%d] set_acceleration() : invalid acc : %lf\n", id, _acc);
+    return false;
+  }
+  write( P_GOAL_ACCELERATION, a );
+  return true;
+}
+
+
 
 double cJoint::get_pos() const {
   if( pos < 0 || pos > 4096 ){

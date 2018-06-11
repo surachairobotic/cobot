@@ -108,6 +108,7 @@ void IMarker::makeAxisControl()
 void IMarker::move(const Eigen::Affine3d& pose)
 {
   tf::poseEigenToMsg(pose, imarker_.pose);
+	server_->setPose( imarker_.name, imarker_.pose );
   server_->applyChanges();
 }
 

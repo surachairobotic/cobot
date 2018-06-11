@@ -1,0 +1,6 @@
+# CMakeLists.txt
+change this line for debug mode complie
+add_compile_options(-std=c++11)   --->   add_compile_options(-g3 -O0 -pg -std=c++11)
+
+# CMakeLists.txt (in /src)
+

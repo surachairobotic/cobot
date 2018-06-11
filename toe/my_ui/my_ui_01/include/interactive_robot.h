@@ -64,6 +64,15 @@ public:
 									 const std::string& frame_id = "/base_link",
 									 const std::string& name_id = "robot",
 									 my_plugin::MyDisplay* pDisplay = 0);
+/*  InteractiveRobot(moveit::core::RobotStatePtr& robot_state,
+                   const std::string& robot_topic = "interactive_robot_state",
+                   const std::string& marker_topic = "interactive_robot_markers",
+                   const std::string& imarker_topic = "interactive_robot_imarkers",
+									 const std::string& planning_group = "arm",
+									 const std::string& frame_id = "/base_link",
+									 const std::string& name_id = "robot",
+									 my_plugin::MyDisplay* pDisplay = 0);
+*/
   ~InteractiveRobot();
 
   /** set which group to manipulate */
@@ -72,6 +81,9 @@ public:
 
   /** Set the pose of the group we are manipulating */
   bool setGroupPose(const Eigen::Affine3d& pose);
+  bool setGroupPose(const geometry_msgs::Pose& pose);
+
+	bool setGroupJointPosition(const std::vector<double>& position);
 
   /** set pose of the world object */
   void setWorldObjectPose(const Eigen::Affine3d& pose);
@@ -94,6 +106,11 @@ public:
   }
 
 	std::vector<geometry_msgs::Pose> getPose();
+	geometry_msgs::Pose getBackPose();
+	
+	bool setColor(std_msgs::ColorRGBA color);
+	std_msgs::ColorRGBA createRandColor();
+	float fRand(float dMin, float dMax);
 
   /** return size and pose of world object cube */
   void getWorldGeometry(Eigen::Affine3d& pose, double& size);
@@ -109,6 +126,8 @@ public:
 	std::string end_link;
 	my_plugin::MyDisplay* my_display;
 
+  void publishRobotState();
+
 private:
   /* Indicate that the world or the robot has changed and
    * the new state needs to be updated and published to rviz */
@@ -123,7 +142,6 @@ private:
 
   /* functions to calculate new state and publish to rviz */
   void updateAll();
-  void publishRobotState();
   void publishWorldState();
 
   /* callback called when marker moves.  Moves right hand to new marker pose. */
@@ -146,6 +164,8 @@ private:
   robot_model_loader::RobotModelLoader rm_loader_;
   robot_model::RobotModelPtr robot_model_;
   robot_state::RobotStatePtr robot_state_;
+
+	std_msgs::ColorRGBA color_rgba;
 
   /* info about joint group we are manipulating */
   const robot_model::JointModelGroup* group_;

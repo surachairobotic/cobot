@@ -50,7 +50,7 @@ private:
   std::string motor_name;
   int motor_model_number;
   double cw_angle_limit, ccw_angle_limit, torque_limit, velocity_limit, acceleration_limit
-  , gear_ratio, position_value, current_max;
+  , gear_ratio, position_value, current_max, direction;
 
   static dynamixel::PacketHandler *packetHandler;
   static dynamixel::PortHandler *portHandler;
@@ -80,6 +80,7 @@ public:
   cJoint(int _id);
   bool set_goal_velo(double rad_per_sec);
   bool set_goal_pos_velo(double _pos, double _velo);
+  bool set_acc(double _acc);
   void print_data() const;
 
   inline int get_id() const { return id; }

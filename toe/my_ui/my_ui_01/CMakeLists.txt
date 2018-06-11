@@ -14,6 +14,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # Plugin Source
 set(SOURCE_FILES
 	src/MyFrame.cpp
+	src/MyFrameIK.cpp
+	src/MyFrameMove.cpp
 	src/MyDisplay.cpp
 	src/pose_string.cpp
 	src/imarker.cpp

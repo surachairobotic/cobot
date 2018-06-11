@@ -17,5 +17,6 @@
       <position_value value="4096" />
     </motor>
     <gear_ratio value="1" />
+    <direction value="1.0" />
   </joint>
 </joints>
