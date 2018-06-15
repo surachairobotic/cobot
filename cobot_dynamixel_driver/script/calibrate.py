@@ -41,18 +41,18 @@ def find_err(pos, off, dq, dqmax):
   with open('calib_result.txt', 'at') as f:
     for q1 in range(n):
       print('q1 : ' + str(q1) + ', score : ' + str(best_score))
-      q[0] = dq*q1 - dqmax
+      q[0] = dq*q1 - dqmax + off[0]
       for q2 in range(n):
-        q[1] = dq*q2 - dqmax
+        q[1] = dq*q2 - dqmax + off[1]
         for q3 in range(n):
-          q[2] = dq*q3 - dqmax
+          q[2] = dq*q3 - dqmax + off[2]
           for q4 in range(n):
-            q[3] = dq*q4 - dqmax
+            q[3] = dq*q4 - dqmax + off[3]
             for q5 in range(n):
-              q[4] = dq*q5 - dqmax
+              q[4] = dq*q5 - dqmax + off[4]
               #t = time.time()
               for q6 in range(n):
-                q[5] = dq*q6 - dqmax
+                q[5] = dq*q6 - dqmax + off[5]
                 score = 0
                 for j in range(len(pos)):
                   pos2 = []
