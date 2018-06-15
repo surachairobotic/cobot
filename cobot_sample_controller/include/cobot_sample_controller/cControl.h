@@ -30,7 +30,7 @@ private:
   ros::NodeHandle node_handle;
   ros::AsyncSpinner spinner;
   moveit::planning_interface::MoveGroupInterface move_group;
-  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+//  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   moveit_msgs::RobotTrajectory trajectory;
   std::vector<double> joints;
