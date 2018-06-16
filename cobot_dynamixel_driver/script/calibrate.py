@@ -38,10 +38,14 @@ def find_err(pos, off, dq, dqmax):
   n = int(round(dqmax*2 / dq))
   q = np.array([0.0] * len(off))
   print('dq : %f, dqmax : %f, n : %d' % (dq, dqmax, n))
-  with open('calib_result.txt', 'at') as f:
+  with open('calib_result3.txt', 'at') as f:
+    '''
     for q1 in range(n):
       print('q1 : ' + str(q1) + ', score : ' + str(best_score))
       q[0] = dq*q1 - dqmax + off[0]
+    '''
+    for q1 in range(1):
+      q[0] = 0.0
       for q2 in range(n):
         q[1] = dq*q2 - dqmax + off[1]
         for q3 in range(n):
@@ -51,8 +55,12 @@ def find_err(pos, off, dq, dqmax):
             for q5 in range(n):
               q[4] = dq*q5 - dqmax + off[4]
               #t = time.time()
+              '''
               for q6 in range(n):
                 q[5] = dq*q6 - dqmax + off[5]
+              '''
+              for q6 in range(1):
+                q[5] = 0.0
                 score = 0
                 for j in range(len(pos)):
                   pos2 = []
@@ -69,7 +77,20 @@ def find_err(pos, off, dq, dqmax):
                     '''
                     pos2.append(fk.fk(rb_pos))
                   pos2 = np.array(pos2)
-                  score+= np.var(pos2[:,0]) + np.var(pos2[:,1]) + np.var(pos2[:,2])
+                  # cal score
+                  mean = [0.0,0.0,0.0]
+                  for k in range(len(pos2)):
+                    for l in range(3):
+                      mean[l]+= pos2[k][l]
+                  for l in range(3):
+                    mean[l]/= float(len(pos2))
+                  sc = 0
+                  for k in range(len(pos2)):
+                    for l in range(3):
+                      sc+= (pos2[k][l] - mean[l])**2
+                  score+= sc/float(len(pos2))
+
+                  #score+= np.var(pos2[:,0]) + np.var(pos2[:,1]) + np.var(pos2[:,2])
                 if score < best_score:
                   best_score = score
                   best_q = copy.deepcopy(q)
@@ -80,27 +101,40 @@ def find_err(pos, off, dq, dqmax):
               #print( (n**5)*(time.time()-t)/3600.0 )
   return best_q
 
+def load_pos(fname):
+  pos = []
+  with open(fname, 'rt') as f:
+    p = []
+    while True:
+      s = f.readline().strip()
+      if not s:
+        break
+      elif s=='--':
+        if len(p)>0:
+          pos.append(p)
+          p = []
+      else:
+        a = s.split(' ')
+        if len(a)!=6:
+          print('Invalid string : ' + s)
+          exit()
+        p.append([float(b) for b in a])
+    if len(p)>0:
+      pos.append(p)
+  return pos
+
+
 if __name__ == "__main__":
+  '''
+  if len(argv)==3:
+    n_node = int(argv[1])
+    node_num = int(argv[2])
+  else:
+    n_core = 0
+    node_num = 1
+  '''
   try:
-    pos = []
-    with open(fname, 'rt') as f:
-      p = []
-      while True:
-        s = f.readline().strip()
-        if not s:
-          break
-        elif s=='--':
-          if len(p)>0:
-            pos.append(p)
-            p = []
-        else:
-          a = s.split(' ')
-          if len(a)!=6:
-            print('Invalid string : ' + s)
-            exit()
-          p.append([float(b) for b in a])
-      if len(p)>0:
-        pos.append(p)
+    pos = load_pos(fname)
     #print(pos)
     '''
     rospy.wait_for_service('compute_fk')
@@ -120,9 +154,11 @@ if __name__ == "__main__":
       print(c)
     exit();
     '''
-                      
-    off = find_err(pos, [0]*6, 0.5*math.pi/180.0, 5.0*math.pi/180.0)
-    find_err(pos, off, 0.1*math.pi/180.0, 1.0*math.pi/180.0)
+#    off = [0]*6
+#    off[0] = -7.0*math.pi/180.0
+    off = [0, -0.017453, -0.008727, 0.026180, 0.000000, -0.069813]
+    off = find_err(pos, off, 0.03*math.pi/180.0, 0.3*math.pi/180.0)
+    off = find_err(pos, off, 0.01*math.pi/180.0, 0.1*math.pi/180.0)
     print(off)
   except KeyboardInterrupt:
     print('SIGINT')
