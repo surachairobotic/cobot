@@ -5,6 +5,8 @@ set(HEADERS
 	include/pose_string.h
 	include/imarker.h
 	include/interactive_robot.h
+
+	include/cobot_kinematic.h
 )
 
 qt_wrap_ui(UIC_FILES src/ui/multimovedisplay.ui)
@@ -20,6 +22,7 @@ set(SOURCE_FILES
 	src/pose_string.cpp
 	src/imarker.cpp
 	src/interactive_robot.cpp
+	src/cobot_kinematic.cpp
 )
 
 set(MOVEIT_LIB_NAME my_ui_01)

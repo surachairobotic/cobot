@@ -66,10 +66,11 @@ def key_press(key):
 def callback_joint(joints):
   global fname, b_save
   if b_save:
+    b_save = False
     with open(fname, 'at') as f:
       s = ''
       for p in joints.position:
-        s+= str(p)
+        s+= str(p) + ' '
       f.write(s + '\n')
       print(s)
 

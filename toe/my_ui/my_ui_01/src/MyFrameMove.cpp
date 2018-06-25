@@ -1,6 +1,7 @@
 #include <MyFrame.h>
 #include <MyDisplay.h>
 #include <eigen_conversions/eigen_msg.h>
+#include "cobot_kinematic.h"
 
 #include "ui_multimovedisplay.h"
 
@@ -458,55 +459,66 @@ void MyFrame::upRZClicked()
 void MyFrame::pushButtonClicked()
 {
 	ROS_INFO("pushButtonClicked !!!");
-	
-	geometry_msgs::Pose pose;
-	pose = getEEFpose();
-	double norm = sqrt(pow(pose.orientation.x, 2) + pow(pose.orientation.y, 2) + pow(pose.orientation.z, 2) + pow(pose.orientation.w, 2));
-	ROS_INFO("pose = getEEFpose()");
-	ROS_INFO("%lf, %lf, %lf | %lf, %lf, %lf, %lf | %lf", pose.position.x
-																											, pose.position.y
-																											, pose.position.z
-																											, pose.orientation.x
-																											, pose.orientation.y
-																											, pose.orientation.z
-																											, pose.orientation.w
-																											, norm);
-
-
-	pose.position.x = ui_->lineEdit_eef_x->text().toDouble();
-	pose.position.y = ui_->lineEdit_eef_y->text().toDouble();
-	pose.position.z = ui_->lineEdit_eef_z->text().toDouble();
-
-	pose.orientation.x = 1.0;
-	pose.orientation.y = 0.0;
-	pose.orientation.z = 0.0;
-	pose.orientation.w = 0.0;
-
-	
-	ROS_INFO("inPose : before");
-	inPose(pose);
-	ROS_INFO("inPose : after");
-	pose = getEEFpose();
-	norm = sqrt(pow(pose.orientation.x, 2) + pow(pose.orientation.y, 2) + pow(pose.orientation.z, 2) + pow(pose.orientation.w, 2));
-	ROS_INFO("pose = getEEFpose()");
-	ROS_INFO("%lf, %lf, %lf | %lf, %lf, %lf, %lf | %lf", pose.position.x
-																											, pose.position.y
-																											, pose.position.z
-																											, pose.orientation.x
-																											, pose.orientation.y
-																											, pose.orientation.z
-																											, pose.orientation.w
-																											, norm);
+	std::vector<double> home{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	pubCurrentRobotState(home);
 }
 
 void MyFrame::pushButton_2Clicked()
 {
 	ROS_INFO("pushButton_2Clicked !!!");
-	iSol = ((iSol+1) % solutions.size());
+/*	iSol = ((iSol+1) % solutions.size());
 	sensor_msgs::JointState msgJoint;
 	msgJoint.name = planning_display_->group_->getActiveJointModelNames();
 	msgJoint.position = solutions[iSol];
 	ROS_INFO("iSol = %d from %d", (int)iSol, (int)solutions.size());
 
   joint_debug_publisher_.publish(msgJoint);
+*/
+/*	std::vector<double> theta{0.5, 0, 0, 0, 0, 0};
+	coco.computeFK(theta);
+*/
+
+	std::vector<double> theta{0, 0, 0, 0, 0, 0};
+	theta[0] = ui_->input_j1->text().toDouble();
+	theta[1] = ui_->input_j2->text().toDouble();
+	theta[2] = ui_->input_j3->text().toDouble();
+	theta[3] = ui_->input_j4->text().toDouble();
+	theta[4] = ui_->input_j5->text().toDouble();
+	theta[5] = ui_->input_j6->text().toDouble();
+
+	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+	if(ui_->checkBox->checkState() == 2)
+	{
+		if(theta.size() == offset.size())
+		{
+			ROS_INFO("In offset !!!");
+			for(int i=0; i<theta.size(); i++)
+				theta[i] -= offset[i];
+		}
+	}
+
+	pubCurrentRobotState(theta);
+}
+
+void MyFrame::btn_inputClicked()
+{
+	geometry_msgs::Pose pose;
+	pose.position.x = ui_->input_eef_x->text().toDouble();
+	pose.position.y = ui_->input_eef_y->text().toDouble();
+	pose.position.z = ui_->input_eef_z->text().toDouble();
+
+	double roll, pitch, yaw;
+	roll = ui_->input_eef_rx->text().toDouble();
+	pitch = ui_->input_eef_ry->text().toDouble();
+	yaw = ui_->input_eef_rz->text().toDouble();
+
+	ROS_INFO("%lf, %lf, %lf | %lf, %lf, %lf", pose.position.x, pose.position.y, pose.position.z, roll, pitch, yaw);
+
+	tf::Quaternion q_ori;
+	q_ori.setRPY(roll, pitch, yaw);
+	tf::quaternionTFToMsg(q_ori, pose.orientation);
+
+	
+
+	inPose(pose);
 }

@@ -1157,7 +1157,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>241</width>
+       <width>221</width>
        <height>421</height>
       </rect>
      </property>
@@ -1169,7 +1169,7 @@
        <rect>
         <x>10</x>
         <y>30</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1245,7 +1245,7 @@
        <rect>
         <x>10</x>
         <y>60</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1300,7 +1300,7 @@
        <rect>
         <x>10</x>
         <y>90</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1355,7 +1355,7 @@
        <rect>
         <x>10</x>
         <y>120</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1410,7 +1410,7 @@
        <rect>
         <x>10</x>
         <y>150</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1465,7 +1465,7 @@
        <rect>
         <x>10</x>
         <y>180</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1555,7 +1555,7 @@
        <rect>
         <x>10</x>
         <y>240</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1610,7 +1610,7 @@
        <rect>
         <x>10</x>
         <y>270</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1665,7 +1665,7 @@
        <rect>
         <x>10</x>
         <y>300</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1720,7 +1720,7 @@
        <rect>
         <x>10</x>
         <y>330</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1775,7 +1775,7 @@
        <rect>
         <x>10</x>
         <y>360</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1830,7 +1830,7 @@
        <rect>
         <x>10</x>
         <y>390</y>
-        <width>221</width>
+        <width>201</width>
         <height>24</height>
        </rect>
       </property>
@@ -1884,27 +1884,173 @@
     <widget class="QPushButton" name="pushButton">
      <property name="geometry">
       <rect>
-       <x>269</x>
-       <y>270</y>
-       <width>121</width>
+       <x>320</x>
+       <y>250</y>
+       <width>81</width>
        <height>91</height>
       </rect>
      </property>
      <property name="text">
-      <string>PushButton</string>
+      <string>Home</string>
      </property>
     </widget>
     <widget class="QPushButton" name="pushButton_2">
      <property name="geometry">
       <rect>
-       <x>290</x>
+       <x>300</x>
+       <y>40</y>
+       <width>51</width>
+       <height>111</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Joint</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_x">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>250</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_y">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>280</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_z">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>310</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_rx">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>340</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_ry">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>370</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_eef_rz">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>400</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_input">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
        <y>370</y>
        <width>81</width>
        <height>51</height>
       </rect>
      </property>
      <property name="text">
-      <string>PushButton</string>
+      <string>Push</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j1">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>40</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j2">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>70</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j3">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>100</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j4">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>130</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j5">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>160</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="input_j6">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>190</y>
+       <width>51</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>160</y>
+       <width>51</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>CheckBox</string>
      </property>
     </widget>
    </widget>

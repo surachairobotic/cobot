@@ -22,6 +22,8 @@
 #include <vector>
 #include <geometry_msgs/Pose.h>
 
+#include "cobot_kinematic.h"
+
 namespace rviz
 {
 class DisplayContext;
@@ -53,6 +55,8 @@ namespace my_plugin {
 				Q_EMIT requestNewLabel(image); 
 				ROS_INFO("emit 2");
 			}
+
+			CobotKinematic coco;
 
 			bool getSolutionIK(const robot_state::JointModelGroup* group, 
 												 const geometry_msgs::Pose& pose, 
@@ -218,6 +222,7 @@ namespace my_plugin {
 
 			void pushButtonClicked();
 			void pushButton_2Clicked();
+			void btn_inputClicked();
 
 			void updateTextbox(const std::vector<geometry_msgs::Pose> image);
 

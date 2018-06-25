@@ -205,8 +205,8 @@ double cJoint::get_pos() const {
 
 double cJoint::get_velo() const {
   if( velo < -this->velocity_limit || velo > this->velocity_limit ){
-    ROS_ERROR("[%d] get_velo() : invalid velo val : %d\n", id, velo);
-    throw 0;
+    ROS_WARN("[%d] get_velo() : invalid velo val : %d\n", id, velo);
+//    throw 0;
   }
   return velo / velo2val;
 }

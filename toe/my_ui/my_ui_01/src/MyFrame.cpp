@@ -65,7 +65,8 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
   connect(ui_->btnUpRZ, SIGNAL(clicked()), this, SLOT(upRZClicked()));
 
   connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));	
-  connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));	
+  connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));
+  connect(ui_->btn_input, SIGNAL(clicked()), this, SLOT(btn_inputClicked()));
 
 	pub_plan_1 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_1", 1, true);
 	pub_plan_2 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_2", 1, true);
@@ -465,14 +466,23 @@ void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 														 pose_fk);
 	
 	geometry_msgs::Pose pose = pose_fk[0];
+//	ROS_INFO("KDL : %lf, %lf, %lf", pose.position.x, pose.position.y, pose.position.z);
+//	coco.computeFK(vPosition);
+//	coco.computeIK(pose);
+
 	ui_->lineEdit_eef_x->setText(QString::number(pose.position.x, 'f', 4));
 	ui_->lineEdit_eef_y->setText(QString::number(pose.position.y, 'f', 4));
 	ui_->lineEdit_eef_z->setText(QString::number(pose.position.z, 'f', 4));
-	double angle = qRadiansToDegrees(pose.orientation.x);
-	ui_->lineEdit_eef_rx->setText(QString::number(angle, 'f', 4));
-	angle = qRadiansToDegrees(pose.orientation.y);
-	ui_->lineEdit_eef_ry->setText(QString::number(angle, 'f', 4));
-	angle = qRadiansToDegrees(pose.orientation.z);
-	ui_->lineEdit_eef_rz->setText(QString::number(angle, 'f', 4));
 
+	tf::Quaternion q_ori;
+	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::Matrix3x3 m(q_ori);
+	double roll, pitch, yaw;
+	m.getRPY(roll, pitch, yaw);
+//	double angle = qRadiansToDegrees(pose.orientation.x);
+	ui_->lineEdit_eef_rx->setText(QString::number(roll, 'f', 4));
+//	angle = qRadiansToDegrees(pose.orientation.y);
+	ui_->lineEdit_eef_ry->setText(QString::number(pitch, 'f', 4));
+//	angle = qRadiansToDegrees(pose.orientation.z);
+	ui_->lineEdit_eef_rz->setText(QString::number(yaw, 'f', 4));
 }
