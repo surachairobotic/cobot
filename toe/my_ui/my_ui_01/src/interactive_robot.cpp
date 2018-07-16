@@ -268,11 +268,21 @@ void InteractiveRobot::updateAll()
 
   if (robot_state_->setFromIK(group_, desired_group_end_link_pose_, 10, 0.1))
   {
+		ROS_INFO("robot_state_->setFromIK is true");
+
+std::vector<double> ik_seed_state;
+robot_state_->copyJointGroupPositions("arm", ik_seed_state);
+ROS_INFO("ik_seed_state.size() : %d", ik_seed_state.size());
+for(int i=0; i<ik_seed_state.size(); i++)
+	ROS_INFO("ik_seed_state[%d] : %lf", i, ik_seed_state[i]);
+
     publishRobotState();
 
     if (user_callback_)
       user_callback_(*this);
   }
+	else
+		ROS_INFO("robot_state_->setFromIK is false");
   ros::Time t4 = ros::Time::now();
 	ROS_WARN("InteractiveRobot::updateAll() : %lf , %lf", t4.toSec()-t1.toSec(), ((double)(t4.toNSec()-t1.toNSec()))/1000000.0);
 }
@@ -333,20 +343,20 @@ void InteractiveRobot::publishRobotState()
 
 	//ROS_INFO("ObjectColor[] highlight_links --> %d", msg.highlight_links.size());
 
-   // Check if a robot state message already exists for this color
-   if (msg.highlight_links.size() == 0)  // has not been colored yet, lets create that
-   {
-       // Get links names
-       const std::vector<const moveit::core::LinkModel*>& link_names = robot_state_->getRobotModel()->getLinkModelsWithCollisionGeometry();
-       
-			 msg.highlight_links.resize(link_names.size());
-  
-       // Color every link
-       for (std::size_t i = 0; i < link_names.size(); ++i)
-       {
-         msg.highlight_links[i].id = link_names[i]->getName();
-         msg.highlight_links[i].color = color_rgba;
-       }
+	// Check if a robot state message already exists for this color
+	if (msg.highlight_links.size() == 0)  // has not been colored yet, lets create that
+	{
+		// Get links names
+		const std::vector<const moveit::core::LinkModel*>& link_names = robot_state_->getRobotModel()->getLinkModelsWithCollisionGeometry();
+
+		msg.highlight_links.resize(link_names.size());
+
+		// Color every link
+		for (std::size_t i = 0; i < link_names.size(); ++i)
+		{
+			msg.highlight_links[i].id = link_names[i]->getName();
+			msg.highlight_links[i].color = color_rgba;
+		}
 	}
 
   robot_state_publisher_.publish(msg);

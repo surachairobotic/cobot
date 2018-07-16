@@ -337,7 +337,6 @@ void MyDisplay::setName(const QString& name)
 void MyDisplay::callbackJointState(const sensor_msgs::JointState& msgJoint)
 {
 //	in_callback = true;
-	//ROS_INFO("callbackJointState !!!");
 	md->jointCurrentState = msgJoint;
 	md->updateCurrentRobotState();
 //	if(md->frame_)
@@ -413,6 +412,7 @@ void MyDisplay::updateUIJointsLabel()
 	frame_->ui_->label_j4->setText(QString::fromStdString(sJointsName[3]));
 	frame_->ui_->label_j5->setText(QString::fromStdString(sJointsName[4]));
 	frame_->ui_->label_j6->setText(QString::fromStdString(sJointsName[5]));
+	ROS_INFO("updateUIJointsLabel - END !!!");
 }
 
 void MyDisplay::addBackgroundJob(const boost::function<void()>& job, const std::string& name)

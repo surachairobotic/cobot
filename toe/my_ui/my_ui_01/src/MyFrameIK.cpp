@@ -31,8 +31,11 @@ void MyFrame::inPose(geometry_msgs::Pose pose)
 
 	ROS_INFO("pose in [%lf %lf %lf, %lf %lf %lf %lf] | %lf", pose.position.x, pose.position.y, pose.position.z
 																						, pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w, norm);
-
-/*	pose.orientation.x = 1.0;
+/*
+	pose.position.x = 0.25;
+	pose.position.y = 0.00;
+	pose.position.z = 0.29503;
+	pose.orientation.x = 1.0;
 	pose.orientation.y = 0.0;
 	pose.orientation.z = 0.0;
 	pose.orientation.w = 0.0;
@@ -92,10 +95,22 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 	if(planning_display_->solver->searchPositionIK(pose, ik_seed_state, 1.0, consistency_limits, solution, error_code, options))
 	{
 		ROS_WARN("getSolutionIK : true");
-/*		ROS_INFO("pose_fk.size : %d", (int)pose_fk.size());
-		ROS_INFO("%lf, %lf, %lf | %lf, %lf, %lf, %lf", pose_fk[0].position.x, pose_fk[0].position.y, pose_fk[0].position.z, pose_fk[0].orientation.x, pose_fk[0].orientation.y, pose_fk[0].orientation.z, pose_fk[0].orientation.w);
-*/
-		//best_solution(ik_seed_state, solutions);
+		ROS_INFO("pose A [%lf, %lf, %lf | %lf, %lf, %lf, %lf]", pose.position.x, pose.position.y, pose.position.z
+																													, pose.orientation.x, pose.orientation.y
+																													, pose.orientation.z, pose.orientation.w);
+		ROS_INFO("A : %lf, %lf, %lf, %lf, %lf, %lf", solution[0], solution[1], solution[2], solution[3], solution[4], solution[5]);
+
+		std::vector<std::vector<double>> new_solutions;
+		new_solutions.clear();
+		new_solutions = coco.computeIK(pose);
+		ROS_INFO("pose B [%lf, %lf, %lf | %lf, %lf, %lf, %lf]", pose.position.x, pose.position.y, pose.position.z
+																													, pose.orientation.x, pose.orientation.y
+																													, pose.orientation.z, pose.orientation.w);
+		for(int i=0; i<new_solutions.size(); i++) {		
+			ROS_INFO("B : %lf, %lf, %lf, %lf, %lf, %lf", new_solutions[i][0], new_solutions[i][1], new_solutions[i][2], new_solutions[i][3], new_solutions[i][4], new_solutions[i][5]);
+		}
+
+		//best_solution(ik_seed_state, solutions);		
 	}
 	else
 		ROS_WARN("getSolutionIK : false");

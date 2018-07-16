@@ -63,44 +63,6 @@ namespace my_plugin {
 												 unsigned int attempts = 0,
                 			   double timeout = 0.0, 
 												 const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 1
-/*		  bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const geometry_msgs::Pose& pose, 
-												 const std::string& tip,
-                 				 unsigned int attempts = 0, 
-												 double timeout = 0.0,
-                 				 const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 2
-		  bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const Eigen::Affine3d& pose, 
-												 unsigned int attempts = 0,
-                 				 double timeout = 0.0, 
-				                 const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 3
-		  bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const Eigen::Affine3d& pose, 
-												 const std::string& tip,
-                 				 unsigned int attempts = 0, 
-												 double timeout = 0.0,
-			                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 4
-  		bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const Eigen::Affine3d& pose, 
-												 const std::string& tip,
-                 				 const std::vector<double>& consistency_limits, 
-												 unsigned int attempts = 0, 
-												 double timeout = 0.0,
-			                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 5
-		  bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const EigenSTL::vector_Affine3d& poses,
-                 				 const std::vector<std::string>& tips, 
-												 unsigned int attempts = 0, 
-												 double timeout = 0.0,
-				                 const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 6
-		  bool getSolutionIK(const robot_state::JointModelGroup* group, 
-												 const EigenSTL::vector_Affine3d& poses,
-                 				 const std::vector<std::string>& tips, 
-												 const std::vector<std::vector<double> >& consistency_limits,
-                 				 unsigned int attempts = 0, 
-												 double timeout = 0.0,
-			                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()); // getSolutionIK 7
-*/
 
 			void best_solution(std::vector<double>& ik_seed_state, std::vector<std::vector<double>>& solutions);
 			void pub_jog_robot_state(geometry_msgs::Pose pose);
@@ -170,6 +132,8 @@ namespace my_plugin {
 			//sensor_msgs::JointState msgJoint;
 
 			std::vector<QLineEdit*> ui_textbox;
+			std::vector<std::vector<double>> test_point;
+			int index = 0;
 
 			/* Indicate that the world or the robot has changed and
 			 * the new state needs to be updated and published to rviz */

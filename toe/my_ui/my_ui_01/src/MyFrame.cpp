@@ -135,6 +135,41 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
 	ui_textbox.push_back(ui_->lineEdit_j4);
 	ui_textbox.push_back(ui_->lineEdit_j5);
 	ui_textbox.push_back(ui_->lineEdit_j6);
+
+	std::vector<double> x;
+	x.push_back(-1.442625345);
+	x.push_back(0.3745256647);
+	x.push_back(-0.1796085105);
+	x.push_back(0.03117646285);
+	x.push_back(-0.1955543147);
+	x.push_back(-1.494953367);
+	test_point.push_back(x);
+	x.clear();
+	x.push_back(-1.435452402);
+	x.push_back(0.1611274743);
+	x.push_back(0.1528505229);
+	x.push_back(0.02793424244);
+	x.push_back(-0.7236728467);
+	x.push_back(-1.487051551);
+	test_point.push_back(x);
+	x.clear();
+	x.push_back(-1.324353151);
+	x.push_back(0.1715801926);
+	x.push_back(0.1506848699);
+	x.push_back(-0.290041204);
+	x.push_back(-0.6945478264);
+	x.push_back(-1.329470298);
+	test_point.push_back(x);
+	x.clear();
+	x.push_back(-1.186389787);
+	x.push_back(0.2316551569);
+	x.push_back(0.1305305268);
+	x.push_back(-0.6393873235);
+	x.push_back(-0.5456751197);
+	x.push_back(-1.130911299);
+	test_point.push_back(x);
+	x.clear();				
+	index = 0;
 }
 
 MyFrame::~MyFrame()
@@ -448,31 +483,42 @@ void MyFrame::pubCurrentRobotState(std::vector<double>& vPosition)
 	msgJoint.name = planning_display_->sJointsName;
 	msgJoint.position = vPosition;
 	std::vector<double> velocity;
-	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.5);
+	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.1);
 	msgJoint.velocity = velocity;
   joint_state_pub.publish(msgJoint);
 }
 
 void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 {
+//	for(int i=0; i<vPosition.size(); i++)
+//		ui_textbox[i]->setText(QString::number(qRadiansToDegrees(vPosition[i]), 'f', 4));
 	for(int i=0; i<vPosition.size(); i++)
-		ui_textbox[i]->setText(QString::number(qRadiansToDegrees(vPosition[i]), 'f', 4));
+		ui_textbox[i]->setText(QString::number(vPosition[i], 'f', 4));
 
 	std::vector<geometry_msgs::Pose> pose_fk;
 	std::vector<std::string> link_names;
 	link_names.push_back(planning_display_->end_link);
-	planning_display_->solver->getPositionFK(link_names, 
-														 vPosition, 
-														 pose_fk);
-	
+	planning_display_->solver->getPositionFK(link_names, vPosition, pose_fk);
 	geometry_msgs::Pose pose = pose_fk[0];
-//	ROS_INFO("KDL : %lf, %lf, %lf", pose.position.x, pose.position.y, pose.position.z);
-//	coco.computeFK(vPosition);
-//	coco.computeIK(pose);
 
+/*
+	ROS_INFO("KDL : %lf, %lf, %lf", pose.position.x, pose.position.y, pose.position.z);
+	std::vector<geometry_msgs::Pose> coco_eef;
+	coco_eef = coco.computeFK(vPosition);
+	ROS_INFO("ME  : %lf, %lf, %lf", coco_eef[coco_eef.size()-1].position.x, 
+																  coco_eef[coco_eef.size()-1].position.y, 
+																	coco_eef[coco_eef.size()-1].position.z);
+	
+	ROS_INFO("computeIK : A");
+	coco.computeIK(pose);
+	coco.computeIK(coco_eef[coco_eef.size()-1]);
+	ROS_INFO("computeIK : B");	
+*/
+/*
 	ui_->lineEdit_eef_x->setText(QString::number(pose.position.x, 'f', 4));
 	ui_->lineEdit_eef_y->setText(QString::number(pose.position.y, 'f', 4));
 	ui_->lineEdit_eef_z->setText(QString::number(pose.position.z, 'f', 4));
+	ROS_INFO("ui_->lineEdit");
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -485,4 +531,5 @@ void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 	ui_->lineEdit_eef_ry->setText(QString::number(pitch, 'f', 4));
 //	angle = qRadiansToDegrees(pose.orientation.z);
 	ui_->lineEdit_eef_rz->setText(QString::number(yaw, 'f', 4));
+*/
 }
