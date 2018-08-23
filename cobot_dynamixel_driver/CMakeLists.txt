@@ -127,7 +127,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS
+    include
+    /opt/DynamixelSDK/c++/include/dynamixel_sdk
 #  LIBRARIES dynamixel_driver
   CATKIN_DEPENDS
     message_runtime
@@ -205,6 +207,10 @@ add_library(cobot_dynamixel_sdk
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
+)
+
+target_link_libraries(cobot_dynamixel_sdk
+  ${catkin_LIBRARIES}
 )
 
 add_library(cobot_joint_pro

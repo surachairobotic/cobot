@@ -104,7 +104,45 @@ def subs_mat(mat, s1, s2):
   return mat2
 '''
 
+def approx_cs(q):
+  if abs(q)<0.0001:
+    return 0
+  if q>0.9999:
+    return 1
+  if q<-0.9999:
+    return -1
+  return q
 
+def rx(q):
+  c = approx_cs(math.cos(q))
+  s = approx_cs(math.sin(q))
+  return sp.Matrix([
+    [1, 0, 0, 0],
+    [0, c,-s, 0],
+    [0, s, c, 0],
+    [0, 0, 0, 1]
+  ])
+
+def ry(q):
+  c = approx_cs(math.cos(q))
+  s = approx_cs(math.sin(q))
+  return sp.Matrix([
+    [c, 0, s, 0],
+    [0, 1, 0, 0],
+    [-s, 0, c, 0],
+    [0, 0, 0, 1]
+  ])
+
+def rz(q):
+  c = approx_cs(math.cos(q))
+  s = approx_cs(math.sin(q))
+  return sp.Matrix([
+    [c,-s, 0, 0],
+    [s, c, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+  ])
+ 
 
 
 def Rx(q, L):
