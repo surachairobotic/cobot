@@ -198,6 +198,10 @@ double cJoint::get_load() const {
   return ( load >= 1024 ? load - 1024 : load ) * VAL2LOAD;
 }
 
+double cJoint::get_motor_current() const {
+  return 0.0;
+}
+
 
 void cJoint::write(const int param, const int val){
   int addr = ADDR[param][0];

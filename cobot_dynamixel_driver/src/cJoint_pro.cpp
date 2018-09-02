@@ -212,14 +212,18 @@ double cJoint::get_velo() const {
 }
 
 double cJoint::get_current() const {
-  if( current > current_max ){
+/*  if( current > current_max ){
     ROS_WARN("[%d] invalid raw load : %d\n", id, current);
-  }
+  }*/
   return current;
 }
 
 double cJoint::get_load() const {
-  return current / current_max;
+  return (double)current;
+}
+
+double cJoint::get_motor_current() const { // mA
+  return gear_ratio * current * current_max / 2048.0;
 }
 
 void cJoint::write(const int param, const int val){

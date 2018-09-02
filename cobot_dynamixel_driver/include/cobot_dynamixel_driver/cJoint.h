@@ -87,8 +87,9 @@ public:
   inline const std::string& get_name() const { return name; }
   double get_pos() const;
   double get_velo() const;
-  double get_current() const; // mA
-  double get_load() const;    // current / max_current
+  double get_current() const; // raw
+  double get_load() const;
+  double get_motor_current() const; // mA
   
   
   static std::vector<cJoint> &init();

@@ -188,7 +188,7 @@ int main(int argc, char **argv)
           joint_state.name[i] = j.get_name();
           joint_state.position[i] = j.get_pos();
           joint_state.velocity[i] = j.get_velo();
-          joint_state.effort[i] = j.get_load();
+          joint_state.effort[i] = j.get_motor_current();
         }
         for(int i=joints.size();i<joint_num;i++){
           joint_state.name[i] = cJoint::get_joint_name(i+1);
