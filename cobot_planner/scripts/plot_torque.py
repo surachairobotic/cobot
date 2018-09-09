@@ -66,6 +66,8 @@ if __name__ == "__main__":
   torque = data[:,1:7]# * directions
   current = data[:,7:13]
   ddq = data[:,13:19]
+  if data.shape[1]>20:
+    torque_no_ddq = data[:,19:25]
 
   f, axarr = plt.subplots(5, sharex=True)
   for i in range(len(axarr)):
@@ -76,6 +78,11 @@ if __name__ == "__main__":
     for j in range(6):
       axarr[i].plot(arr_data[i][0],arr_data[i][1][:,j])
     axarr[i].grid(linestyle='-', linewidth='0.5')
+  
+  if data.shape[1]>20:
+    for j in range(6):
+      axarr[3].plot(t2,torque_no_ddq[:,j])
+  
   axarr[0].legend(leg)
 
   axarr[0].set_ylabel('q [rad]')

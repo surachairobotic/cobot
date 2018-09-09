@@ -113,8 +113,8 @@ def run_multiple():
 
 
 if __name__ == "__main__":
-  save_torque(fname)
-#  run_multiple()
+#  save_torque(fname)
+  run_multiple()
 '''
 t = time.time()
 dt = 0.001

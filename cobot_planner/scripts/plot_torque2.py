@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     
   pre = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_'
-  for i in range(3,4):
+  for i in range(2,3):
     f, axarr = plt.subplots(3, sharex=True)
     for l in range(3):
       axarr[l].hold(True)
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     axarr[2].set_ylabel('ddq [rad/s^2]')
     axarr[2].set_xlabel('time [s]')
     for j in [10]:
-      for k in range(1,2):
+      for k in range(1,4):
         fname = pre + 'j%d_v%02d_s%d/torque.txt' % (i,j,k)
         print(fname)
   
