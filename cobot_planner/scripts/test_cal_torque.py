@@ -63,7 +63,8 @@ def cal_torque(q, dq, ddq, vars):
     K_ddq+= M[i]*(J[i].T.dot(J[i])) \
       + Kw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(R[i][0:3,0:3].T).dot(Kw[i])
 #  return np.linalg.inv(K_ddq).dot(dT_dq - dU_dq - dT_ddq)
-  return K_ddq.dot(ddq) - (dT_dq - dU_dq - dT_ddq)
+  torque_no_ddq = - (dT_dq - dU_dq - dT_ddq)
+  return K_ddq.dot(ddq) + torque_no_ddq, torque_no_ddq
 #  return -(dT_dq - dU_dq - dT_ddq)
 
 
@@ -75,7 +76,7 @@ def save_torque(fname):
       arr = line.strip().split(' ')
       arr = [float(x) for x in arr]
       data.append(arr)
-  
+
   fname_out = fname[0:fname.rfind('/')+1] + 'torque.txt'
   with open(fname_out, 'wt') as f:
     for i in range(1, len(data)):
@@ -88,7 +89,7 @@ def save_torque(fname):
       for j in range(6):
         ddq[j] = (d[7+j] - d2[7+j])/(d[0]-d2[0])
       vars = eq.get_vars(q)
-      torque = cal_torque(q, dq, ddq, vars)
+      torque, torque_no_ddq = cal_torque(q, dq, ddq, vars)
       f.write('%f' % (d[0]))
       for j in range(6):
         f.write(' %f' % (torque[j]))
@@ -96,6 +97,8 @@ def save_torque(fname):
         f.write(' %f' % (current[j]))
       for j in range(6):
         f.write(' %f' % (ddq[j]))
+      for j in range(6):
+        f.write(' %f' % (torque_no_ddq[j]))
       f.write('\n')
 
 
@@ -107,7 +110,7 @@ def run_multiple():
         fname = pre + 'j%d_v%02d_s%d/joint_states.txt' % (i,j,k)
         print(fname)
         save_torque(fname)
-        
+
 
 if __name__ == "__main__":
   save_torque(fname)
