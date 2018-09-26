@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# find equation estimating torque from current
 
 import sys
 import os
@@ -78,11 +79,11 @@ if __name__ == "__main__":
     for j in range(6):
       axarr[i].plot(arr_data[i][0],arr_data[i][1][:,j])
     axarr[i].grid(linestyle='-', linewidth='0.5')
-  
+
   if data.shape[1]>20:
     for j in range(6):
       axarr[3].plot(t2,torque_no_ddq[:,j])
-  
+
   axarr[0].legend(leg)
 
   axarr[0].set_ylabel('q [rad]')
