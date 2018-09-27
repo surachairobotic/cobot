@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# find equation estimating torque from current
 
 import sys
 import os
