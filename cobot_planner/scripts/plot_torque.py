@@ -9,9 +9,13 @@ import matplotlib.pyplot as plt
 
 
 #pre = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_wave_j3/'
-pre = 'bag2txt_wave_j3/'
+pre = 'bag2txt_j5_1hz_s1/'
+#pre = 'bag2txt_wave_j3_1hz_s1/'
+#pre = 'bag2txt_wave_j3_1hz_s2/'
+
 fname = pre + 'torque.txt'
 fname_q = pre + 'joint_states.txt'
+n_joint = None
 
 directions = np.array([1,-1,1,1,1,1])
 
@@ -66,24 +70,33 @@ if __name__ == "__main__":
   torque = data[:,1:7]# * directions
   current = data[:,7:13]
   ddq = data[:,13:19]
-  if data.shape[1]>20:
-    torque_no_ddq = data[:,19:25]
+  torque_no_ddq = data[:,19:25]
+  xyz = data[:,25:28]
 
-  f, axarr = plt.subplots(5, sharex=True)
+  f, axarr = plt.subplots(7, sharex=True)
   for i in range(len(axarr)):
     axarr[i].hold(True)
-
-  arr_data = [[t,q],[t,dq],[t2,ddq],[t2,torque],[t2,current]]
-  for i in range(len(arr_data)):
-    for j in range(6):
-      axarr[i].plot(arr_data[i][0],arr_data[i][1][:,j])
     axarr[i].grid(linestyle='-', linewidth='0.5')
+
+  arr_data = [[t,q],[t,dq],[t2,ddq],[t2,torque],[t2,current],[t2, ddq*0.08645460999999999]]
+  for i in range(len(arr_data)):
+    if n_joint is None:
+      for j in range(6):
+        axarr[i].plot(arr_data[i][0],arr_data[i][1][:,j])
+    else:
+      axarr[i].plot(arr_data[i][0],arr_data[i][1][:,n_joint])
+
+  axarr[6].plot(t2,xyz[:,0],t2,xyz[:,1],t2,xyz[:,2])
   
+  '''
   if data.shape[1]>20:
     for j in range(6):
       axarr[3].plot(t2,torque_no_ddq[:,j])
-  
-  axarr[0].legend(leg)
+  '''
+  if n_joint is None:
+    axarr[0].legend(leg)
+  else:
+    axarr[0].legend(leg[n_joint])
 
   axarr[0].set_ylabel('q [rad]')
   axarr[1].set_ylabel('dq [rad/s]')
