@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 
 
 #pre = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_wave_j3/'
-pre = 'bag2txt_j5_1hz_s1/'
-#pre = 'bag2txt_wave_j3_1hz_s1/'
+#pre = 'bag2txt_j5_1hz_s1/'
+pre = 'bag2txt_wave_j3_1hz_s1/'
 #pre = 'bag2txt_wave_j3_1hz_s2/'
 
 fname = pre + 'torque.txt'
 fname_q = pre + 'joint_states.txt'
-n_joint = None
+n_joint = 4
 
 directions = np.array([1,-1,1,1,1,1])
 
@@ -86,8 +86,10 @@ if __name__ == "__main__":
         axarr[i].plot(arr_data[i][0],arr_data[i][1][:,j])
     else:
       axarr[i].plot(arr_data[i][0],arr_data[i][1][:,n_joint])
-
-  axarr[6].plot(t2,xyz[:,0],t2,xyz[:,1],t2,xyz[:,2])
+  
+  
+  if data.shape[1]>25:
+    axarr[6].plot(t2,xyz[:,0],t2,xyz[:,1],t2,xyz[:,2])
   
   '''
   if data.shape[1]>20:
