@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import sympy as sp
 import numpy as np
 import math
@@ -7,11 +10,29 @@ import lib_sympy as lib_sp
 import lib_equation as lib_eq
 import numpy as np
 import eq
+from scipy import signal
 
+fname = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_j5_1hz_s1/joint_states.txt'
 
-fname = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_wave_j3/joint_states.txt'
+b_filter = True
+
+def filter(data, dt):
+  # パラメータ設定
+  fn = 1/(2*dt)                   # ナイキスト周波数
+  fp = 20                          # 通過域端周波数[Hz]
+  fs = 25                          # 阻止域端周波数[Hz]
+  gpass = 1                       # 通過域最大損失量[dB]
+  gstop = 40                      # 阻止域最小減衰量[dB]
+  # 正規化
+  Wp = fp/fn
+  Ws = fs/fn
+  N, Wn = signal.buttord(Wp, Ws, gpass, gstop)
+  b1, a1 = signal.butter(N, Wn, "low")
+  for i in range(data.shape[1]):
+    data[:,i] = signal.filtfilt(b1, a1, data[:,i])
 
 def cal_torque(q, dq, ddq, vars):
+  
   R,dR_dq,Kw,dKw_dq,J \
   , dJ_dq,dz_dq, M, I, g = vars
 
@@ -62,11 +83,19 @@ def cal_torque(q, dq, ddq, vars):
 
     K_ddq+= M[i]*(J[i].T.dot(J[i])) \
       + Kw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(R[i][0:3,0:3].T).dot(Kw[i])
+  
+    '''
+    print('M : '+str(M[i]*(J[i].T.dot(J[i]))))
+    print('Kw : '+str(Kw[i]))
+    print('I : '+str(R[i][0:3,0:3].dot(I[i]).dot(R[i][0:3,0:3].T)))
+    print('KIK : '+str(Kw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(R[i][0:3,0:3].T).dot(Kw[i])))
+    '''
 #  return np.linalg.inv(K_ddq).dot(dT_dq - dU_dq - dT_ddq)
   torque_no_ddq = - (dT_dq - dU_dq - dT_ddq)
+#  print('T : '+str(K_ddq.dot(ddq) + torque_no_ddq))
+#  exit()
   return K_ddq.dot(ddq) + torque_no_ddq, torque_no_ddq
 #  return -(dT_dq - dU_dq - dT_ddq)
-
 
 
 def save_torque(fname):
@@ -76,6 +105,17 @@ def save_torque(fname):
       arr = line.strip().split(' ')
       arr = [float(x) for x in arr]
       data.append(arr)
+  
+  data = np.array(data)
+  ddq = np.zeros([data.shape[0], 6])
+  for i in range(1, data.shape[0]):
+    d = data[i]
+    d2 = data[i-1]
+    for j in range(6):
+      ddq[i,j] = (d[7+j] - d2[7+j])/(d[0]-d2[0])
+  if b_filter:
+    dt = (data[-1][0] - data[0][0])/float(len(data)-1)
+    filter( ddq, dt )
 
   fname_out = fname[0:fname.rfind('/')+1] + 'torque.txt'
   with open(fname_out, 'wt') as f:
@@ -83,26 +123,28 @@ def save_torque(fname):
       d = data[i]
       q = np.array(d[1:7])
       dq = np.array(d[7:13])
-      ddq = np.array([0.0]*6)
       current = np.array(d[13:19])
-      d2 = data[i-1]
-      for j in range(6):
-        ddq[j] = (d[7+j] - d2[7+j])/(d[0]-d2[0])
       vars = eq.get_vars(q)
-      torque, torque_no_ddq = cal_torque(q, dq, ddq, vars)
+#      torque, torque_no_ddq = cal_torque(q, np.array([0.0,0.0,0.0,0.0,0.0,0.0]), ddq[i,:], vars)
+      torque, torque_no_ddq = cal_torque(q, dq, ddq[i,:], vars)
+      R = vars[0]
+      xyz = R[5].dot(np.array([0.0,0.0,0.0,1.0]))
       f.write('%f' % (d[0]))
       for j in range(6):
         f.write(' %f' % (torque[j]))
       for j in range(6):
         f.write(' %f' % (current[j]))
       for j in range(6):
-        f.write(' %f' % (ddq[j]))
+        f.write(' %f' % (ddq[i][j]))
       for j in range(6):
         f.write(' %f' % (torque_no_ddq[j]))
+      for j in range(3):
+        f.write(' %f' % (xyz[j]))
       f.write('\n')
 
 
 def run_multiple():
+  '''
   pre = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_'
   for i in range(1,4):
     for j in [5,7,10]:
@@ -110,11 +152,17 @@ def run_multiple():
         fname = pre + 'j%d_v%02d_s%d/joint_states.txt' % (i,j,k)
         print(fname)
         save_torque(fname)
-
+  '''
+  pre = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_'
+  for i in range(1,3):
+    for j in ['0.5','1']:
+      fname = pre + 'j5_%shz_s%d/joint_states.txt' % (j,i)
+      print(fname)
+      save_torque(fname)
 
 if __name__ == "__main__":
-#  save_torque(fname)
-  run_multiple()
+  save_torque(fname)
+#  run_multiple()
 '''
 t = time.time()
 dt = 0.001
