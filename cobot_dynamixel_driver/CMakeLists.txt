@@ -251,6 +251,17 @@ target_link_libraries(cobot_dynamixel_driver_mx64
   cobot_joint_mx64
 )
 
+
+#add_executable(cobot_dynamixel_driver_tester src/joint_state_tester.cpp)
+#target_link_libraries(cobot_dynamixel_driver_tester
+#  ${catkin_LIBRARIES}
+#)
+
+#add_executable(cobot_dynamixel_driver_tester2 src/joint_state_tester2.cpp)
+#target_link_libraries(cobot_dynamixel_driver_tester2
+#  ${catkin_LIBRARIES}
+#)
+
 #############
 ## Install ##
 #############
