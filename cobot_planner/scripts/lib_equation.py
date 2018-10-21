@@ -127,10 +127,10 @@ def test_kinematics():
   global xyz, t, g, q, dq, ddq, L, COM, M, I, Fr, w0
   global Rq,R
   import set_const
-  
+
 #  lib_eq.set_const(set_const.L_org, set_const.L,set_const.COM
 #    ,set_const.M,set_const.I,set_const.g)
-  
+
   _q = [0,0,0,0,0,math.pi*0.5]
   sub = []
 #  for i in range(len(L_org)):
@@ -143,7 +143,7 @@ def test_kinematics():
   vars = [R]
   R = \
     lib_sp.apply_mat_recursive( lib_sp.subs_mat, vars, sub )
-  
+
   for k in range(len(R[0])):
     r = R[0][k]
     for i in range(4):
@@ -152,7 +152,7 @@ def test_kinematics():
           r[i,j] = 0
     print('[%d] : %f, %f, %f' % (k, r[0,3], r[1,3], r[2,3]))
 #  print(R)
-  
+
   exit()
 
 
@@ -175,7 +175,7 @@ def create_equation():
       r = r*sp.Matrix(lib_sp.Rz(q[i], L[i-1]))
     Rq.append( r )
   '''
-  
+
   '''
   Q_off = [[0,0,0]
   ,[-1.5708, -1.5708, 0]
@@ -184,7 +184,7 @@ def create_equation():
   ,[1.5708, -1.5708,0]
   ,[-1.5708,0,0]]
   '''
-  
+
   l0 = [0,0,0]
   rpy = [
     [0,0,0],
@@ -204,9 +204,9 @@ def create_equation():
       r = r*lib_sp.rx(rpy[i][0]*math.pi*0.5)
     r = r*lib_sp.Rz(q[i], l0)
     Rq.append(r)
-  
+
   '''
-  
+
   Rq.append( lib_sp.Rz(q[0], L[0] ) )    # J1
   r = sp.Matrix(np.diag([1,1,1,1]))
   r = r*lib_sp.Rx(0, L[1])
@@ -223,7 +223,7 @@ def create_equation():
   r = r*lib_sp.Rz(q[3], l0 )
   r = r*lib_sp.rx(-math.pi*0.5)
   Rq.append( r )                          # J4
-  
+
   r = sp.Matrix(np.diag([1,1,1,1]))
   r = r*lib_sp.Rx(0, L[4])
   r = r*lib_sp.Rz(q[4], l0 )
@@ -236,7 +236,7 @@ def create_equation():
   r = r*lib_sp.rx(-math.pi*0.5)
   Rq.append( r )                          # J6
   '''
-  
+
   '''
   Rq.append( lib_sp.Rz(q[0], L_org ) )    # J1
   r = lib_sp.Rz(q[1], L[0])
@@ -247,7 +247,7 @@ def create_equation():
   r = lib_sp.Rz(q[3], L[2] )
   r = r*lib_sp.rx(-math.pi*0.5)
   Rq.append( r )                          # J4
-  
+
   r = lib_sp.Rz(q[4], L[3] )
   r = r*lib_sp.ry(-math.pi*0.5)
   r = r*lib_sp.rx( math.pi*0.5)
@@ -256,7 +256,7 @@ def create_equation():
   r = r*lib_sp.rx(-math.pi*0.5)
   Rq.append( r )                          # J6
   '''
-  
+
   '''
   Rq.append( lib_sp.Rz(q[0], L_org ) )    # J1
   r = lib_sp.ry(-math.pi*0.5)
@@ -265,14 +265,14 @@ def create_equation():
   Rq.append( lib_sp.Rz(q[2], L[1] ) )     # J3
   r = lib_sp.rx(-math.pi*0.5)
   Rq.append( r*lib_sp.Rz(q[3], L[2] ) )   # J4
-  
+
   r = lib_sp.ry(-math.pi*0.5)
   r = r*lib_sp.rx( math.pi*0.5)
   Rq.append( r*lib_sp.Rz(q[4], L[3] ) )
   r = lib_sp.rx(-math.pi*0.5)
   Rq.append( r*lib_sp.Rz(q[5], L[4] ) )
   '''
-  
+
   '''
   Rq.append( lib_sp.Rz(q[0], L_org ) )
   r = lib_sp.rx(-math.pi*0.5)
@@ -286,8 +286,8 @@ def create_equation():
   Rq.append( r*lib_sp.Ry(q[4], L[3] ) )
   r = lib_sp.rx(-math.pi*0.5)
   Rq.append( r*lib_sp.Rx(q[5], L[4] ) )
-  '''  
-  
+  '''
+
   '''
   Rq.append( lib_sp.Rz(q[0], L_org ) )
   Rq.append( lib_sp.Ry(q[1], L[0] ) )
@@ -296,7 +296,7 @@ def create_equation():
   Rq.append( lib_sp.Ry(q[4], L[3] ) )
   Rq.append( lib_sp.Rx(q[5], L[4] ) )
   '''
-  
+
   '''
   Rq.append( lib_sp.Rz(q[0], L[0] ) )
   Rq.append( lib_sp.Ry(q[1], L[1] ) )
@@ -319,7 +319,7 @@ def create_equation():
       dR_dq[i].append( lib_sp.apply_mat( r, lib_sp.diff_subs, q[j]) )
       dR2+= dR_dq[i][-1]*dq[j]
     dR.append( dR2 )
-  
+
 #  test_kinematics()
 #  exit()
 
@@ -385,7 +385,7 @@ def create_equation():
     dKw_dq.append([])
     dKw2 = sp.Matrix(np.zeros(Kw[-1].shape))
     for j in range(len(q)):
-      dKw_dq[i].append( lib_sp.apply_mat( Kw[-1], lib_sp.diff_subs, q[j]) ) 
+      dKw_dq[i].append( lib_sp.apply_mat( Kw[-1], lib_sp.diff_subs, q[j]) )
 #      dKw_dq[i].append( lib_sp.diff_subs(Kw[-1], q[j]) )
       dKw2+= dKw_dq[i][-1]*dq[j]
     dKw.append( dKw2 )
@@ -457,7 +457,35 @@ def save_txt(file_name):
 
   vars = [R,dR_dq,Kw,dKw_dq,J \
   , dJ_dq,dz_dq, M, I, g]
+  names_q = ['R','dR_dq','Kw','dKw_dq','J' \
+  , 'dJ_dq','dz_dq']
+  names_no_q = ['M', 'I', 'g']
   s = 'import numpy as np\nimport math\n\n'
+
+  for i in range(len(vars)):
+    if i<len(names_q):
+      name = names_q[i]
+      s+= 'def get_'+name+'(q):\n'
+      for j in range(len(R)):
+        s+= "  c"+str(j)+" = math.cos(q["+str(j)+'])\n'
+        s+= "  s"+str(j)+" = math.sin(q["+str(j)+'])\n'
+    else:
+      name = names_no_q[i-len(names_q)]
+      s+= 'def get_'+name+'():\n'
+    s+= '  return ' + str(vars[i])+'\n'
+
+  s+= 'def get_vars(q):\n'
+  s+= '  return '
+  for i in range(len(vars)):
+    if i<len(names_q):
+      if i>0:
+        s+= ','
+      s+= ' get_'+names_q[i]+'(q)'
+    else:
+      s+= ', get_'+names_no_q[i-len(names_q)]+'()'
+  s+= '\n\n'
+
+  '''
   s+= 'def get_vars(q):\n'
   for i in range(len(R)):
     s+= "  c"+str(i)+" = math.cos(q["+str(i)+'])\n'
@@ -465,7 +493,7 @@ def save_txt(file_name):
   s+='  return '
   for i in range(len(vars)):
     s+= str(vars[i]) + ', '
-
+  '''
   s+= '\n\ndef get_z(q):\n'
   for i in range(len(R)):
     s+= "  c"+str(i)+" = math.cos(q["+str(i)+'])\n'

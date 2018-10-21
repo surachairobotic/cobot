@@ -103,6 +103,8 @@ dt = 0.001
 with open('q.txt','wt') as f:
   for i in range(10000):
     vars = eq.get_vars(q)
+#    print(vars[4])
+#    exit()
     U,T = cal_energy(q,dq,vars)
 #    print(U+T)
     ddq = cal_ddq(q, dq, vars)
