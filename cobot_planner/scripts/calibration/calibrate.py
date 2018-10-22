@@ -36,16 +36,17 @@ if __name__ == "__main__":
     markers2.append(R*marker.T + t2)
 
   tip_z = 0.005+0.00536
-  tips = [[0.0, 0.03, tip_z]
+  tips = array([[0.0, 0.03, tip_z]
     , [0.03, 0.0, tip_z]
-    , [0.0, -0.04, tip_z]]
+    , [0.0, -0.04, tip_z]])
   with open('bag2txt_2018-10-19-14-15-08/joint_states.txt', 'rt') as f:
     for line in f:
       arr = line.strip().split(' ')
       if len(arr)==19:
         q = array([float(a) for a in arr[1:7]])
         Rq = eq.get_R(q)
-        xyz = Rq[5].dot(np.array([0.0,0.0,0.0,1.0]))
-        print(Rq)
+        for i in range(3):
+          xyz = Rq[5].dot(np.array(tips[i]))
+        
         break
 #  Rq = lib_equation.get_R()
