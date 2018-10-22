@@ -156,6 +156,7 @@ def get_data(fname, names, pnt_num):
   pnt = []
   err_marker = []
   index_err = []
+  time = []
   with open(fname) as f:
     n_line = 0
     l_name = None
@@ -202,9 +203,10 @@ def get_data(fname, names, pnt_num):
           err_marker.append(e)
           '''
           pnt.append(val)
+          time.append(float(arr[1]))
         if len(pnt)>pnt_num:
           break
-  return array(pnt), err_marker
+  return array(pnt), array(time) - time[0]
 
 
 if __name__ == "__main__":
@@ -253,7 +255,7 @@ if __name__ == "__main__":
   pnt = array(pnt)
   #norms = find_norms(pnt)
   '''
-  pnt, err_marker = get_data('Take 2018-10-19 Test 01.csv', names, 1000)
+  pnt, time = get_data('Take 2018-10-19 Test 01.csv', names, 1000)
 
   # find R,t
   A = pnt[:,0:3]
