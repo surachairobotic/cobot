@@ -5,6 +5,16 @@ import matplotlib.pyplot as plt
 
 # http://nghiaho.com/?page_id=671
 
+'''
+Base Marker
+
+        2 (Bar)
+3
+
+1         0
+'''
+
+
 
 
 '''
@@ -23,6 +33,9 @@ names = ['RigidBody-Base:Marker1'
 #  , 'RigidBody-Base']
 types = ['Position', 'Rotation']# , 'Marker Quality', 'Error Per Marker']
 xyzs = ['X','Y','Z','W']
+
+
+
 
 def rigid_transform_3D(A, B):
   assert len(A) == len(B)
@@ -79,7 +92,7 @@ def get_col(names, l_marker_type, l_name, l_value_type, l_xyz):
   #print(col)
   return col
 
-def find_xyz():
+def find_bar_xyz():
   # [ 0-1, 0-2, 0-3, 1-2, 1-3, 2-3]
   norms = [0.0999894, 0.08125654, 0.12574291, 0.10634581, 0.07529343, 0.11320507]
   pnt = array([[0.0, 0.1, 0.01235]
@@ -99,7 +112,8 @@ def find_xyz():
       H[i]+= -pnt[i][j]**2 + pnt[k][j]**2
     H[i]+= norm2[i]**2 - norm2[k]**2
 
-  xyz = array([0.0]*3)
+#  xyz = array([0.0]*3)
+  xyz = zeros((3,3))
   for i in range(3):
     j = (i+1)%3
     m = array([[M[i,0], M[i,1]], [M[j,0], M[j,1]]] )
@@ -108,35 +122,38 @@ def find_xyz():
     x = r[0,0]
     y = r[1,0]
     z = sqrt(norm2[i]**2 - (x-pnt[i,0])**2 - (y-pnt[i,1])**2) + pnt[i,2]
-    xyz[0]+= x
-    xyz[1]+= y
-    xyz[2]+= z
-    print( '%f, %f, %f' % (x,y,z))
-  for i in range(3):
-    xyz[i]/=3.0
-  print('xyz p2 : '+unicode(xyz))
+    xyz[i,0] = x
+    xyz[i,1] = y
+    xyz[i,2] = z
 
-  # check error
-  err_norm = []
   for i in range(3):
-    err_norm.append(linalg.norm(xyz-pnt[i]) - norm2[i])
-  print('err norm : '+unicode(err_norm))
-
-  pnt2 = array([pnt[0], pnt[1], xyz, pnt[2]])
-  n2 = []
-  for i in range(3):
-    for j in range(i+1,4):
-      n2.append(linalg.norm( pnt2[i] - pnt2[j] ))
-  print('err norm2 : '+unicode(array(n2) - norms))
+    for j in range(1,3):
+      if linalg.norm(xyz[i]-xyz[j])>0.001:
+        raise Exception('find_bar_xyz() : too large xyz err : '+str(xyz))
+  xyz = xyz.mean(0)
 
   # find real pos
-  real_xyz = array([0.11036, -0.018, 0.07])
+  pnt2 = array([pnt[0], pnt[1], xyz, pnt[2]])
+  real_xyz = array([0.06036,-0.018,0.09405])
   off = real_xyz - xyz
   real_pnt = []
   for p in pnt2:
     real_pnt.append(p + off)
   real_pnt = array(real_pnt)
-  print('real_pnt : '+str(real_pnt))
+  print('xyz (cal from norm) : '+str(real_pnt))
+
+  # check error
+  err_norm = []
+  for i in range(3):
+    err_norm.append(linalg.norm(xyz-pnt[i]) - norm2[i])
+  print('err norm to bar : '+unicode(err_norm))
+
+  n2 = []
+  for i in range(3):
+    for j in range(i+1,4):
+      n2.append(linalg.norm( pnt2[i] - pnt2[j] ))
+  print('err norm all : '+unicode(array(n2) - norms))
+
   return real_pnt
 
 
@@ -209,53 +226,27 @@ def get_data(fname, names, pnt_num):
   return array(pnt), array(time) - time[0]
 
 
-if __name__ == "__main__":
-  real_pnt = find_xyz()
+def compare_norm():
+  px = 0.10-0.01
+  py = -0.10+0.01
+  pz = 0.005+0.007+0.00536
+  real_xyz = array([[px,py+0.1,pz]
+    ,[px,py,pz]
+    ,[0.06036,-0.018,0.09405]
+    ,[px-0.075,py,pz] ])
+  norms = array([0.0999894, 0.08125654, 0.12574291, 0.10634581, 0.07529343, 0.11320507])
+  norm = []
+  for i in range(len(real_xyz)):
+    for j in range(i+1, len(real_xyz)):
+      norm.append(linalg.norm( real_xyz[i] - real_xyz[j] ))
+  print('err norm (CAD - camera) : '+str(array(norm)-norms))
+  print('real xyz (CAD) : '+str(real_xyz))
 
-  '''
-  with open('Take 2018-10-19 Test 01.csv') as f:
-    n_line = 0
-    l_name = None
-    l_type = None
-    l_xyz = None
-    for line in f:
-      n_line+=1
-      if n_line==4:
-        l_name = line
-      elif n_line==6:
-        l_type = line
-      elif n_line==7:
-        l_xyz = line
-        col = get_col(names, l_name, l_type, l_xyz)
-        index_xyz = []
-        for n in names:
-          c = col[n]['Position']
-          for i in range(3):
-            index_xyz.append(c[xyzs[i]])
-          if col[n]['Marker Quality'] is None:
-            index_err.append(col[n]['Error Per Marker'])
-          else:
-            index_err.append(col[n]['Marker Quality'])
-      elif n_line>7:
-        arr = line.strip().replace('"','').split(',')
-        val = []
-        for index in index_xyz:
-          if arr[index]:
-            val.append(float(arr[index]))
-          else:
-            break
-        if len(val)==len(index_xyz):
-          e = []
-          for i in range(len(index_err)):
-            e.append(float(arr[index_err[i]]))
-          err_marker.append(e)
-          pnt.append(val)
-        if len(pnt)>1000:
-          break
-  pnt = array(pnt)
-  #norms = find_norms(pnt)
-  '''
-  pnt, time = get_data('Take 2018-10-19 Test 01.csv', names, 1000)
+if __name__ == "__main__":
+  compare_norm()
+  real_pnt = find_bar_xyz()
+
+  pnt, time = get_data('Take 2018-10-19 Test 01.csv', names, 100000)
 
   # find R,t
   A = pnt[:,0:3]
