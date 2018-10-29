@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import sys
 sys.path.insert(0,'Z:\\Git\\cobot\\cobot_planner\\scripts')
@@ -15,6 +16,7 @@ import eq
 from test_cal_torque import cal_torque
 import matplotlib.pyplot as plt
 import copy
+from scipy import signal
 
 data_num = 10000
 n_joint = 4
@@ -33,7 +35,7 @@ class LSM3:
     ny = sum(y)
     nz = sum(z)
     n = len(x)
-    
+
     A = array([[xx, xy, nx], [xy, yy, ny], [nx, ny, n]])
     B = array([xz, yz, nz])
     abc = linalg.inv(A).dot(B)
@@ -45,10 +47,10 @@ class LSM3:
 
   def get_z(self,x,y,abc):
     return abc[0]*x+abc[1]*y+abc[2]
-    
+
   def test(self):
     import random
-    
+
     x = []
     y = []
     abc = []
@@ -62,7 +64,7 @@ class LSM3:
     z = abc[0]*x + abc[1]*y + abc[2]
     for i in range(len(z)):
       z[i]+= random.uniform(-0.1,0.1)
-    
+
     abc2 = self.fit(x,y,z)
     print('err abc : '+str(abc-abc2))
 
@@ -74,7 +76,7 @@ def load_file(fname):
     t = []
     dq = []
     current = []
-    
+
     for line in f:
       n_line+=1
       arr = line.strip().split(' ')
@@ -101,7 +103,7 @@ def get_torque(data):
     t_ddq, t_no_ddq = cal_torque(q[i,:], dq[i,:], ddq, vars)
     torque.append(t_ddq)
     torque_no_ddq.append(t_no_ddq)
-  
+
   data['torque'] = array(torque)
   data['torque_no_ddq'] = array(torque_no_ddq)
 
@@ -112,10 +114,11 @@ def get_t_range(data):
   dq = data['dq']
   t = data['t']
   n = len(t)
-  
+
   n_mean = 10
+  n_clip = 15
   b_found = False
-  
+
   t_range = []
   i1 = -1
   for i in range(n_mean, n):
@@ -127,11 +130,13 @@ def get_t_range(data):
       b_fix = False
     else:
       b_fix = (abs((v2-v1)/v_cen) < 0.4)
-    
+
     if b_found:
       if not b_fix:
-        if t[i-3] - t[i1] > 1.0:
-          t_range.append({'t1': t[i1], 'i1': i1, 't2': t[i-3], 'i2': i-3})
+        i1+= n_clip
+        i2 = i-n_clip
+        if t[i2] - t[i1] > 1.0:
+          t_range.append({'t1': t[i1], 'i1': i1, 't2': t[i2], 'i2': i2})
         b_found = False
     else:
       if b_fix:
@@ -140,13 +145,13 @@ def get_t_range(data):
   data['t_range'] = t_range
 
 
-def get_data_from_t_range(data, key):
+def get_data_from_t_range(data, data_range):
   data2 = None
   for tr in data['t_range']:
-    if len(data[key].shape)==1:
-      new_d = data[key][tr['i1']:tr['i2']]
+    if len(data_range.shape)==1:
+      new_d = data_range[tr['i1']:tr['i2']]
     else:
-      new_d = data[key][tr['i1']:tr['i2'],:]
+      new_d = data_range[tr['i1']:tr['i2'],:]
     if data2 is None:
       data2 = new_d
     else:
@@ -154,54 +159,102 @@ def get_data_from_t_range(data, key):
   return data2
 
 
+'''
 def filter(data):
   n = 5
   data2 = copy.deepcopy(data)
   for i in range(n, len(data)):
     data2[i] = mean(data[i-n:i+n+1])
   return data2
-
+'''
 
 
 def filter(data, dt):
-  fn = 1/(2*dt)                   # ナイキスト周波数
-  fp = 0                          # 通過域端周波数[Hz]
-  fs = 25                          # 阻止域端周波数[Hz]
+  fn = 1.0/(2*dt)                   # ナイキスト周波数
+  fp = 1.0                          # 通過域端周波数[Hz]
+  fs = 2.0                          # 阻止域端周波数[Hz]
   gpass = 1                       # 通過域最大損失量[dB]
-  gstop = 40                      # 阻止域最小減衰量[dB]
+  gstop = 50                      # 阻止域最小減衰量[dB]
   # 正規化
   Wp = fp/fn
   Ws = fs/fn
+  '''
   N, Wn = signal.buttord(Wp, Ws, gpass, gstop)
+  print(N)
+  print(Wn)
   b1, a1 = signal.butter(N, Wn, "low")
-  for i in range(data.shape[1]):
-    data[:,i] = signal.filtfilt(b1, a1, data[:,i])
+  return signal.filtfilt(b1, a1, data)
+  '''
+
+  '''
+  N, Wn = signal.cheb1ord(Wp, Ws, gpass, gstop)
+  b2, a2 = signal.cheby1(N, gpass, Wn, "low")
+  return signal.filtfilt(b2, a2, data)
+  '''
+
+  N, Wn = signal.cheb2ord(Wp, Ws, gpass, gstop)
+  b3, a3 = signal.cheby2(N, gstop, Wn, "low")
+  return signal.filtfilt(b3, a3, data)
+
+def test_filter(data):
+  global n_joint
+
+  t2 = get_data_from_t_range(data, data['t'])
+  cur = get_data_from_t_range(data, data['current'])[:,n_joint]
+  dq = get_data_from_t_range(data, data['dq'])[:,n_joint]
+  cur_f = filter(data['current'][:,n_joint], 0.020)
+  cur_f = get_data_from_t_range(data, cur_f)
+  dq_f = filter(data['dq'][:,n_joint], 0.020)
+  dq_f = get_data_from_t_range(data, dq_f)
+
+  f, axarr = plt.subplots(2, sharex=True)
+  for i in range(len(axarr)):
+    axarr[i].hold(True)
+    axarr[i].grid(linestyle='-', linewidth='0.5')
+
+  axarr[0].plot(t2, cur, t2, cur_f, '*-')
+  axarr[1].plot(t2, dq, t2, dq_f, '*-')
+
+  axarr[0].set_ylabel('current [mA]')
+  axarr[1].set_ylabel('dq [rad/s]')
+  axarr[0].legend(['raw', 'filter'])
+  axarr[len(axarr)-1].set_xlabel('time [s]')
+  plt.show()
+  exit()
+
+
 
 
 if __name__ == "__main__":
   lsm = LSM3()
-  
+
   dir = 'bag2txt_j5_v'
+  dt = 0.020
   for v in [30,60,90]:
     fname = dir+str(v)+'/joint_states.txt'
     data = load_file(fname)
     get_t_range(data)
+
+    #test_filter(data)
+
+    t2 = get_data_from_t_range(data, data['t'])
+    cur = get_data_from_t_range(data, data['current'][:,n_joint])
+
+    dq = get_data_from_t_range(data, data['dq'][:,n_joint])
+    cur_f = filter(data['current'][:,n_joint], dt)
+    cur_f = get_data_from_t_range(data, cur_f)
+    dq_f = filter(data['dq'][:,n_joint], dt)
+    dq_f = get_data_from_t_range(data, dq_f)
+
     get_torque(data)
-    
-    # fit
-    cur = get_data_from_t_range(data, 'current')[:,n_joint]
-    dq = get_data_from_t_range(data, 'dq')[:,n_joint]
-    tq = get_data_from_t_range(data, 'torque_no_ddq')[:,n_joint]
-    t2 = get_data_from_t_range(data, 't')
-    
-    cur_f = filter(cur)
-    dq_f = filter(dq)
-    abc = lsm.fit( cur, dq_f, tq_f )
+    tq = get_data_from_t_range(data, data['torque_no_ddq'][:,n_joint])
+
+    abc = lsm.fit( cur, dq_f, tq )
     print(abc)
     print(lsm.get_error(cur_f, dq_f, tq, abc))
     torque2 = lsm.get_z( cur_f, dq_f, abc )
-    
-    
+
+
     # for plotting
     t_range = data['t_range']
     t_range_plot = zeros(len(data['t']))
@@ -214,14 +267,13 @@ if __name__ == "__main__":
     for i in range(len(axarr)):
       axarr[i].hold(True)
       axarr[i].grid(linestyle='-', linewidth='0.5')
-    
-    for i in range(6):
-      axarr[0].plot(data['t'],data['q'][:,i])
-      axarr[1].plot(data['t'],data['dq'][:,i])
-      axarr[2].plot(data['t'],data['current'][:,i])
+
+    axarr[0].plot(data['t'],data['q'][:,n_joint])
+    axarr[1].plot(data['t'],data['dq'][:,n_joint], t2, dq_f)
+    axarr[2].plot(data['t'],data['current'][:,n_joint], t2, cur_f)
     axarr[3].plot(t2, tq , t2, torque2)
     axarr[1].plot(data['t'],t_range_plot, '*-')
-      
+
     axarr[0].set_ylabel('q [rad]')
     axarr[1].set_ylabel('dq [rad/s]')
     axarr[2].set_ylabel('current [mA]')
@@ -229,5 +281,5 @@ if __name__ == "__main__":
     axarr[0].legend(['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
     axarr[3].legend(['measure', 'estimate'])
     axarr[len(axarr)-1].set_xlabel('time [s]')
-    #break
+    break
   plt.show()
