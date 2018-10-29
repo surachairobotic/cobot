@@ -22,6 +22,9 @@ import matplotlib.pyplot as plt
 import eq
 from test_cal_torque import cal_torque
 
+
+# data file for creating equation
+# (not for test)
 fname = 'find_current2torque_static/running_torque/torque_j5_all.txt'
 n_joint = 4
 
@@ -117,7 +120,7 @@ def find_equation(name):
 
 def test_equation():
   global n_joint
-  dir = 'find_current2torque_static/torque_j5/set_'
+  dir = 'find_current2torque_static/j5_s'
   n = 3
 
   f, axarr = plt.subplots(n, sharex=True)
