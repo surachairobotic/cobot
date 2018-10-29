@@ -94,7 +94,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 
 	if(planning_display_->solver->searchPositionIK(pose, ik_seed_state, 1.0, consistency_limits, solution, error_code, options))
 	{
-		ROS_WARN("getSolutionIK : true");
+		ROS_WARN("searchPositionIK : true");
 		ROS_INFO("pose A [%lf, %lf, %lf | %lf, %lf, %lf, %lf]", pose.position.x, pose.position.y, pose.position.z
 																													, pose.orientation.x, pose.orientation.y
 																													, pose.orientation.z, pose.orientation.w);
@@ -113,7 +113,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 		//best_solution(ik_seed_state, solutions);		
 	}
 	else
-		ROS_WARN("getSolutionIK : false");
+		ROS_WARN("searchPositionIK : false");
 
 	//offset : 0.000002 0.000000 -0.016406 -0.009949 0.028798 -0.000698 -0.076794
 	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
@@ -130,7 +130,6 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 void MyFrame::best_solution(std::vector<double>& ik_seed_state, std::vector<std::vector<double>>& solutions)
 {
 	ROS_INFO("best_solution !!!");
-	ROS_INFO("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
 	// sort solutions by their distance to the seed
 //	joint_model_group = planning_display_->group_;

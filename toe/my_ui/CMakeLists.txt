@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(my_ui)
 
-#add_compile_options(-g3 -O0 -pg -std=c++11)
-add_compile_options(-std=c++11)
+add_compile_options(-g3 -O0 -pg -std=c++11)
+#add_compile_options(-std=c++11)
 
 # definition needed for boost/math/constants/constants.hpp included by Ogre to compile
 add_definitions(-DBOOST_MATH_DISABLE_FLOAT128)

@@ -82,6 +82,7 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
 																						 "robot_goal_state",
 																						 this);
 	irobot_goal_state->setColor(irobot_goal_state->createRandColor());
+
   spinner.start();
 	debug_message = "";
 }

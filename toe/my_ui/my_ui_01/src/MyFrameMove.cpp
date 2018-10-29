@@ -482,7 +482,7 @@ void MyFrame::pushButton_2Clicked()
 	for(int i=0; i<poseJoint.size(); i++)
 		ROS_INFO("poseJoint[%d] : %lf, %lf, %lf", i, poseJoint[i].position.x, poseJoint[i].position.y, poseJoint[i].position.z);
 */
-/*
+
 	std::vector<double> theta{0, 0, 0, 0, 0, 0};
 	theta[0] = ui_->input_j1->text().toDouble();
 	theta[1] = ui_->input_j2->text().toDouble();
@@ -501,9 +501,12 @@ void MyFrame::pushButton_2Clicked()
 				theta[i] -= offset[i];
 		}
 	}
-*/
+	pubCurrentRobotState(theta);
+
+/*
 	pubCurrentRobotState(test_point[index]);
 	index = (index+1) % 4;
+*/
 }
 
 void MyFrame::btn_inputClicked()

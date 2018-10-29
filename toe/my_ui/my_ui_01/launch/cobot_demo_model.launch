@@ -7,9 +7,10 @@
     <arg name="load_robot_description" value="true"/>
   </include>
 
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen">
-<!--  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" launch-prefix="gdb -ex run - -args">
+<!--  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen">
 -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" launch-prefix="gdb -ex run - -args">
+
     <rosparam command="load" file="$(find cobot_moveit_config)/config/kinematics.yaml"/>
 
   </node>
