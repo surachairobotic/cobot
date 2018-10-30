@@ -6,10 +6,19 @@
 //#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <eigen_conversions/eigen_msg.h>
 #include "cobot_dynamixel_driver/set_acc.h"
+#include "cobot_dynamixel_driver/set_p_gain.h"
+#include "cobot_dynamixel_driver/set_i_gain.h"
+#include "cobot_dynamixel_driver/set_torque.h"
 
 
 #define POW2(x) ((x)*(x))
 
+cControl::cControl()
+    :spinner(1), group_name("arm"), end_effector_name("tool0")
+  ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description")
+  ,joint_model_group(NULL), b_new_joint_state(false)
+{
+}
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
     :spinner(1), group_name(_group_name), end_effector_name(_end_effector_name)
   ,move_group(group_name), b_start_sub(false), robot_model_loader("robot_description")
@@ -18,7 +27,7 @@ cControl::cControl(const std::string& _group_name, const std::string& _end_effec
 }
 
 
-void cControl::init(){
+void cControl::init() {
   spinner.start();
   move_group.setEndEffectorLink(end_effector_name);
   kinematic_model = robot_model_loader.getModel();
@@ -31,6 +40,9 @@ void cControl::init(){
   
   sub_joints = n.subscribe("joint_states", 10, &cControl::joint_states_callback, this);
   srv_set_acc = n.serviceClient<cobot_dynamixel_driver::set_acc>("cobot_dynamixel_driver/set_acc");
+  srv_set_p_gain = n.serviceClient<cobot_dynamixel_driver::set_p_gain>("cobot_dynamixel_driver/set_p_gain");
+  srv_set_i_gain = n.serviceClient<cobot_dynamixel_driver::set_i_gain>("cobot_dynamixel_driver/set_i_gain");
+  srv_set_goal_torque = n.serviceClient<cobot_dynamixel_driver::set_torque>("cobot_dynamixel_driver/set_torque");
 
 /*  
 
@@ -179,6 +191,7 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
 
 
 bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step){
+  ROS_INFO("cControl::plan_line : A");
   std::vector< geometry_msgs::Pose > wp;
   wp.push_back(p2);
   move_group.setStartState(*get_robot_state(p1));
@@ -191,6 +204,7 @@ bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pos
 }
 
 bool cControl::plan_line(const geometry_msgs::Pose &p2, double step){
+  ROS_INFO("cControl::plan_line : B");
   std::vector< geometry_msgs::Pose > wp;
   wp.push_back(p2);
   move_group.setStartState(*move_group.getCurrentState());
@@ -198,6 +212,7 @@ bool cControl::plan_line(const geometry_msgs::Pose &p2, double step){
 }
 
 bool cControl::plan_line(std::vector< geometry_msgs::Pose > &waypoints, double step){
+  ROS_INFO("cControl::plan_line : C");
   clear_trajectory();
   double fraction = move_group.computeCartesianPath(waypoints, step, 0.0, trajectory);
   if( fraction<1.0 ){
@@ -206,8 +221,6 @@ bool cControl::plan_line(std::vector< geometry_msgs::Pose > &waypoints, double s
   }
   return true;
 }
-
-
 
 void cControl::check_goal_state(const std::vector<double> &joints){
   if( goal.name.empty() ){
@@ -223,7 +236,17 @@ void cControl::check_goal_state(const std::vector<double> &joints){
   }
 }
 
-
+void cControl::move_pos_velo_acc(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo, const std::vector<double> &joint_acc){
+  check_goal_state(joint_pos);
+  check_goal_state(joint_velo);
+  check_goal_state(joint_acc);
+  
+  goal.header.stamp = ros::Time::now();
+  goal.position = joint_pos;
+  goal.velocity = joint_velo;
+	goal.effort   = joint_acc;
+  pub_goal.publish(goal);
+}
 
 void cControl::move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo){
   check_goal_state(joint_pos);
@@ -235,6 +258,16 @@ void cControl::move_pos_velo(const std::vector<double> &joint_pos, const std::ve
   goal.effort.clear();
   pub_goal.publish(goal);
   
+}
+
+void cControl::move_velo_acc(const std::vector<double> &joint_velo, const std::vector<double> &joint_acc){
+  check_goal_state(joint_velo);
+  check_goal_state(joint_acc);
+  goal.header.stamp = ros::Time::now();
+  goal.position.clear();
+  goal.velocity = joint_velo;
+  goal.effort   = joint_acc;
+  pub_goal.publish(goal);
 }
 
 void cControl::move_velo(const std::vector<double> &joint_velo){
@@ -262,7 +295,37 @@ void cControl::set_acc(const std::vector<double> &acc){
   }
 }
 
+bool cControl::set_p_gain(std::string jnt, int _p_gain) {
+	ROS_INFO("cControl::set_p_gain: %s-%d", jnt, _p_gain);
+  cobot_dynamixel_driver::set_p_gain srv;
+  srv.request.joint_names = jnt;
+  srv.request.p_gain = _p_gain;
+  if( !srv_set_p_gain.call(srv) ){
+    ROS_ERROR("Cannot set p_gain");
+		return false;
+  }
+	return true;
+}
 
+bool cControl::set_i_gain(std::string jnt, int _i_gain) {
+  cobot_dynamixel_driver::set_i_gain srv;
+  srv.request.joint_names = jnt;
+  srv.request.i_gain = _i_gain;
+  if( !srv_set_i_gain.call(srv) ) {
+    ROS_ERROR("Cannot set i_gain");
+		return false;
+  }
+	return true;
+}
+
+void cControl::set_goal_torque(std::string jnt, double torque) {
+  cobot_dynamixel_driver::set_torque srv;
+  srv.request.joint_name = jnt;
+  srv.request.torque = torque;
+  if( !srv_set_goal_torque.call(srv) ){
+    ROS_ERROR("Cannot set goal_torque");
+  }
+}
 
 const std::vector<double> cControl::get_current_joints(){
   moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
@@ -278,6 +341,10 @@ const geometry_msgs::Pose cControl::get_current_pose(){
   return move_group.getCurrentPose().pose;
 }
 
+void cControl::get_joint_positions(const geometry_msgs::Pose &pose, std::vector<double> &joint_pos) {
+  const robot_state::RobotStatePtr state = get_robot_state(pose);
+  state->copyJointGroupPositions(joint_model_group, joint_pos);
+}
 
 void cControl::get_cartesian_position(const std::vector<double> &joint_pos, geometry_msgs::Pose &pose){
 //  robot_state::RobotState robot_state(*move_group.getCurrentState());
