@@ -56,7 +56,7 @@
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
-#define BAUDRATE                        57600
+#define BAUDRATE                        3000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0"
 #define DXL_MINIMUM_POSITION_VALUE      -150000             // Dynamixel will rotate between this value
@@ -148,10 +148,26 @@ void cJoint::load_settings(const std::string &xml_file){
   }
 }
 
+bool cJoint::set_goal_torque(double torque) {
+	int tq = (int)(torque*2048.0/33000.0);
+  b_goal_velo = b_goal_velo_acc = b_goal_pos_velo = b_goal_pos_velo_acc = false;
+  if( tq > TORQUE_LIMIT ) {
+		ROS_WARN("cJoint::set_goal_torque : over limit %lf|%d", torque, tq);
+		return false;
+	}
+	goal_torque = tq;
+  write( P_TORQUE_ENABLE, 0 );
+  write( P_OPERATING_MODE, MODE_TORQUE_CONTROL);
+  write( P_TORQUE_ENABLE, 1 );
+	write( P_GOAL_TORQUE, goal_torque );
+	change_mode(MODE_TORQUE_CONTROL);
+	b_goal_torque = true;
+	return true;
+}
 
 bool cJoint::set_goal_velo(double rad_per_sec){
   int v = rad_per_sec * velo2val;
-  b_goal_pos_velo = b_goal_velo = false;
+  b_goal_velo_acc = b_goal_pos_velo = b_goal_pos_velo_acc = b_goal_torque = false;
   if( v<-this->velocity_limit || v>this->velocity_limit){
     ROS_WARN("[%d] set_goal_velo() : invalid velo : %lf\n", id, rad_per_sec);
     return false;
@@ -161,9 +177,32 @@ bool cJoint::set_goal_velo(double rad_per_sec){
   return true;
 }
 
+bool cJoint::set_goal_velo_acc(double _velo, double _acc){
+	ROS_INFO("bool cJoint::set_goal_velo_acc(double _velo, double _acc) : %lf, %lf", _velo, _acc);
+  int v = _velo * velo2val, a = fabs(_acc * acc2val);
+  b_goal_velo = b_goal_pos_velo = b_goal_pos_velo_acc = b_goal_torque = false;
+  if( v<-this->velocity_limit || v>this->velocity_limit){
+    ROS_WARN("[%d] set_goal_velo_acc() : invalid velo : %lf\n", id, _velo);
+    return false;
+  }
+  else if( a > this->acceleration_limit ) {
+		ROS_WARN("a > this->acceleration_limit");
+		a = this->acceleration_limit;
+	}
+	else if( a < -this->acceleration_limit ) {
+		ROS_WARN("a < -this->acceleration_limit");
+  	a = -this->acceleration_limit;
+	}
+  goal_velo = v;
+	goal_acc  = a;
+  b_goal_velo_acc = true;
+	ROS_INFO("N_set_goal_velo_acc(goal_velo, goal_acc) : %d, %d", goal_velo, goal_acc);
+  return true;
+}
+
 bool cJoint::set_goal_pos_velo(double _pos, double _velo){
   int p = _pos * rad2val, v = _velo * velo2val;
-  b_goal_pos_velo = b_goal_velo = false;
+  b_goal_velo = b_goal_velo_acc = b_goal_pos_velo_acc = b_goal_torque = false;
   if( p<this->cw_angle_limit || p>this->ccw_angle_limit){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf , raw = %d (min : %.3lf [rad]/ %lf, max : %.3lf [rad]/ %lf)\n"
       , id, _pos, p
@@ -183,16 +222,61 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
   return true;
 }
 
-bool cJoint::set_acc(double _acc){
-  int a = fabs(_acc * this->acc2val);
-  if( a > this->acceleration_limit || a < -this->acceleration_limit ){
-    ROS_WARN("[%d] set_acceleration() : invalid acc : %lf\n", id, _acc);
+bool cJoint::set_goal_pos_velo_acc(double _pos, double _velo, double _acc) {
+  int p = _pos * rad2val, v = _velo * velo2val, a = fabs(_acc * acc2val);
+  b_goal_velo = b_goal_velo_acc = b_goal_pos_velo = b_goal_torque = false;
+  if( p<this->cw_angle_limit || p>this->ccw_angle_limit){
+    ROS_WARN("[%d] set_goal_pos_velo() : invalid pos : %lf , raw = %d (min : %.3lf [rad]/ %lf, max : %.3lf [rad]/ %lf)\n"
+      , id, _pos, p
+      , this->cw_angle_limit / rad2val, this->cw_angle_limit
+      , this->ccw_angle_limit / rad2val, this->ccw_angle_limit);
     return false;
   }
+  else if( v<-this->velocity_limit || v>this->velocity_limit || v==0){
+    ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
+    return false;
+  }
+  else if( a > this->acceleration_limit )
+		a = this->acceleration_limit;
+	else if( a < -this->acceleration_limit )
+  	a = -this->acceleration_limit;
+//  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
+  goal_pos = p;
+  goal_velo = v;
+	goal_acc = a;
+  b_goal_pos_velo_acc = true;
+//  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
+  return true;
+}
+
+bool cJoint::set_acc(double _acc){
+  int a = fabs(_acc * this->acc2val);
+  if( a > this->acceleration_limit )
+		a = this->acceleration_limit;
+	else if( a < -this->acceleration_limit )
+  	a = -this->acceleration_limit;
   write( P_GOAL_ACCELERATION, a );
   return true;
 }
 
+bool cJoint::set_p_gain(int _p_gain) {
+	int a = _p_gain;
+  write( P_VELOCITY_P_GAIN, a );
+  return true;
+}
+
+int cJoint::get_p_gain() {
+  return read( P_VELOCITY_P_GAIN );
+}
+
+bool cJoint::set_i_gain(int _i_gain) {
+  write( P_VELOCITY_I_GAIN, _i_gain );
+  return true;
+}
+
+int cJoint::get_i_gain() {
+  return read( P_VELOCITY_I_GAIN );
+}
 
 double cJoint::get_pos() const {
 /*  if( pos < this->cw_angle_limit || pos > this->ccw_angle_limit ){
@@ -205,25 +289,21 @@ double cJoint::get_pos() const {
 
 double cJoint::get_velo() const {
   if( velo < -this->velocity_limit || velo > this->velocity_limit ){
-    ROS_ERROR("[%d] get_velo() : invalid velo val : %d\n", id, velo);
-    throw 0;
+    ROS_WARN("[%d] get_velo() : invalid velo val : %d\n", id, velo);
+//    throw 0;
   }
   return velo / velo2val;
 }
 
 double cJoint::get_current() const {
-/*  if( current > current_max ){
+  if( current > current_max ){
     ROS_WARN("[%d] invalid raw load : %d\n", id, current);
-  }*/
+  }
   return current;
 }
 
 double cJoint::get_load() const {
-  return (double)current;
-}
-
-double cJoint::get_motor_current() const { // mA
-  return gear_ratio * current * current_max / 2048.0;
+  return current * current_max / 2048.0;
 }
 
 void cJoint::write(const int param, const int val){
@@ -243,17 +323,19 @@ void cJoint::write(const int param, const int val){
       throw std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
     if (dxl_comm_result != COMM_SUCCESS){
       ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
+      //throw packetHandler->getTxRxResult(dxl_comm_result);
       //packetHandler->printTxRxResult(dxl_comm_result);
     }
     else if (dxl_error != 0){
       ROS_ERROR("%s", packetHandler->getRxPacketError(dxl_error));
+      //throw packetHandler->getRxPacketError(dxl_error);
       //packetHandler->printRxPacketError(dxl_error);
     }
     else{
       return;
     }
   }
-  while(cnt-->=0);
+  while(cnt-- >= 0);
   ROS_ERROR("cJoint::write() : id = %d, param = %d, addr = %d, n_bytes = %d, val = %d", id, param, addr, n_bytes, val);
   throw std::string("cJoint::write() : failed");
 }
@@ -379,6 +461,7 @@ void cJoint::setup(){
     + " / " + tostr(motor_model_number);
   }
   name = get_joint_name(id);
+	ROS_INFO("JOINT[%d] : P_SHUTDOWN = %d", id, read( P_SHUTDOWN ));
   write( P_TORQUE_ENABLE, 0 );
   write( P_TORQUE_LIMIT, torque_limit );
   write( P_CW_ANGLE_LIMIT, cw_angle_limit);
@@ -389,6 +472,9 @@ void cJoint::setup(){
   if( !group_read->addParam(id) ){
     throw std::string("grou_read addparam failed : id = ") + tostr(id);
   }
+
+  mode = MODE_VELOCITY_CONTROL;
+
 /*
   if (group_read->addParam(id, P_PRESENT_POSITION, 13) != true){
     throw std::string("grou_read addparam failed : id = ") + tostr(id);
@@ -433,16 +519,35 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_INPUT_VOLTAGE][1] = 2;
   ADDR[P_PRESENT_TEMPERATURE][0] = 625;
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
+  ADDR[P_VELOCITY_P_GAIN][0] = 588;
+  ADDR[P_VELOCITY_P_GAIN][1] = 2;
+  ADDR[P_VELOCITY_I_GAIN][0] = 586;
+  ADDR[P_VELOCITY_I_GAIN][1] = 2;
+	ADDR[P_SHUTDOWN][0] = 48;
+	ADDR[P_SHUTDOWN][1] = 1;
+	ADDR[P_GOAL_TORQUE][0] = 604;
+	ADDR[P_GOAL_TORQUE][1] = 2;
+
   group_read_size = 4+4+2+2+1;
   
   load_settings(setting_file);
 
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
+	group_write_goal_torque = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_TORQUE][0], ADDR[P_GOAL_TORQUE][1]);
+  group_write_gain_p = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_VELOCITY_P_GAIN][0], ADDR[P_VELOCITY_P_GAIN][1]);
   group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_VELOCITY][0], ADDR[P_GOAL_VELOCITY][1]);
+  group_write_acc = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_ACCELERATION][0], ADDR[P_GOAL_ACCELERATION][1]);
+  group_write_velo_acc = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_VELOCITY][0], ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_ACCELERATION][1] + ADDR[P_GOAL_ACCELERATION][1]);
   group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1]);
+  group_write_pos_velo_acc = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_ACCELERATION][1]);
   group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler
       , ADDR[P_PRESENT_POSITION][0], group_read_size);
 //  group_read = new dynamixel::GroupBulkRead(portHandler, packetHandler);
@@ -522,23 +627,97 @@ std::vector<cJoint> &cJoint::init(){
     }
   }*/
 
-  for(int i=joints.size()-1;i>=num_joint;i--){
+  for(int i=joints.size()-1;i>=num_joint;i--)
     joints.pop_back();
-  }
-  for(int i=0;i<joints.size();i++){
+
+
+  for(int i=0;i<joints.size();i++)
     joints[i].setup();
-  }
-  mode = MODE_VELOCITY_CONTROL;
+
+//  mode = MODE_VELOCITY_CONTROL;
   ROS_INFO("motor num used : %d\n", (int)joints.size());
+
   return joints;
 }
+
+bool cJoint::send_p_gain(int _p_gain){
+  uint8_t p_lh[4];
+
+    bool dxl_addparam_result = false;
+    p_lh[0] = DXL_LOBYTE(_p_gain);
+    p_lh[1] = DXL_HIBYTE(_p_gain);
+    dxl_addparam_result = group_write_gain_p->addParam(id, p_lh);
+    if (dxl_addparam_result != true){
+      ROS_ERROR("[ID:%03d] group_write_gain_p addparam failed", id);
+		  group_write_gain_p->clearParam();
+      throw 0;
+    }
+
+  int dxl_comm_result = group_write_gain_p->txPacket();
+  if (dxl_comm_result != COMM_SUCCESS){
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+		group_write_gain_p->clearParam();
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+		return false;
+  }
+  group_write_gain_p->clearParam();
+	return true;
+}
+
+void cJoint::sync_torque(){
+  uint8_t data_lh[4];
+
+  for(int i=0;i<joints.size();i++){
+    cJoint &j = joints[i];
+		if( j.mode != MODE_TORQUE_CONTROL )
+		  j.change_mode(MODE_TORQUE_CONTROL);
+	}
+
+  for(int i=0;i<joints.size();i++){
+    cJoint &j = joints[i];
+    if( j.goal_torque > j.torque_limit ){
+      ROS_WARN("Goal torque exceeded the limit [%d] : %.3lf", i, j.goal_torque );
+      return;
+    }
+  }
+  for(int i=0; i<joints.size(); i++) {
+    cJoint &j = joints[i];
+    bool dxl_addparam_result = false;
+    if( !j.b_goal_torque )
+      continue;
+    j.b_goal_torque = false;
+    data_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_torque));
+    data_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_torque));
+    data_lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_torque));
+    data_lh[3] = DXL_HIBYTE(DXL_HIWORD(j.goal_torque));
+    dxl_addparam_result = group_write_goal_torque->addParam(j.id, data_lh);
+    if (dxl_addparam_result != true){
+      ROS_ERROR("[ID:%03d] group_write_goal_torque addparam failed", j.id);
+		  group_write_goal_torque->clearParam();
+      throw 0;
+    }
+  }
+  int dxl_comm_result = group_write_goal_torque->txPacket();
+  if (dxl_comm_result != COMM_SUCCESS){
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+		group_write_goal_torque->clearParam();
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+  }
+  group_write_goal_torque->clearParam();
+}
+
 
 void cJoint::sync_velo(){
   uint8_t velo_lh[4];
 
-  if( mode!=MODE_VELOCITY_CONTROL ){
-    change_mode(MODE_VELOCITY_CONTROL);
+  for(int i=0;i<joints.size();i++) {
+    cJoint &j = joints[i];
+		if( j.mode != MODE_VELOCITY_CONTROL )
+		  j.change_mode(MODE_VELOCITY_CONTROL);
   }
+
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
     if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ){
@@ -559,6 +738,7 @@ void cJoint::sync_velo(){
     dxl_addparam_result = group_write_velo->addParam(j.id, velo_lh);
     if (dxl_addparam_result != true){
       ROS_ERROR("[ID:%03d] group_write_velo addparam failed", j.id);
+		  group_write_velo->clearParam();
       throw 0;
     }
   }
@@ -566,16 +746,90 @@ void cJoint::sync_velo(){
   if (dxl_comm_result != COMM_SUCCESS){
     //packetHandler->printTxRxResult(dxl_comm_result);
     //throw 0;
+		group_write_velo->clearParam();
     mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   group_write_velo->clearParam();
 }
 
+void cJoint::sync_velo_acc(){
+  uint8_t velo_lh[4], acc_lh[4];
+
+  for(int i=0;i<joints.size();i++) {
+    cJoint &j = joints[i];
+		if( j.mode != MODE_VELOCITY_CONTROL )
+		  j.change_mode(MODE_VELOCITY_CONTROL);
+	}
+
+  for(int i=0; i<joints.size(); i++) {
+    cJoint &j = joints[i];
+    if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ) {
+      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, j.goal_velo / j.velo2val );
+      return;
+    }
+  }
+
+	ros::Time t1, t2, t3;
+  for(int i=0; i<joints.size(); i++) {
+    cJoint &j = joints[i];
+    bool dxl_addparam_result_vel = false, dxl_addparam_result_acc = false;
+    if( !j.b_goal_velo_acc )
+      continue;
+    j.b_goal_velo_acc = false;
+    velo_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_velo));
+    velo_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_velo));
+    velo_lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_velo));
+    velo_lh[3] = DXL_HIBYTE(DXL_HIWORD(j.goal_velo));
+
+    acc_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_acc));
+    acc_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_acc));
+    acc_lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_acc));
+    acc_lh[3] = DXL_HIBYTE(DXL_HIWORD(j.goal_acc));
+
+		t1 = ros::Time::now();
+    dxl_addparam_result_acc = group_write_acc->addParam(j.id, acc_lh);
+		t2 = ros::Time::now();
+    dxl_addparam_result_vel = group_write_velo->addParam(j.id, velo_lh);
+		t3 = ros::Time::now();
+		ROS_INFO("group_write : %lf, %lf", (t2-t1).toSec(), (t3-t2).toSec());
+    if (dxl_addparam_result_acc != true){
+      ROS_ERROR("[ID:%03d] group_write_velo_acc addparam failed", j.id);
+		  group_write_acc->clearParam();
+      throw 0;
+    }
+    if (dxl_addparam_result_vel != true){
+      ROS_ERROR("[ID:%03d] group_write_velo_acc addparam failed", j.id);
+		  group_write_velo->clearParam();
+      throw 0;
+    }
+  }
+  int dxl_comm_result_acc = group_write_acc->txPacket();
+  int dxl_comm_result_vel = group_write_velo->txPacket();
+  if (dxl_comm_result_acc != COMM_SUCCESS){
+		ROS_ERROR("group_write_velo_acc : dxl_comm_result != COMM_SUCCESS");
+    //packetHandler->printTxRxResult(dxl_comm_result_acc);
+    //throw 0;
+		group_write_acc->clearParam();
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result_acc));
+  }
+  if (dxl_comm_result_vel != COMM_SUCCESS){
+		ROS_ERROR("group_write_velo_acc : dxl_comm_result != COMM_SUCCESS");
+    //packetHandler->printTxRxResult(dxl_comm_result_vel);
+    //throw 0;
+		group_write_velo->clearParam();
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result_vel));
+  }
+  group_write_acc->clearParam();
+  group_write_velo->clearParam();
+}
 
 void cJoint::sync_pos_velo(){
   uint8_t lh[8];
-  if( mode!=MODE_POSITION_CONTROL ){
-    change_mode(MODE_POSITION_CONTROL);
+
+  for(int i=0;i<joints.size();i++) {
+    cJoint &j = joints[i];
+		if( j.mode != MODE_POSITION_CONTROL )
+		  j.change_mode(MODE_POSITION_CONTROL);
   }
   
   for(int i=0;i<joints.size();i++){
@@ -588,8 +842,10 @@ void cJoint::sync_pos_velo(){
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
     bool dxl_addparam_result = false;
-    if( !j.b_goal_pos_velo )
+//    ROS_INFO("j[%d].b_goal_pos_velo = %d", i, (int)j.b_goal_pos_velo);
+    if( !j.b_goal_pos_velo ) {
       continue;
+    }
     j.b_goal_pos_velo = false;
     lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_pos));
     lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_pos));
@@ -614,6 +870,57 @@ void cJoint::sync_pos_velo(){
   group_write_pos_velo->clearParam();
 }
 
+void cJoint::sync_pos_velo_acc() {
+  uint8_t lh[12];
+
+  for(int i=0;i<joints.size();i++) {
+    cJoint &j = joints[i];
+		if( j.mode != MODE_POSITION_CONTROL )
+		  j.change_mode(MODE_POSITION_CONTROL);
+	}
+  
+  for(int i=0; i<joints.size(); i++){
+    cJoint &j = joints[i];
+    if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ) {
+      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, j.goal_velo / j.velo2val );
+      return;
+    }
+  }
+
+  for(int i=0; i<joints.size(); i++) {
+    cJoint &j = joints[i];
+    bool dxl_addparam_result = false;
+    if( !j.b_goal_pos_velo_acc )
+      continue;
+    j.b_goal_pos_velo_acc = false;
+    lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_pos));
+    lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_pos));
+    lh[2] = DXL_LOBYTE(DXL_HIWORD(j.goal_pos));
+    lh[3] = DXL_HIBYTE(DXL_HIWORD(j.goal_pos));
+    lh[4] = DXL_LOBYTE(DXL_LOWORD(j.goal_velo));
+    lh[5] = DXL_HIBYTE(DXL_LOWORD(j.goal_velo));
+    lh[6] = DXL_LOBYTE(DXL_HIWORD(j.goal_velo));
+    lh[7] = DXL_HIBYTE(DXL_HIWORD(j.goal_velo));
+    lh[8] = DXL_LOBYTE(DXL_LOWORD(j.goal_acc));
+    lh[9] = DXL_HIBYTE(DXL_LOWORD(j.goal_acc));
+    lh[10] = DXL_LOBYTE(DXL_HIWORD(j.goal_acc));
+    lh[11] = DXL_HIBYTE(DXL_HIWORD(j.goal_acc));
+    dxl_addparam_result = group_write_pos_velo_acc->addParam(j.get_id(), lh);
+    if (dxl_addparam_result != true){
+      ROS_ERROR("[ID:%03d] group_write_pos_velo_acc addparam failed", j.get_id());
+      throw 0;
+    }
+  }
+
+  int dxl_comm_result = group_write_pos_velo_acc->txPacket();
+  if (dxl_comm_result != COMM_SUCCESS){
+    //packetHandler->printTxRxResult(dxl_comm_result);
+    //throw 0;
+    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+  }
+  group_write_pos_velo_acc->clearParam();
+}
+
 bool cJoint::sync_read(){
   for(int i=3;i>=0;i--){
     int dxl_comm_result = group_read->txRxPacket();
@@ -635,9 +942,10 @@ bool cJoint::sync_read(){
     }
     j.pos = group_read->getData(j.get_id(), ADDR[P_PRESENT_POSITION][0], ADDR[P_PRESENT_POSITION][1]);
     j.velo = group_read->getData(j.get_id(), ADDR[P_PRESENT_VELOCITY][0], ADDR[P_PRESENT_VELOCITY][1]);
-    j.current = group_read->getData(j.get_id(), ADDR[P_PRESENT_CURRENT][0], ADDR[P_PRESENT_CURRENT][1]);
+    j.current = (short)group_read->getData(j.get_id(), ADDR[P_PRESENT_CURRENT][0], ADDR[P_PRESENT_CURRENT][1]);
     j.input_voltage = group_read->getData(j.get_id(), ADDR[P_PRESENT_INPUT_VOLTAGE][0], ADDR[P_PRESENT_INPUT_VOLTAGE][1]);
     j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
+		j.goal_torque = (short)group_read->getData(j.get_id(), ADDR[P_GOAL_TORQUE][0], ADDR[P_GOAL_TORQUE][1]);
   }
   
   if( b_set_home ){
@@ -656,16 +964,15 @@ bool cJoint::sync_read(){
 
 
 void cJoint::change_mode(int _mode){
-  if( mode==_mode ){
+  if( mode == _mode ) {
     ROS_WARN("same cotrol mode : %d / %d\n", _mode, mode);
     return;
   }
-  for(int i=0;i<joints.size();i++){
-    cJoint &j = joints[i];
-    j.write( P_TORQUE_ENABLE, 0 );
-    j.write( P_OPERATING_MODE, _mode);
-    j.write( P_TORQUE_ENABLE, 1 );
-  }
+
+  write( P_TORQUE_ENABLE, 0 );
+  write( P_OPERATING_MODE, _mode);
+  write( P_TORQUE_ENABLE, 1 );
+
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;
 }

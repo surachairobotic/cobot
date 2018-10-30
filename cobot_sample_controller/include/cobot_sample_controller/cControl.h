@@ -36,7 +36,7 @@ private:
   std::vector<double> joints;
   ros::Publisher pub_goal;
   ros::Subscriber sub_joints;
-  ros::ServiceClient srv_set_acc;
+  ros::ServiceClient srv_set_acc, srv_set_p_gain, srv_set_i_gain, srv_set_goal_torque;
   sensor_msgs::JointState joint_state, goal;
   std::mutex mutex_joint_state;
   bool b_new_joint_state;  // check if the new one come
@@ -52,6 +52,7 @@ private:
   const robot_state::RobotStatePtr get_robot_state(const geometry_msgs::Pose &pose);
 
 public:
+  cControl();
   cControl(const std::string& _group_name, const std::string& _end_effector_name);
   void init();
 
@@ -63,9 +64,16 @@ public:
   bool plan_line(std::vector< geometry_msgs::Pose > &waypoints, double step=0.002);
   void replan_velocity(double velo, double acc);
 
+	void move_pos_velo_acc(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo, const std::vector<double> &joint_acc);
   void move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo);
   void move_velo(const std::vector<double> &joint_velo);
+	void move_velo_acc(const std::vector<double> &joint_velo, const std::vector<double> &joint_acc);
   void set_acc(const std::vector<double> &acc);
+  bool set_p_gain(std::string jnt, int _p_gain);
+  int set_p_gain(std::string jnt);
+  bool set_i_gain(std::string jnt, int _i_gain);
+  int set_i_gain(std::string jnt);
+	void set_goal_torque(std::string jnt, double torque);
 
   const geometry_msgs::Pose get_current_pose(); // get xyz position
   const std::vector<double> get_current_joints(); // get joint angles

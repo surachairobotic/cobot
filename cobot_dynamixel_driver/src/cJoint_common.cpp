@@ -22,12 +22,12 @@
 
 dynamixel::PacketHandler *cJoint::packetHandler = NULL;
 dynamixel::PortHandler *cJoint::portHandler = NULL;
-dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write_pos_velo = NULL;
+dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write_velo_acc = NULL, *cJoint::group_write_pos_velo = NULL, *cJoint::group_write_pos_velo_acc = NULL, *cJoint::group_write_acc = NULL, *cJoint::group_write_gain_p = NULL, *cJoint::group_write_goal_torque = NULL;
 dynamixel::GroupSyncRead *cJoint::group_read_sync = NULL;
 dynamixel::GroupBulkRead *cJoint::group_read_bulk = NULL;
 std::vector<cJoint> cJoint::joints;
 int cJoint::ADDR[32][2] = {{0}};
-int cJoint::mode = -1;
+//int cJoint::mode = -1;
 std::vector<std::string> cJoint::joint_names;
 std::string cJoint::setting_file;
 bool cJoint::b_set_home = false;
@@ -58,7 +58,7 @@ double mystof(const std::string &str){
 
 
 cJoint::cJoint():id(0),goal_pos(0.0),current(0),velo(0),pos(0),goal_velo(0.0),goal_torque(0.0)
-, b_goal_velo(false), b_goal_pos_velo(false){
+, b_goal_velo(false), b_goal_velo_acc(false), b_goal_pos_velo(false), b_goal_pos_velo_acc(false), b_goal_torque(false){
 
   motor_model_number = 0;
   cw_angle_limit = 0;
@@ -81,9 +81,35 @@ cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
 
 void cJoint::terminate(){
+	if ( group_write_goal_torque ) {
+		delete group_write_goal_torque;
+		group_write_goal_torque = NULL;	
+	}
+
+  if( group_write_gain_p ){
+    delete group_write_gain_p;
+    group_write_gain_p = NULL;
+  }
+
   if( group_write_velo ){
     delete group_write_velo;
     group_write_velo = NULL;
+  }
+  if( group_write_velo_acc ){
+    delete group_write_velo_acc;
+    group_write_velo_acc = NULL;
+  }
+  if( group_write_acc ){
+    delete group_write_acc;
+    group_write_acc = NULL;
+  }
+  if( group_write_pos_velo ){
+    delete group_write_pos_velo;
+    group_write_pos_velo = NULL;
+  }
+  if( group_write_pos_velo_acc ){
+    delete group_write_pos_velo_acc;
+    group_write_pos_velo_acc = NULL;
   }
   if( group_read_sync ){
     delete group_read_sync;
@@ -97,9 +123,12 @@ void cJoint::terminate(){
 
     for(int i=0;i<joints.size();i++){
       try{
+				ROS_INFO("JOINT[%d] 1: P_SHUTDOWN = %d", i, joints[i].read( P_SHUTDOWN ));
         joints[i].write( P_TORQUE_ENABLE, 0 );
+				ROS_INFO("JOINT[%d] 2: P_SHUTDOWN = %d", i, joints[i].read( P_SHUTDOWN ));
       }
       catch(const std::string &err){
+
         ROS_ERROR("%s", err.c_str());
       }
     }
@@ -131,7 +160,7 @@ std::string cJoint::get_joint_name(int id){
   }
 }
 
-void cJoint::load_joint_name(){
+void cJoint::load_joint_name() {
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
 
   robot_model::RobotModelPtr r = robot_model_loader.getModel();
@@ -153,8 +182,8 @@ void cJoint::load_joint_name(){
   }
 }
 
-void cJoint::reset_goal(){
-  for(int i=joints.size()-1;i>=0;i--){
-    joints[i].b_goal_pos_velo = joints[i].b_goal_velo = false;
+void cJoint::reset_goal() {
+  for(int i=joints.size()-1;i>=0;i--) {
+    joints[i].b_goal_pos_velo_acc = joints[i].b_goal_pos_velo = joints[i].b_goal_velo = joints[i].b_goal_velo_acc = joints[i].b_goal_torque = false;
   }
 }
