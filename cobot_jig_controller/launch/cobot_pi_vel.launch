@@ -1,0 +1,6 @@
+<launch>
+  <node name="cobot_pi_vel" pkg="cobot_jig_controller" type="cobot_pi_vel" respawn="false" output="screen" >
+    <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
+    <param name="result_dir" value="$(find cobot_jig_controller)/results/" />
+  </node>
+</launch>

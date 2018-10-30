@@ -1,0 +1,1185 @@
+0
+-:J5:-30.000000:eff_
+cJoint::write() : failed
+1
+-:J5:-30.000000:eff_
+cJoint::write() : failed
+2
+-:J5:-30.000000:eff_
+cJoint::write() : failed
+3
+-:J5:-30.000000:eff_
+cJoint::write() : failed
+4
+-:J5:0.000000:eff_
+cJoint::write() : failed
+5
+-:J5:-40.000000:eff_
+cJoint::write() : failed
+6
+-:J5:-40.000000:eff_
+cJoint::write() : failed
+7
+-:J5:-50.000000:eff_
+cJoint::write() : failed
+8
+-:J5:-60.000000:eff_
+cJoint::write() : failed
+9
+-:J5:-70.000000:eff_
+cJoint::write() : failed
+10
+-:J5:-80.000000:eff_
+cJoint::write() : failed
+11
+-:J5:-90.000000:eff_
+cJoint::write() : failed
+12
+-:J5:-100.000000:eff_
+cJoint::write() : failed
+13
+-:J5:-110.000000:eff_
+cJoint::write() : failed
+14
+-:J5:-120.000000:eff_
+cJoint::write() : failed
+15
+-:J5:-130.000000:eff_
+cJoint::write() : failed
+16
+-:J5:-140.000000:eff_
+cJoint::write() : failed
+17
+-:J5:-150.000000:eff_
+cJoint::write() : failed
+18
+-:J5:-160.000000:eff_
+cJoint::write() : failed
+19
+-:J5:-170.000000:eff_
+cJoint::write() : failed
+20
+-:J5:-180.000000:eff_
+cJoint::write() : failed
+21
+-:J5:-190.000000:eff_
+cJoint::write() : failed
+22
+-:J5:-200.000000:eff_
+cJoint::write() : failed
+23
+-:J5:-210.000000:eff_
+cJoint::write() : failed
+24
+-:J5:-220.000000:eff_
+cJoint::write() : failed
+25
+-:J5:-230.000000:eff_
+cJoint::write() : failed
+26
+-:J5:-240.000000:eff_
+cJoint::write() : failed
+27
+-:J5:-250.000000:eff_
+cJoint::write() : failed
+28
+-:J5:-260.000000:eff_
+cJoint::write() : failed
+29
+-:J5:-270.000000:eff_
+cJoint::write() : failed
+30
+-:J5:-280.000000:eff_
+cJoint::write() : failed
+31
+-:J5:-290.000000:eff_
+cJoint::write() : failed
+32
+-:J5:-300.000000:eff_
+cJoint::write() : failed
+33
+-:J5:-310.000000:eff_
+cJoint::write() : failed
+34
+-:J5:-320.000000:eff_
+cJoint::write() : failed
+35
+-:J5:-330.000000:eff_
+cJoint::write() : failed
+36
+-:J5:-340.000000:eff_
+cJoint::write() : failed
+37
+-:J5:-350.000000:eff_
+cJoint::write() : failed
+38
+-:J5:-360.000000:eff_
+cJoint::write() : failed
+39
+-:J5:-370.000000:eff_
+cJoint::write() : failed
+40
+-:J5:-380.000000:eff_
+cJoint::write() : failed
+41
+-:J5:-390.000000:eff_
+cJoint::write() : failed
+42
+-:J5:-400.000000:eff_
+cJoint::write() : failed
+43
+-:J5:-410.000000:eff_
+cJoint::write() : failed
+44
+-:J5:-420.000000:eff_
+cJoint::write() : failed
+45
+-:J5:-430.000000:eff_
+cJoint::write() : failed
+46
+-:J5:-440.000000:eff_
+cJoint::write() : failed
+47
+-:J5:-450.000000:eff_
+cJoint::write() : failed
+48
+-:J5:-460.000000:eff_
+cJoint::write() : failed
+49
+-:J5:-470.000000:eff_
+cJoint::write() : failed
+50
+-:J5:-480.000000:eff_
+cJoint::write() : failed
+51
+-:J5:-490.000000:eff_
+cJoint::write() : failed
+52
+-:J5:-500.000000:eff_
+cJoint::write() : failed
+53
+-:J5:-510.000000:eff_
+cJoint::write() : failed
+54
+-:J5:-520.000000:eff_
+cJoint::write() : failed
+55
+-:J5:-530.000000:eff_
+cJoint::write() : failed
+56
+-:J5:-540.000000:eff_
+cJoint::write() : failed
+57
+-:J5:-550.000000:eff_
+cJoint::write() : failed
+58
+-:J5:-560.000000:eff_
+cJoint::write() : failed
+59
+-:J5:-570.000000:eff_
+cJoint::write() : failed
+60
+-:J5:-580.000000:eff_
+cJoint::write() : failed
+61
+-:J5:-590.000000:eff_
+cJoint::write() : failed
+62
+-:J5:-600.000000:eff_
+cJoint::write() : failed
+63
+-:J5:-610.000000:eff_
+cJoint::write() : failed
+64
+-:J5:-620.000000:eff_
+cJoint::write() : failed
+65
+-:J5:-630.000000:eff_
+cJoint::write() : failed
+66
+-:J5:-640.000000:eff_
+cJoint::write() : failed
+67
+-:J5:-650.000000:eff_
+cJoint::write() : failed
+68
+-:J5:-660.000000:eff_
+cJoint::write() : failed
+69
+-:J5:-670.000000:eff_
+cJoint::write() : failed
+70
+-:J5:-680.000000:eff_
+cJoint::write() : failed
+71
+-:J5:-690.000000:eff_
+cJoint::write() : failed
+72
+-:J5:-700.000000:eff_
+cJoint::write() : failed
+73
+-:J5:-710.000000:eff_
+cJoint::write() : failed
+74
+-:J5:-720.000000:eff_
+cJoint::write() : failed
+75
+-:J5:-730.000000:eff_
+cJoint::write() : failed
+76
+-:J5:-740.000000:eff_
+cJoint::write() : failed
+77
+-:J5:-750.000000:eff_
+cJoint::write() : failed
+78
+-:J5:-760.000000:eff_
+cJoint::write() : failed
+79
+-:J5:-770.000000:eff_
+cJoint::write() : failed
+80
+-:J5:-780.000000:eff_
+cJoint::write() : failed
+81
+-:J5:-790.000000:eff_
+cJoint::write() : failed
+82
+-:J5:-800.000000:eff_
+cJoint::write() : failed
+83
+-:J5:-810.000000:eff_
+cJoint::write() : failed
+84
+-:J5:-820.000000:eff_
+cJoint::write() : failed
+85
+-:J5:-830.000000:eff_
+cJoint::write() : failed
+86
+-:J5:-840.000000:eff_
+cJoint::write() : failed
+87
+-:J5:-850.000000:eff_
+cJoint::write() : failed
+88
+-:J5:-860.000000:eff_
+cJoint::write() : failed
+89
+-:J5:-870.000000:eff_
+cJoint::write() : failed
+90
+-:J5:-880.000000:eff_
+cJoint::write() : failed
+91
+-:J5:-890.000000:eff_
+cJoint::write() : failed
+92
+-:J5:-900.000000:eff_
+cJoint::write() : failed
+93
+-:J5:-910.000000:eff_
+cJoint::write() : failed
+94
+-:J5:-920.000000:eff_
+cJoint::write() : failed
+95
+-:J5:-930.000000:eff_
+cJoint::write() : failed
+96
+-:J5:-940.000000:eff_
+cJoint::write() : failed
+97
+-:J5:-950.000000:eff_
+cJoint::write() : failed
+98
+-:J5:-960.000000:eff_
+cJoint::write() : failed
+99
+-:J5:-970.000000:eff_
+cJoint::write() : failed
+100
+-:J5:-980.000000:eff_
+cJoint::write() : failed
+101
+-:J5:-990.000000:eff_
+cJoint::write() : failed
+102
+-:J5:-1000.000000:eff_
+cJoint::write() : failed
+103
+-:J5:-1010.000000:eff_
+cJoint::write() : failed
+104
+-:J5:-1020.000000:eff_
+cJoint::write() : failed
+105
+-:J5:-1030.000000:eff_
+cJoint::write() : failed
+106
+-:J5:-1040.000000:eff_
+cJoint::write() : failed
+107
+-:J5:-1050.000000:eff_
+cJoint::write() : failed
+108
+-:J5:-1060.000000:eff_
+cJoint::write() : failed
+109
+-:J5:-1070.000000:eff_
+cJoint::write() : failed
+110
+-:J5:-1080.000000:eff_
+cJoint::write() : failed
+111
+-:J5:-1090.000000:eff_
+cJoint::write() : failed
+112
+-:J5:-1100.000000:eff_
+cJoint::write() : failed
+113
+-:J5:-1110.000000:eff_
+cJoint::write() : failed
+114
+-:J5:-1120.000000:eff_
+cJoint::write() : failed
+115
+-:J5:-1130.000000:eff_
+cJoint::write() : failed
+116
+-:J5:-1140.000000:eff_
+cJoint::write() : failed
+117
+-:J5:-1150.000000:eff_
+cJoint::write() : failed
+118
+-:J5:-1160.000000:eff_
+cJoint::write() : failed
+119
+-:J5:-1170.000000:eff_
+cJoint::write() : failed
+120
+-:J5:-1180.000000:eff_
+cJoint::write() : failed
+121
+-:J5:-1190.000000:eff_
+cJoint::write() : failed
+122
+-:J5:-1200.000000:eff_
+cJoint::write() : failed
+123
+-:J5:-1210.000000:eff_
+cJoint::write() : failed
+124
+-:J5:-1220.000000:eff_
+cJoint::write() : failed
+125
+-:J5:-1230.000000:eff_
+cJoint::write() : failed
+126
+-:J5:-1240.000000:eff_
+cJoint::write() : failed
+127
+-:J5:-1250.000000:eff_
+cJoint::write() : failed
+128
+-:J5:-1260.000000:eff_
+cJoint::write() : failed
+129
+-:J5:-1270.000000:eff_
+cJoint::write() : failed
+130
+-:J5:-1280.000000:eff_
+cJoint::write() : failed
+131
+-:J5:-1290.000000:eff_
+cJoint::write() : failed
+132
+-:J5:-1300.000000:eff_
+cJoint::write() : failed
+133
+-:J5:-1310.000000:eff_
+cJoint::write() : failed
+134
+-:J5:-1320.000000:eff_
+cJoint::write() : failed
+135
+-:J5:-1330.000000:eff_
+cJoint::write() : failed
+136
+-:J5:-1340.000000:eff_
+cJoint::write() : failed
+137
+-:J5:-1350.000000:eff_
+cJoint::write() : failed
+138
+-:J5:-1360.000000:eff_
+cJoint::write() : failed
+139
+-:J5:-1370.000000:eff_
+cJoint::write() : failed
+140
+-:J5:-1380.000000:eff_
+cJoint::write() : failed
+141
+-:J5:-1390.000000:eff_
+cJoint::write() : failed
+142
+-:J5:-1400.000000:eff_
+cJoint::write() : failed
+143
+-:J5:-1410.000000:eff_
+cJoint::write() : failed
+144
+-:J5:-1420.000000:eff_
+cJoint::write() : failed
+145
+-:J5:-1430.000000:eff_
+cJoint::write() : failed
+146
+-:J5:-1440.000000:eff_
+cJoint::write() : failed
+147
+-:J5:-1450.000000:eff_
+cJoint::write() : failed
+148
+-:J5:-1460.000000:eff_
+cJoint::write() : failed
+149
+-:J5:-1470.000000:eff_
+cJoint::write() : failed
+150
+-:J5:-1480.000000:eff_
+cJoint::write() : failed
+151
+-:J5:-1490.000000:eff_
+cJoint::write() : failed
+152
+-:J5:-1500.000000:eff_
+cJoint::write() : failed
+153
+-:J5:-1510.000000:eff_
+cJoint::write() : failed
+154
+-:J5:-1520.000000:eff_
+cJoint::write() : failed
+155
+-:J5:-1530.000000:eff_
+cJoint::write() : failed
+156
+-:J5:-1540.000000:eff_
+cJoint::write() : failed
+157
+-:J5:-1550.000000:eff_
+cJoint::write() : failed
+158
+-:J5:-1560.000000:eff_
+cJoint::write() : failed
+159
+-:J5:-1570.000000:eff_
+cJoint::write() : failed
+160
+-:J5:-1580.000000:eff_
+cJoint::write() : failed
+161
+-:J5:-1590.000000:eff_
+cJoint::write() : failed
+162
+-:J5:-1600.000000:eff_
+cJoint::write() : failed
+163
+-:J5:-1610.000000:eff_
+cJoint::write() : failed
+164
+-:J5:-1620.000000:eff_
+cJoint::write() : failed
+165
+-:J5:-1630.000000:eff_
+cJoint::write() : failed
+166
+-:J5:-1640.000000:eff_
+cJoint::write() : failed
+167
+-:J5:-1650.000000:eff_
+cJoint::write() : failed
+168
+-:J5:-1660.000000:eff_
+cJoint::write() : failed
+169
+-:J5:-1670.000000:eff_
+cJoint::write() : failed
+170
+-:J5:-1680.000000:eff_
+cJoint::write() : failed
+171
+-:J5:-1690.000000:eff_
+cJoint::write() : failed
+172
+-:J5:-1700.000000:eff_
+cJoint::write() : failed
+173
+-:J5:-1710.000000:eff_
+cJoint::write() : failed
+174
+-:J5:-1720.000000:eff_
+cJoint::write() : failed
+175
+-:J5:-1730.000000:eff_
+cJoint::write() : failed
+176
+-:J5:-1740.000000:eff_
+cJoint::write() : failed
+177
+-:J5:-1750.000000:eff_
+cJoint::write() : failed
+178
+-:J5:-1760.000000:eff_
+cJoint::write() : failed
+179
+-:J5:-1770.000000:eff_
+cJoint::write() : failed
+180
+-:J5:-1780.000000:eff_
+cJoint::write() : failed
+181
+-:J5:-1790.000000:eff_
+cJoint::write() : failed
+182
+-:J5:-1800.000000:eff_
+cJoint::write() : failed
+183
+-:J5:-1810.000000:eff_
+cJoint::write() : failed
+184
+-:J5:-1820.000000:eff_
+cJoint::write() : failed
+185
+-:J5:-1830.000000:eff_
+cJoint::write() : failed
+186
+-:J5:-1840.000000:eff_
+cJoint::write() : failed
+187
+-:J5:-1850.000000:eff_
+cJoint::write() : failed
+188
+-:J5:-1860.000000:eff_
+cJoint::write() : failed
+189
+-:J5:-1870.000000:eff_
+cJoint::write() : failed
+190
+-:J5:-1880.000000:eff_
+cJoint::write() : failed
+191
+-:J5:-1890.000000:eff_
+cJoint::write() : failed
+192
+-:J5:-1900.000000:eff_
+cJoint::write() : failed
+193
+-:J5:-1910.000000:eff_
+cJoint::write() : failed
+194
+-:J5:-1920.000000:eff_
+cJoint::write() : failed
+195
+-:J5:-1930.000000:eff_
+cJoint::write() : failed
+196
+-:J5:-1940.000000:eff_
+cJoint::write() : failed
+197
+-:J5:-1950.000000:eff_
+cJoint::write() : failed
+198
+-:J5:-1960.000000:eff_
+cJoint::write() : failed
+199
+-:J5:-1970.000000:eff_
+cJoint::write() : failed
+200
+-:J5:-1980.000000:eff_
+cJoint::write() : failed
+201
+-:J5:-1990.000000:eff_
+cJoint::write() : failed
+202
+-:J5:-2000.000000:eff_
+cJoint::write() : failed
+203
+-:J5:-2010.000000:eff_
+cJoint::write() : failed
+204
+-:J5:-2020.000000:eff_
+cJoint::write() : failed
+205
+-:J5:-2030.000000:eff_
+cJoint::write() : failed
+206
+-:J5:-2040.000000:eff_
+cJoint::write() : failed
+207
+-:J5:-2050.000000:eff_
+cJoint::write() : failed
+208
+-:J5:-2060.000000:eff_
+cJoint::write() : failed
+209
+-:J5:-2070.000000:eff_
+cJoint::write() : failed
+210
+-:J5:-2080.000000:eff_
+cJoint::write() : failed
+211
+-:J5:-2090.000000:eff_
+cJoint::write() : failed
+212
+-:J5:-2100.000000:eff_
+cJoint::write() : failed
+213
+-:J5:-2110.000000:eff_
+cJoint::write() : failed
+214
+-:J5:-2120.000000:eff_
+cJoint::write() : failed
+215
+-:J5:-2130.000000:eff_
+cJoint::write() : failed
+216
+-:J5:-2140.000000:eff_
+cJoint::write() : failed
+217
+-:J5:-2150.000000:eff_
+cJoint::write() : failed
+218
+-:J5:-2160.000000:eff_
+cJoint::write() : failed
+219
+-:J5:-2170.000000:eff_
+cJoint::write() : failed
+220
+-:J5:-2180.000000:eff_
+cJoint::write() : failed
+221
+-:J5:-2190.000000:eff_
+cJoint::write() : failed
+222
+-:J5:-2200.000000:eff_
+cJoint::write() : failed
+223
+-:J5:-2210.000000:eff_
+cJoint::write() : failed
+224
+-:J5:-2220.000000:eff_
+cJoint::write() : failed
+225
+-:J5:-2230.000000:eff_
+cJoint::write() : failed
+226
+-:J5:-2240.000000:eff_
+cJoint::write() : failed
+227
+-:J5:-2250.000000:eff_
+cJoint::write() : failed
+228
+-:J5:-2260.000000:eff_
+cJoint::write() : failed
+229
+-:J5:-2270.000000:eff_
+cJoint::write() : failed
+230
+-:J5:-2280.000000:eff_
+cJoint::write() : failed
+231
+-:J5:-2290.000000:eff_
+cJoint::write() : failed
+232
+-:J5:-2300.000000:eff_
+cJoint::write() : failed
+233
+-:J5:-2310.000000:eff_
+cJoint::write() : failed
+234
+-:J5:-2320.000000:eff_
+cJoint::write() : failed
+235
+-:J5:-2330.000000:eff_
+cJoint::write() : failed
+236
+-:J5:-2340.000000:eff_
+cJoint::write() : failed
+237
+-:J5:-2350.000000:eff_
+cJoint::write() : failed
+238
+-:J5:-2360.000000:eff_
+cJoint::write() : failed
+239
+-:J5:-2370.000000:eff_
+cJoint::write() : failed
+240
+-:J5:-2380.000000:eff_
+cJoint::write() : failed
+241
+-:J5:-2390.000000:eff_
+cJoint::write() : failed
+242
+-:J5:-2400.000000:eff_
+cJoint::write() : failed
+243
+-:J5:-2410.000000:eff_
+cJoint::write() : failed
+244
+-:J5:-2420.000000:eff_
+cJoint::write() : failed
+245
+-:J5:-2430.000000:eff_
+cJoint::write() : failed
+246
+-:J5:-2440.000000:eff_
+cJoint::write() : failed
+247
+-:J5:-2450.000000:eff_
+cJoint::write() : failed
+248
+-:J5:-2460.000000:eff_
+cJoint::write() : failed
+249
+-:J5:-2470.000000:eff_
+cJoint::write() : failed
+250
+-:J5:-2480.000000:eff_
+cJoint::write() : failed
+251
+-:J5:-2490.000000:eff_
+cJoint::write() : failed
+252
+-:J5:-2500.000000:eff_
+cJoint::write() : failed
+253
+-:J5:-2510.000000:eff_
+cJoint::write() : failed
+254
+-:J5:-2520.000000:eff_
+cJoint::write() : failed
+255
+-:J5:-2530.000000:eff_
+cJoint::write() : failed
+256
+-:J5:-2540.000000:eff_
+cJoint::write() : failed
+257
+-:J5:-2550.000000:eff_
+cJoint::write() : failed
+258
+-:J5:-2560.000000:eff_
+cJoint::write() : failed
+0
+-:J5:1.570796:vel_
+cJoint::write() : failed
+1
+-:J5:1.570796:vel_
+cJoint::write() : failed
+2
+-:J5:1.570796:vel_
+cJoint::write() : failed
+3
+-:J5:1.570796:vel_
+cJoint::write() : failed
+4
+-:J5:1.570796:vel_
+cJoint::write() : failed
+5
+-:J5:1.570796:vel_
+cJoint::write() : failed
+6
+-:J5:1.570796:vel_
+cJoint::write() : failed
+7
+-:J5:1.570796:vel_
+cJoint::write() : failed
+8
+-:J5:1.570796:vel_
+cJoint::write() : failed
+9
+-:J5:1.570796:vel_
+cJoint::write() : failed
+10
+-:J5:1.570796:vel_
+cJoint::write() : failed
+11
+-:J5:1.570796:vel_
+cJoint::write() : failed
+12
+-:J5:1.570796:vel_
+cJoint::write() : failed
+13
+-:J5:1.570796:vel_
+cJoint::write() : failed
+14
+-:J5:1.570796:vel_
+cJoint::write() : failed
+15
+-:J5:1.570796:vel_
+cJoint::write() : failed
+16
+-:J5:1.570796:vel_
+cJoint::write() : failed
+17
+-:J5:1.570796:vel_
+cJoint::write() : failed
+18
+-:J5:1.570796:vel_
+cJoint::write() : failed
+19
+-:J5:1.570796:vel_
+cJoint::write() : failed
+20
+-:J5:1.570796:vel_
+cJoint::write() : failed
+21
+-:J5:1.570796:vel_
+cJoint::write() : failed
+22
+-:J5:1.570796:vel_
+cJoint::write() : failed
+23
+-:J5:1.570796:vel_
+cJoint::write() : failed
+24
+-:J5:1.570796:vel_
+cJoint::write() : failed
+25
+-:J5:1.570796:vel_
+cJoint::write() : failed
+26
+-:J5:1.570796:vel_
+cJoint::write() : failed
+27
+-:J5:1.570796:vel_
+cJoint::write() : failed
+28
+-:J5:1.570796:vel_
+cJoint::write() : failed
+29
+-:J5:1.570796:vel_
+cJoint::write() : failed
+30
+-:J5:1.570796:vel_
+cJoint::write() : failed
+31
+-:J5:1.570796:vel_
+cJoint::write() : failed
+32
+-:J5:1.570796:vel_
+cJoint::write() : failed
+33
+-:J5:1.570796:vel_
+cJoint::write() : failed
+34
+-:J5:1.570796:vel_
+cJoint::write() : failed
+35
+-:J5:1.570796:vel_
+cJoint::write() : failed
+36
+-:J5:1.570796:vel_
+cJoint::write() : failed
+37
+-:J5:1.570796:vel_
+cJoint::write() : failed
+38
+-:J5:1.570796:vel_
+cJoint::write() : failed
+39
+-:J5:1.570796:vel_
+cJoint::write() : failed
+40
+-:J5:1.570796:vel_
+cJoint::write() : failed
+41
+-:J5:1.570796:vel_
+cJoint::write() : failed
+42
+-:J5:1.570796:vel_
+cJoint::write() : failed
+43
+-:J5:1.570796:vel_
+cJoint::write() : failed
+44
+-:J5:1.570796:vel_
+cJoint::write() : failed
+45
+-:J5:1.570796:vel_
+cJoint::write() : failed
+46
+-:J5:1.570796:vel_
+cJoint::write() : failed
+47
+-:J5:1.570796:vel_
+cJoint::write() : failed
+48
+-:J5:1.570796:vel_
+cJoint::write() : failed
+49
+-:J5:1.570796:vel_
+cJoint::write() : failed
+50
+-:J5:1.570796:vel_
+cJoint::write() : failed
+51
+-:J5:1.570796:vel_
+cJoint::write() : failed
+52
+-:J5:1.570796:vel_
+cJoint::write() : failed
+53
+-:J5:1.570796:vel_
+cJoint::write() : failed
+54
+-:J5:1.570796:vel_
+cJoint::write() : failed
+55
+-:J5:1.570796:vel_
+cJoint::write() : failed
+56
+-:J5:1.570796:vel_
+cJoint::write() : failed
+57
+-:J5:1.570796:vel_
+cJoint::write() : failed
+58
+-:J5:1.570796:vel_
+cJoint::write() : failed
+59
+-:J5:1.570796:vel_
+cJoint::write() : failed
+60
+-:J5:1.570796:vel_
+cJoint::write() : failed
+61
+-:J5:1.570796:vel_
+cJoint::write() : failed
+62
+-:J5:1.570796:vel_
+cJoint::write() : failed
+63
+-:J5:1.570796:vel_
+cJoint::write() : failed
+64
+-:J5:1.570796:vel_
+cJoint::write() : failed
+65
+-:J5:1.570796:vel_
+cJoint::write() : failed
+66
+-:J5:1.570796:vel_
+cJoint::write() : failed
+67
+-:J5:1.570796:vel_
+cJoint::write() : failed
+68
+-:J5:1.570796:vel_
+cJoint::write() : failed
+69
+-:J5:1.570796:vel_
+cJoint::write() : failed
+70
+-:J5:1.570796:vel_
+cJoint::write() : failed
+71
+-:J5:1.570796:vel_
+cJoint::write() : failed
+72
+-:J5:1.570796:vel_
+cJoint::write() : failed
+73
+-:J5:1.570796:vel_
+cJoint::write() : failed
+74
+-:J5:1.570796:vel_
+cJoint::write() : failed
+75
+-:J5:1.570796:vel_
+cJoint::write() : failed
+76
+-:J5:1.570796:vel_
+cJoint::write() : failed
+77
+-:J5:1.570796:vel_
+cJoint::write() : failed
+78
+-:J5:1.570796:vel_
+cJoint::write() : failed
+79
+-:J5:1.570796:vel_
+cJoint::write() : failed
+80
+-:J5:1.570796:vel_
+cJoint::write() : failed
+81
+-:J5:1.570796:vel_
+cJoint::write() : failed
+82
+-:J5:1.570796:vel_
+cJoint::write() : failed
+83
+-:J5:1.570796:vel_
+cJoint::write() : failed
+84
+-:J5:1.570796:vel_
+cJoint::write() : failed
+85
+-:J5:1.570796:vel_
+cJoint::write() : failed
+86
+-:J5:1.570796:vel_
+cJoint::write() : failed
+87
+-:J5:1.570796:vel_
+cJoint::write() : failed
+88
+-:J5:1.570796:vel_
+cJoint::write() : failed
+89
+-:J5:1.570796:vel_
+cJoint::write() : failed
+90
+-:J5:1.570796:vel_
+cJoint::write() : failed
+91
+-:J5:1.570796:vel_
+cJoint::write() : failed
+92
+-:J5:1.570796:vel_
+cJoint::write() : failed
+93
+-:J5:1.570796:vel_
+cJoint::write() : failed
+94
+-:J5:1.570796:vel_
+cJoint::write() : failed
+95
+-:J5:1.570796:vel_
+cJoint::write() : failed
+96
+-:J5:1.570796:vel_
+cJoint::write() : failed
+97
+-:J5:1.570796:vel_
+cJoint::write() : failed
+98
+-:J5:1.570796:vel_
+cJoint::write() : failed
+99
+-:J5:1.570796:vel_
+cJoint::write() : failed
+100
+-:J5:1.570796:vel_
+cJoint::write() : failed
+101
+-:J5:1.570796:vel_
+cJoint::write() : failed
+102
+-:J5:1.570796:vel_
+cJoint::write() : failed
+103
+-:J5:1.570796:vel_
+cJoint::write() : failed
+104
+-:J5:1.570796:vel_
+cJoint::write() : failed
+105
+-:J5:1.570796:vel_
+cJoint::write() : failed
+106
+-:J5:1.570796:vel_
+cJoint::write() : failed
+107
+-:J5:1.570796:vel_
+cJoint::write() : failed
+108
+-:J5:1.570796:vel_
+cJoint::write() : failed
+109
+-:J5:1.570796:vel_
+cJoint::write() : failed
+110
+-:J5:1.570796:vel_
+cJoint::write() : failed
+111
+-:J5:1.570796:vel_
+cJoint::write() : failed
+112
+-:J5:1.570796:vel_
+cJoint::write() : failed
+113
+-:J5:1.570796:vel_
+cJoint::write() : failed
+114
+-:J5:1.570796:vel_
+cJoint::write() : failed
+115
+-:J5:1.570796:vel_
+cJoint::write() : failed
+116
+-:J5:1.570796:vel_
+cJoint::write() : failed
+117
+-:J5:1.570796:vel_
+cJoint::write() : failed
+118
+-:J5:1.570796:vel_
+cJoint::write() : failed
+119
+-:J5:1.570796:vel_
+cJoint::write() : failed
+120
+-:J5:1.570796:vel_
+cJoint::write() : failed
+121
+-:J5:1.570796:vel_
+cJoint::write() : failed
+122
+-:J5:1.570796:vel_
+cJoint::write() : failed
+123
+-:J5:1.570796:vel_
+cJoint::write() : failed
+124
+-:J5:1.570796:vel_
+cJoint::write() : failed
+125
+-:J5:1.570796:vel_
+cJoint::write() : failed
+126
+-:J5:1.570796:vel_
+cJoint::write() : failed
+127
+-:J5:1.570796:vel_
+cJoint::write() : failed
+128
+-:J5:1.570796:vel_
+cJoint::write() : failed
+129
+-:J5:1.570796:vel_
+cJoint::write() : failed
+130
+-:J5:1.570796:vel_
+cJoint::write() : failed
+131
+-:J5:1.570796:vel_
+cJoint::write() : failed
+132
+-:J5:1.570796:vel_
+cJoint::write() : failed
+133
+-:J5:1.570796:vel_
+cJoint::write() : failed
+134
+-:J5:1.570796:vel_
+cJoint::write() : failed
+135
+-:J5:1.570796:vel_
+cJoint::write() : failed
