@@ -72,7 +72,7 @@ class LSM3:
     print('err abc : '+str(abc-abc2))
 
 
-def load_file(fname):
+def load_file(fname, b_filter, b_torque_acc):
   global dt
   with open(fname, 'rt') as f:
     n_line = 0
@@ -94,24 +94,23 @@ def load_file(fname):
     dq = array(dq)
     current = array(current)
     data = {'t': t, 'q': q, 'dq': dq, 'current': current}
-    
-    get_t_range(data)
+
     data['current_f'] = filter(data['current'], dt)
     data['dq_f'] = filter(data['dq'], dt)
-    
+
     # get torque
-    get_torque(data, fname, b_filter=True)
+    get_torque(data, fname, b_filter=b_filter, b_torque_acc=b_torque_acc)
     return data
 
 
 
-def get_torque(data, fname, b_filter):
+def get_torque(data, fname, b_filter, b_torque_acc):
   path = os.path.dirname(os.path.abspath(fname))
   if b_filter:
     fname_torque = path + '/torque_f.txt'
   else:
     fname_torque = path + '/torque.txt'
-  
+
   torque = []
   torque_no_ddq = []
   if os.path.isfile(fname_torque):
@@ -121,29 +120,34 @@ def get_torque(data, fname, b_filter):
         if len(arr)==12:
           torque.append([float(a) for a in arr[0:6]])
           torque_no_ddq.append([float(a) for a in arr[6:12]])
-      
+
       if len(torque)!=len(data['t']):
         raise Exception('Torque length does not match : %d / %d' % (len(torque), len(data['t'])))
-        
+
       data['torque'] = array(torque)
       data['torque_no_ddq'] = array(torque_no_ddq)
   else:
-    ddq = zeros(6)
-    
+    ddq0 = zeros(6)
+
     q = data['q']
+    t = data['t']
     if b_filter:
       dq = data['dq_f']
     else:
       dq = data['dq']
     for i in range(len(q)):
       vars = eq.get_vars(q[i,:])
+      if b_torque_acc and i>0:
+        ddq = (dq[i,:] - dq[i-1,:])/(t[i]-t[i-1])
+      else:
+        ddq = ddq0
       t_ddq, t_no_ddq = cal_torque(q[i,:], dq[i,:], ddq, vars)
       torque.append(t_ddq)
       torque_no_ddq.append(t_no_ddq)
 
     data['torque'] = array(torque)
     data['torque_no_ddq'] = array(torque_no_ddq)
-    
+
     with open(fname_torque, 'wt') as f:
       for i in range(len(torque)):
         for j in range(len(torque[i])):
@@ -284,7 +288,7 @@ def find_eq( x, y, z, range_abc, n_loop ):
   min_err = 99999999.0
   for i in range(3):
     dabc.append( (range_abc[i][1] - range_abc[i][0])/float(n_loop) )
-    
+
   bias = create_bias(y)
   for i in range(n_loop):
     a = range_abc[0][0] + dabc[0]*i
@@ -292,7 +296,7 @@ def find_eq( x, y, z, range_abc, n_loop ):
       b = range_abc[1][0] + dabc[1]*j
       for k in range(n_loop):
         c = range_abc[2][0] + dabc[2]*k
-        
+
         z2 = a*x + b*y + c*bias
         e = linalg.norm(z2-z)
         if e<min_err:
@@ -319,21 +323,22 @@ if __name__ == "__main__":
 
   dir = 'bag2txt_j5_v'
   velos = [30,60,90]
-  
+
   datas = []
   data_est = None
   for v in velos:
     # load data
     fname = dir+str(v)+'/joint_states.txt'
-    data = load_file(fname)
-    
+    data = load_file(fname, b_filter=True, b_torque_acc=False)
+    get_t_range(data)
+
     t2 = get_data_from_t_range(data, data['t'])
     cur = get_data_from_t_range(data, data['current'][:,n_joint])
     dq = get_data_from_t_range(data, data['dq'][:,n_joint])
     cur_f = get_data_from_t_range(data, data['current_f'][:,n_joint])
     dq_f = get_data_from_t_range(data, data['dq_f'][:,n_joint])
     tq = get_data_from_t_range(data, data['torque_no_ddq'][:,n_joint])
-    
+
     if data_est is None:
       data_est = {'current': cur_f, 'dq': dq_f, 'torque': tq}
     else:
@@ -344,18 +349,18 @@ if __name__ == "__main__":
 
 
   abc = find_eq(data_est['current'], data_est['dq'], data_est['torque'], [[0.002, 0.007], [-0.8,0.8], [-0.8, 0.8]], 100)
-  
-  
+
+
   for iv in range(len(velos)):
     data = datas[iv]
-    
+
     t2 = get_data_from_t_range(data, data['t'])
     cur = get_data_from_t_range(data, data['current'][:,n_joint])
     dq = get_data_from_t_range(data, data['dq'][:,n_joint])
     cur_f = get_data_from_t_range(data, data['current_f'][:,n_joint])
     dq_f = get_data_from_t_range(data, data['dq_f'][:,n_joint])
     tq = get_data_from_t_range(data, data['torque_no_ddq'][:,n_joint])
-    
+
     data['torque_est'] = abc[0]*cur_f + abc[1]*dq_f + abc[2]*create_bias(dq_f)
 
     # fit

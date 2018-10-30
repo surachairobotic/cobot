@@ -30,9 +30,9 @@ abc = [0.0043, -0.03200000000000003, -0.32000000000000006]
 if __name__ == "__main__":
   dt = 0.020
   fnames = []
-  
-  
-  dir = '../bag2txt_j5_'
+
+
+  dir = 'bag2txt_j5_'
   hzs = ['0.5', '1']
   for hz in hzs:
     for s in range(1,3):
@@ -41,19 +41,19 @@ if __name__ == "__main__":
         raise Exception('Invalid file : '+f)
       fnames.append(f)
   '''
-  
+
   dir = 'bag2txt_j5_v'
   for v in [30,60,90]:
     fnames.append(dir+str(v)+'/joint_states.txt')
   '''
   for fname in fnames:
-    data = load_file(fname)
+    data = load_file(fname,b_filter=True, b_torque_acc=True)
     cur = data['current'][:,n_joint]
     dq = data['dq'][:,n_joint]
     cur_f = data['current_f'][:,n_joint]
     dq_f = data['dq_f'][:,n_joint]
     tq = data['torque'][:,n_joint]
-    
+
     bias = create_bias(dq_f)
     data['torque_est'] = abc[0]*cur_f + abc[1]*dq_f + abc[2]*bias
     # for plotting
