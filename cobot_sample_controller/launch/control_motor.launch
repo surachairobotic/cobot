@@ -1,0 +1,6 @@
+<launch>
+  <node name="cobot_sample_controller" pkg="cobot_sample_controller" type="cobot_sample_controller" respawn="false" output="screen" >
+    <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
+    <param name="result_dir" value="$(find cobot_sample_controller)/results/" />
+  </node>
+</launch>
