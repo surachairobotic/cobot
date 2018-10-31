@@ -91,7 +91,11 @@ add_service_files(
   get_motor_number.srv
   set_home.srv
   set_acc.srv
+	set_p_gain.srv
+	set_i_gain.srv
+	set_torque.srv
 )
+
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
@@ -148,7 +152,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  /opt/DynamixelSDK/c++/include/dynamixel_sdk
+	/home/dell/catkin_ws/src/DynamixelSDK/c++/include/dynamixel_sdk
+#  /opt/DynamixelSDK/c++/include/dynamixel_sdk
 #  /opt/DynamixelSDK-3.4.7/c++/include
   ${TinyXML_INCLUDE_DIRS}
 )
@@ -196,15 +201,25 @@ include_directories(
 #  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk_linux/port_handler_linux.cpp
 #)
 add_library(cobot_dynamixel_sdk
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
+
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
+  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
 )
 
 add_library(cobot_joint_pro
@@ -218,15 +233,15 @@ target_link_libraries(cobot_joint_pro
   cobot_dynamixel_sdk
 )
 
-add_library(cobot_joint_mx64
-  src/cJoint_common.cpp
-  src/cJoint_mx64.cpp
-)
-target_link_libraries(cobot_joint_mx64
-  ${catkin_LIBRARIES}
-  ${TinyXML_LIBRARIES}
-  cobot_dynamixel_sdk
-)
+#add_library(cobot_joint_mx64
+#  src/cJoint_common.cpp
+#  src/cJoint_mx64.cpp
+#)
+#target_link_libraries(cobot_joint_mx64
+#  ${catkin_LIBRARIES}
+#  ${TinyXML_LIBRARIES}
+#  cobot_dynamixel_sdk
+#)
 
 add_executable(cobot_dynamixel_driver_pro src/driver.cpp)
 add_dependencies(cobot_dynamixel_driver_pro cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
@@ -236,14 +251,29 @@ target_link_libraries(cobot_dynamixel_driver_pro
   cobot_joint_pro
 )
 
-
-add_executable(cobot_dynamixel_driver_mx64 src/driver.cpp)
-add_dependencies(cobot_dynamixel_driver_mx64 cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
-target_link_libraries(cobot_dynamixel_driver_mx64
+add_executable(cobot_dynamixel_driver_tester src/joint_state_tester.cpp)
+add_dependencies(cobot_dynamixel_driver_tester cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cobot_dynamixel_driver_tester
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  cobot_joint_mx64
+  cobot_joint_pro
 )
+
+add_executable(cobot_dynamixel_driver_tester2 src/joint_state_tester2.cpp)
+add_dependencies(cobot_dynamixel_driver_tester2 cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cobot_dynamixel_driver_tester2
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  cobot_joint_pro
+)
+
+#add_executable(cobot_dynamixel_driver_mx64 src/driver.cpp)
+#add_dependencies(cobot_dynamixel_driver_mx64 cobot_dynamixel_driver_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(cobot_dynamixel_driver_mx64
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  cobot_joint_mx64
+#)
 
 #############
 ## Install ##

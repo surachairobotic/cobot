@@ -34,17 +34,21 @@ enum eADDR{
   P_PRESENT_LOAD,
   P_PRESENT_INPUT_VOLTAGE,
   P_PRESENT_TEMPERATURE,
-  P_TORQUE_CONTROL_MODE
+  P_TORQUE_CONTROL_MODE,
+	P_VELOCITY_P_GAIN,
+	P_VELOCITY_I_GAIN,
+	P_SHUTDOWN
 };
 
 
 class cJoint{
 private:
-  int id, goal_pos, goal_velo, goal_torque;
+  int mode;
+  int id, goal_pos, goal_velo, goal_acc, goal_torque;
   int pos, velo, current, input_voltage, temperature, load;
   double rad2val, velo2val, acc2val;
   std::string name;
-  bool b_goal_velo, b_goal_pos_velo;
+  bool b_goal_velo, b_goal_velo_acc, b_goal_pos_velo, b_goal_pos_velo_acc, b_goal_torque;
   
   // xml
   std::string motor_name;
@@ -54,11 +58,10 @@ private:
 
   static dynamixel::PacketHandler *packetHandler;
   static dynamixel::PortHandler *portHandler;
-  static dynamixel::GroupSyncWrite *group_write_velo, *group_write_pos_velo;
+  static dynamixel::GroupSyncWrite *group_write_velo, *group_write_velo_acc, *group_write_pos_velo, *group_write_pos_velo_acc, *group_write_acc, *group_write_gain_p, *group_write_goal_torque;
   static dynamixel::GroupSyncRead *group_read_sync;
   static dynamixel::GroupBulkRead *group_read_bulk;
   static std::vector<cJoint> joints;
-  static int mode;
   static int ADDR[32][2];
   static std::vector<std::string> joint_names;
   static std::string setting_file;
@@ -78,10 +81,19 @@ private:
 public:
   cJoint();
   cJoint(int _id);
+	bool set_goal_torque(double torque);
   bool set_goal_velo(double rad_per_sec);
+  bool set_goal_velo_acc(double _velo, double _acc);
   bool set_goal_pos_velo(double _pos, double _velo);
+  bool set_goal_pos_velo_acc(double _pos, double _velo, double _acc);
   bool set_acc(double _acc);
+  bool set_p_gain(int _p_gain);
+  int get_p_gain();
+  bool set_i_gain(int _i_gain);
+  int get_i_gain();
+	bool send_p_gain(int _p_gain);
   void print_data() const;
+  void change_mode(int _mode);
 
   inline int get_id() const { return id; }
   inline const std::string& get_name() const { return name; }
@@ -92,10 +104,12 @@ public:
   
   
   static std::vector<cJoint> &init();
+	static void sync_torque();
   static void sync_velo();
+  static void sync_velo_acc();
   static void sync_pos_velo();
+  static void sync_pos_velo_acc();
   static bool sync_read();
-  static void change_mode(int _mode);
   static void terminate();
   static bool is_all_reaching_goal_pos();
   static void load_joint_name();

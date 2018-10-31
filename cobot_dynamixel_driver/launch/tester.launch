@@ -1,0 +1,5 @@
+<launch>
+  <node name="cobot_dynamixel_driver" pkg="cobot_dynamixel_driver" type="cobot_dynamixel_driver_tester" respawn="false" output="screen" >
+    <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
+  </node>
+</launch>

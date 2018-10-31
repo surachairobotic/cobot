@@ -1,4 +1,3 @@
-
 #include "ros/ros.h"
 
 #ifdef __linux__
@@ -347,7 +346,9 @@ std::vector<cJoint> &cJoint::init(){
   group_write_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_VELOCITY][0], ADDR[P_GOAL_VELOCITY][1]);
   group_write_pos_velo = new dynamixel::GroupSyncWrite(portHandler, packetHandler
-      , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_POSITION][1]);
+      , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1]);
+  group_write_pos_velo_acc = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+      , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_ACCELERATION][1]);
   group_read_bulk = new dynamixel::GroupBulkRead(portHandler, packetHandler);
   group_read_size = ADDR[P_PRESENT_TEMPERATURE][0] + ADDR[P_PRESENT_TEMPERATURE][1]
     - ADDR[P_PRESENT_POSITION][0];
