@@ -5,6 +5,13 @@ import matplotlib.pyplot as plt
 
 # http://nghiaho.com/?page_id=671
 
+
+# average of norms from camera
+# got from find_norms()
+norms_avg = array([0.0999894, 0.08125654, 0.12574291, 0.10634581, 0.07529343, 0.11320507])
+CAD_bar_xyz = [0.06036,-0.018,0.094]
+
+
 '''
 Base Marker
 
@@ -94,13 +101,14 @@ def get_col(names, l_marker_type, l_name, l_value_type, l_xyz):
 
 def find_bar_xyz():
   # [ 0-1, 0-2, 0-3, 1-2, 1-3, 2-3]
-  norms = [0.0999894, 0.08125654, 0.12574291, 0.10634581, 0.07529343, 0.11320507]
-  pnt = array([[0.0, 0.1, 0.01235]
-    , [0.0, 0.0, 0.01235]
-    , [-0.075, 0.0, 0.01235]])
+  global norms_avg, CAD_bar_xyz
+  pnt = array([[0.0, 0.1, 0.01735]
+    , [0.0, 0.0, 0.01735]
+    , [-0.075, 0.0, 0.01735]])
+  print('** find_bar_xyz **')
 
   # [ 0-2, 1-2, 2-3]
-  norm2 = array([norms[1], norms[3], norms[5]])
+  norm2 = array([norms_avg[1], norms_avg[3], norms_avg[5]])
 
   # M*[x,y,z].T = H
   M = zeros([3,3])
@@ -134,7 +142,7 @@ def find_bar_xyz():
 
   # find real pos
   pnt2 = array([pnt[0], pnt[1], xyz, pnt[2]])
-  real_xyz = array([0.06036,-0.018,0.09405])
+  real_xyz = array(CAD_bar_xyz)
   off = real_xyz - xyz
   real_pnt = []
   for p in pnt2:
@@ -152,12 +160,13 @@ def find_bar_xyz():
   for i in range(3):
     for j in range(i+1,4):
       n2.append(linalg.norm( pnt2[i] - pnt2[j] ))
-  print('err norm all : '+unicode(array(n2) - norms))
+  print('err norm all : '+unicode(array(n2) - norms_avg))
 
   return real_pnt
 
 
 def find_norms(pnt):
+  global norms_avg
   norms = []
   for p in pnt:
     norm = []
@@ -166,8 +175,13 @@ def find_norms(pnt):
         norm.append(linalg.norm( p[i*3:(i+1)*3] - p[j*3:(j+1)*3] ))
     norms.append(norm)
   norms = array(norms)
-  print('norm : '+unicode(norms.mean(0)))
+  norms_avg = norms.mean(0)
+  print('** find_norms **')
+  print('norm : '+unicode(norms_avg))
   print('norm err : '+unicode(norms.max(0) - norms.min(0)))
+
+
+
 
 def get_data(fname, names, pnt_num):
   pnt = []
@@ -226,27 +240,34 @@ def get_data(fname, names, pnt_num):
   return array(pnt), array(time) - time[0]
 
 
+# compare norm from camera and CAD
 def compare_norm():
-  px = 0.10-0.01
-  py = -0.10+0.01
-  pz = 0.005+0.007+0.00536
+  global norms_avg, CAD_bar_xyz
+  
+  # postion of pnt 1 from CAD
+  px = 0.0899 # 0.10-0.01
+  py = -0.0901 # -0.10+0.01
+  pz = 0.01736 # 0.005+0.007+0.00536
   real_xyz = array([[px,py+0.1,pz]
     ,[px,py,pz]
-    ,[0.06036,-0.018,0.09405]
+    ,CAD_bar_xyz #,[0.06036,-0.018,0.09405]
     ,[px-0.075,py,pz] ])
-  norms = array([0.0999894, 0.08125654, 0.12574291, 0.10634581, 0.07529343, 0.11320507])
   norm = []
   for i in range(len(real_xyz)):
     for j in range(i+1, len(real_xyz)):
       norm.append(linalg.norm( real_xyz[i] - real_xyz[j] ))
-  print('err norm (CAD - camera) : '+str(array(norm)-norms))
+  print('** compare_norm **')
+  print('err norm (CAD - camera) : '+str(array(norm)-norms_avg))
   print('real xyz (CAD) : '+str(real_xyz))
 
 if __name__ == "__main__":
+
+  pnt, time = get_data('Take 2018-10-19 Test 01.csv', names, 100000)
+  find_norms(pnt)
+#  exit()
   compare_norm()
   real_pnt = find_bar_xyz()
 
-  pnt, time = get_data('Take 2018-10-19 Test 01.csv', names, 100000)
 
   # find R,t
   A = pnt[:,0:3]

@@ -72,7 +72,7 @@ class LSM3:
     print('err abc : '+str(abc-abc2))
 
 
-def load_file(fname, b_filter, b_torque_acc):
+def load_file(fname):
   global dt
   with open(fname, 'rt') as f:
     n_line = 0
@@ -98,19 +98,20 @@ def load_file(fname, b_filter, b_torque_acc):
     data['current_f'] = filter(data['current'], dt)
     data['dq_f'] = filter(data['dq'], dt)
 
-    # get torque
-    get_torque(data, fname, b_filter=b_filter, b_torque_acc=b_torque_acc)
     return data
 
 
 
-def get_torque(data, fname, b_filter, b_torque_acc):
+def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
   path = os.path.dirname(os.path.abspath(fname))
-  if b_filter:
-    fname_torque = path + '/torque_f.txt'
-  else:
-    fname_torque = path + '/torque.txt'
-
+  
+  fname_torque = path + '/torque'
+  if b_filter_dq:
+    fname_torque += '_f_dq'
+  if b_filter_ddq:
+    fname_torque += '_f_ddq'
+  fname_torque+= '.txt'
+  
   torque = []
   torque_no_ddq = []
   if os.path.isfile(fname_torque):
@@ -131,14 +132,18 @@ def get_torque(data, fname, b_filter, b_torque_acc):
 
     q = data['q']
     t = data['t']
-    if b_filter:
+    if b_filter_dq:
       dq = data['dq_f']
     else:
       dq = data['dq']
     for i in range(len(q)):
       vars = eq.get_vars(q[i,:])
       if b_torque_acc and i>0:
-        ddq = (dq[i,:] - dq[i-1,:])/(t[i]-t[i-1])
+        if b_filter_ddq:
+          ddq = data['ddq_f'][i,:]
+        else:
+          ddq = data['ddq'][i,:]
+        #ddq = (dq[i,:] - dq[i-1,:])/(t[i]-t[i-1])
       else:
         ddq = ddq0
       t_ddq, t_no_ddq = cal_torque(q[i,:], dq[i,:], ddq, vars)
@@ -329,7 +334,8 @@ if __name__ == "__main__":
   for v in velos:
     # load data
     fname = dir+str(v)+'/joint_states.txt'
-    data = load_file(fname, b_filter=True, b_torque_acc=False)
+    data = load_file(fname)
+    get_torque(data, fname, b_filter_dq=True, b_filter_ddq=True, b_torque_acc=False)
     get_t_range(data)
 
     t2 = get_data_from_t_range(data, data['t'])

@@ -25,7 +25,7 @@ import os
 import find_torque_velo as fv
 
 
-abc = [0.0043, -0.03200000000000003, -0.32000000000000006]
+abc = [0.00272, -0.06, -0.15999999999999998]
 
 
 def get_t_range(data):
@@ -85,11 +85,30 @@ def get_ddq(data):
     ddq[1:,i] = (dq[1:,i] - dq[:dq.shape[0]-1,i]) / dt2
   data['ddq_f'] = ddq
 
+
+def check_data_est(data_est):
+  f, axarr = plt.subplots(3, sharex=True)
+  for i in range(len(axarr)):
+    axarr[i].hold(True)
+    axarr[i].grid(linestyle='-', linewidth='0.5')
+
+  axarr[0].plot(data_est['dq'])
+  axarr[1].plot(data_est['current'])
+  axarr[2].plot(data_est['torque'])
+
+  axarr[0].set_ylabel('dq [rad/s]')
+  axarr[1].set_ylabel('current [mA]')
+  axarr[2].set_ylabel('torque [N-m]')
+  plt.show()
+  exit()
+
+
 if __name__ == "__main__":
   dt = 0.020
-  fnames = []
+  files = []
 
 
+  # wave
   dir = 'bag2txt_j5_'
   hzs = ['0.5', '1']
   for hz in hzs:
@@ -97,24 +116,77 @@ if __name__ == "__main__":
       f = dir + hz+'hz_s'+str(s)+'/joint_states.txt'
       if not os.path.isfile(f):
         raise Exception('Invalid file : '+f)
-      fnames.append(f)
+      files.append({'path': f
+        , 'get_t_range': get_t_range
+        , 'get_data_from_t_range': get_data_from_t_range
+        , 'b_filter_dq': False
+        , 'b_filter_current': False
+        , 'b_torque_acc': True
+        })
 
-  for fname in fnames:
-    data = fv.load_file(fname,b_filter=True, b_torque_acc=True)
-    get_t_range(data)
+
+  # constant velo
+  dir = 'bag2txt_j5_v'
+  velos = [30,60,90]
+  for v in velos:
+    fname = dir+str(v)+'/joint_states.txt'
+    if not os.path.isfile(fname):
+      raise Exception('Invalid file : '+fname)
+    files.append({'path': fname
+      , 'get_t_range': fv.get_t_range
+      , 'get_data_from_t_range': fv.get_data_from_t_range
+      , 'b_filter_dq': True
+      , 'b_filter_current': True
+      , 'b_torque_acc': False
+    })
+
+  data_est = None
+  for f in files:
+    data = fv.load_file(f['path'])
+    f['get_t_range'](data)
     get_ddq(data)
+    fv.get_torque(data, f['path'],b_filter_dq=False, b_filter_ddq=True, b_torque_acc=f['b_torque_acc'])
+    f['data'] = data
+    
+    if f['b_filter_current']:
+      cur = f['get_data_from_t_range'](data, data['current_f'][:,fv.n_joint])
+    else:
+      cur = f['get_data_from_t_range'](data, data['current'][:,fv.n_joint])
+    dq_f = f['get_data_from_t_range'](data, data['dq_f'][:,fv.n_joint])
+    tq = f['get_data_from_t_range'](data, data['torque'][:,fv.n_joint])
 
-    t = get_data_from_t_range(data, data['t'])
-    cur = get_data_from_t_range(data, data['current'][:,fv.n_joint])
-    cur_f = get_data_from_t_range(data, data['current_f'][:,fv.n_joint])
-    dq = get_data_from_t_range(data, data['dq'][:,fv.n_joint])
-    dq_f = get_data_from_t_range(data, data['dq_f'][:,fv.n_joint])
-    tq = get_data_from_t_range(data, data['torque'][:,fv.n_joint])
-    ddq_f = get_data_from_t_range(data, data['ddq_f'][:,fv.n_joint])
+    if data_est is None:
+      data_est = {'current': cur, 'dq': dq_f, 'torque': tq}
+    else:
+      data_est['current'] = concatenate( (data_est['current'], cur), axis=0 )
+      data_est['dq'] = concatenate( (data_est['dq'], dq_f), axis=0 )
+      data_est['torque'] = concatenate( (data_est['torque'], tq), axis=0 )
+      
+      
+  
+#  check_data_est(data_est)
+  abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], [[0.001, 0.005], [-0.3,-0.0], [-0.5, 0.0]], 100)
+  
+  
+  for f in files:
+    data = f['data']
+    t = f['get_data_from_t_range'](data, data['t'])
+    cur = f['get_data_from_t_range'](data, data['current'][:,fv.n_joint])
+    cur_f = f['get_data_from_t_range'](data, data['current_f'][:,fv.n_joint])
+    dq = f['get_data_from_t_range'](data, data['dq'][:,fv.n_joint])
+    dq_f = f['get_data_from_t_range'](data, data['dq_f'][:,fv.n_joint])
+    tq = f['get_data_from_t_range'](data, data['torque'][:,fv.n_joint])
+    ddq_f = f['get_data_from_t_range'](data, data['ddq_f'][:,fv.n_joint])
 
+    
+    if f['b_filter_current']:
+      c = cur_f
+    else:
+      c = cur
     bias = fv.create_bias(dq_f)
-    abc = find_eq( cur, dq_f, ddq_f, tq, [[0.002, 0.007], [-0.8,0.8], [-0.8, 0.8], [-3.0, 3.0]], 20)
-    data['torque_est'] = abc[0]*cur_f + abc[1]*dq_f + abc[2]*ddq_f + abc[3]*bias
+    data['torque_est'] = abc[0]*c + abc[1]*dq_f + abc[2]*bias
+    
+    
     # for plotting
 
     # plot
@@ -135,5 +207,5 @@ if __name__ == "__main__":
     axarr[0].legend(['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
     axarr[3].legend(['estimate', 'calculation'])
     axarr[len(axarr)-1].set_xlabel('time [s]')
-    break
+    #break
   plt.show()
