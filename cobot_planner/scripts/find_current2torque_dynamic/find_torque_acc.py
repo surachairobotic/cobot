@@ -140,14 +140,15 @@ if __name__ == "__main__":
       , 'b_torque_acc': False
     })
 
-  data_est = None
+  data_ests = []
+  min_est = 9999999
   for f in files:
     data = fv.load_file(f['path'])
     f['get_t_range'](data)
     get_ddq(data)
     fv.get_torque(data, f['path'],b_filter_dq=False, b_filter_ddq=True, b_torque_acc=f['b_torque_acc'])
     f['data'] = data
-    
+
     if f['b_filter_current']:
       cur = f['get_data_from_t_range'](data, data['current_f'][:,fv.n_joint])
     else:
@@ -155,19 +156,35 @@ if __name__ == "__main__":
     dq_f = f['get_data_from_t_range'](data, data['dq_f'][:,fv.n_joint])
     tq = f['get_data_from_t_range'](data, data['torque'][:,fv.n_joint])
 
+    '''
     if data_est is None:
       data_est = {'current': cur, 'dq': dq_f, 'torque': tq}
     else:
       data_est['current'] = concatenate( (data_est['current'], cur), axis=0 )
       data_est['dq'] = concatenate( (data_est['dq'], dq_f), axis=0 )
       data_est['torque'] = concatenate( (data_est['torque'], tq), axis=0 )
-      
-      
-  
+    '''
+    data_ests.append({'current': cur, 'dq': dq_f, 'torque': tq})
+    if min_est<len(cur):
+      min_est = len(cur)
+
+  data_est = None
+  for d in data_ests:
+    if len(d['current'])>min_est:
+      d['current'] = d['current'][:min_est]
+      d['dq'] = d['dq'][:min_est]
+      d['torque'] = d['torque'][:min_est]
+    if data_est is None:
+      data_est = d
+    else:
+      data_est['current'] = concatenate( (data_est['current'], d['current']), axis=0 )
+      data_est['dq'] = concatenate( (data_est['dq'], d['dq']), axis=0 )
+      data_est['torque'] = concatenate( (data_est['torque'], d['torque']), axis=0 )
+
 #  check_data_est(data_est)
   abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], [[0.001, 0.005], [-0.3,-0.0], [-0.5, 0.0]], 100)
-  
-  
+
+
   for f in files:
     data = f['data']
     t = f['get_data_from_t_range'](data, data['t'])
@@ -178,15 +195,15 @@ if __name__ == "__main__":
     tq = f['get_data_from_t_range'](data, data['torque'][:,fv.n_joint])
     ddq_f = f['get_data_from_t_range'](data, data['ddq_f'][:,fv.n_joint])
 
-    
+
     if f['b_filter_current']:
       c = cur_f
     else:
       c = cur
     bias = fv.create_bias(dq_f)
     data['torque_est'] = abc[0]*c + abc[1]*dq_f + abc[2]*bias
-    
-    
+
+
     # for plotting
 
     # plot

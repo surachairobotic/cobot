@@ -104,14 +104,14 @@ def load_file(fname):
 
 def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
   path = os.path.dirname(os.path.abspath(fname))
-  
+
   fname_torque = path + '/torque'
   if b_filter_dq:
     fname_torque += '_f_dq'
   if b_filter_ddq:
     fname_torque += '_f_ddq'
   fname_torque+= '.txt'
-  
+
   torque = []
   torque_no_ddq = []
   if os.path.isfile(fname_torque):
@@ -330,7 +330,8 @@ if __name__ == "__main__":
   velos = [30,60,90]
 
   datas = []
-  data_est = None
+  data_ests = []
+  min_est = 9999999
   for v in velos:
     # load data
     fname = dir+str(v)+'/joint_states.txt'
@@ -345,14 +346,31 @@ if __name__ == "__main__":
     dq_f = get_data_from_t_range(data, data['dq_f'][:,n_joint])
     tq = get_data_from_t_range(data, data['torque_no_ddq'][:,n_joint])
 
+    datas.append(data)
+    '''
     if data_est is None:
       data_est = {'current': cur_f, 'dq': dq_f, 'torque': tq}
     else:
       data_est['current'] = concatenate( (data_est['current'], cur_f), axis=0 )
       data_est['dq'] = concatenate( (data_est['dq'], dq_f), axis=0 )
       data_est['torque'] = concatenate( (data_est['torque'], tq), axis=0 )
-    datas.append(data)
+    '''
+    data_ests.append({'current': cur_f, 'dq': dq_f, 'torque': tq})
+    if min_est<len(cur_f):
+      min_est = len(cur_f)
 
+  data_est = None
+  for d in data_ests:
+    if len(d['current'])>min_est:
+      d['current'] = d['current'][:min_est]
+      d['dq'] = d['dq'][:min_est]
+      d['torque'] = d['torque'][:min_est]
+    if data_est is None:
+      data_est = d
+    else:
+      data_est['current'] = concatenate( (data_est['current'], d['current']), axis=0 )
+      data_est['dq'] = concatenate( (data_est['dq'], d['dq']), axis=0 )
+      data_est['torque'] = concatenate( (data_est['torque'], d['torque']), axis=0 )
 
   abc = find_eq(data_est['current'], data_est['dq'], data_est['torque'], [[0.002, 0.007], [-0.8,0.8], [-0.8, 0.8]], 100)
 
