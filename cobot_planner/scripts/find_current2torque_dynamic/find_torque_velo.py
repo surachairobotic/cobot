@@ -2,6 +2,7 @@
 
 '''
 find equation to estimate torque from current and dq
+data : constant velo
 '''
 
 import sys
@@ -26,6 +27,7 @@ import os
 n_joint = 4
 dt = 0.020
 
+'''
 # ax + by + c = z
 class LSM3:
   def fit(self,x,y,z):
@@ -70,7 +72,7 @@ class LSM3:
 
     abc2 = self.fit(x,y,z)
     print('err abc : '+str(abc-abc2))
-
+'''
 
 def load_file(fname):
   global dt
@@ -97,6 +99,13 @@ def load_file(fname):
 
     data['current_f'] = filter(data['current'], dt)
     data['dq_f'] = filter(data['dq'], dt)
+    data['ddq'] = zeros(data['dq'].shape)
+    '''
+    for i in range(data['ddq'].shape[1]):
+      data['ddq'][1:,i] = (data['dq'][1:,i] - data['dq'][:-1,i])/(t[1:]-t[:-1])
+    '''
+    data['ddq'][1:,:] = (data['dq'][1:,:] - data['dq'][:-1,:])/tile( (t[1:]-t[:-1]) , (data['ddq'].shape[1],1)).T
+    data['ddq_f'] = filter(data['ddq'], dt)
 
     return data
 
@@ -323,7 +332,7 @@ def create_bias(data):
   return bias
 
 if __name__ == "__main__":
-  lsm = LSM3()
+  #lsm = LSM3()
   #abc = [0.0043, -0.03200000000000003, -0.32000000000000006]
 
   dir = 'bag2txt_j5_v'

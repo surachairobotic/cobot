@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-estimate torque with the equation got from find_torque.py
+estimate torque with the equation got from find_torque_velo.py
 '''
 
 import sys
@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import copy
 from scipy import signal
 import os
-from find_torque import *
+import find_torque_velo as fv
 
 
 abc = [0.0043, -0.03200000000000003, -0.32000000000000006]
@@ -47,14 +47,16 @@ if __name__ == "__main__":
     fnames.append(dir+str(v)+'/joint_states.txt')
   '''
   for fname in fnames:
-    data = load_file(fname,b_filter=True, b_torque_acc=True)
-    cur = data['current'][:,n_joint]
-    dq = data['dq'][:,n_joint]
-    cur_f = data['current_f'][:,n_joint]
-    dq_f = data['dq_f'][:,n_joint]
-    tq = data['torque'][:,n_joint]
+    data = fv.load_file(fname)
+    fv.get_torque(data, fname, b_filter_dq=True, b_filter_ddq=True, b_torque_acc=True)
+    #data = fv.load_file(fname,b_filter=True, b_torque_acc=True)
+    cur = data['current'][:,fv.n_joint]
+    dq = data['dq'][:,fv.n_joint]
+    cur_f = data['current_f'][:,fv.n_joint]
+    dq_f = data['dq_f'][:,fv.n_joint]
+    tq = data['torque'][:,fv.n_joint]
 
-    bias = create_bias(dq_f)
+    bias = fv.create_bias(dq_f)
     data['torque_est'] = abc[0]*cur_f + abc[1]*dq_f + abc[2]*bias
     # for plotting
 
@@ -64,9 +66,9 @@ if __name__ == "__main__":
       axarr[i].hold(True)
       axarr[i].grid(linestyle='-', linewidth='0.5')
 
-    axarr[0].plot(data['t'],data['q'][:,n_joint])
-    axarr[1].plot(data['t'],data['dq'][:,n_joint], data['t'], dq_f)
-    axarr[2].plot(data['t'],data['current'][:,n_joint], data['t'], cur_f)
+    axarr[0].plot(data['t'],data['q'][:,fv.n_joint])
+    axarr[1].plot(data['t'],data['dq'][:,fv.n_joint], data['t'], dq_f)
+    axarr[2].plot(data['t'],data['current'][:,fv.n_joint], data['t'], cur_f)
     axarr[3].plot(data['t'], data['torque_est'] , data['t'], tq)
 
     axarr[0].set_ylabel('q [rad]')

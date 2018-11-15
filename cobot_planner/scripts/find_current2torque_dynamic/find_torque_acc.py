@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 '''
-estimate torque with the equation got from find_torque.py
+find equation to estimate torque from current and dq
+data : wave + constant velo
 '''
 
 import sys
