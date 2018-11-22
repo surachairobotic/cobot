@@ -18,15 +18,23 @@ import os
 import find_torque_velo as fv
 
 
+fv.n_joint = 4
+
 if __name__ == "__main__":
   dt = 0.020
   files = []
+  
+  if fv.n_joint==0:
+    hzs = ['0.125', '0.25', '0.5']
+    wave_s = 1
+  elif fv.n_joint==4:
+    hzs = ['0.5', '1']
+    wave_s = 2
 
   # wave
-  dir = 'bag2txt_j5_'
-  hzs = ['0.5', '1']
+  dir = 'bag2txt_j'+str(fv.n_joint+1)+'_'
   for hz in hzs:
-    for s in range(1,3):
+    for s in range(1,wave_s+1):
       f = dir + hz+'hz_s'+str(s)+'/joint_states.txt'
       if not os.path.isfile(f):
         raise Exception('Invalid file : '+f)
@@ -39,15 +47,13 @@ if __name__ == "__main__":
 
 
   # constant velo
-  dir = 'bag2txt_j5_v'
+  dir = 'bag2txt_j'+str(fv.n_joint+1)+'_v'
   velos = [30,60,90]
   for v in velos:
     fname = dir+str(v)+'/joint_states.txt'
     if not os.path.isfile(fname):
       raise Exception('Invalid file : '+fname)
     files.append({'path': fname
-#      , 'get_t_range': fv.get_t_range
-#      , 'get_data_from_t_range': fv.get_data_from_t_range
       , 'b_filter_current': True
       , 'b_torque_acc': False
     })

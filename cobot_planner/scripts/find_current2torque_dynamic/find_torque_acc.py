@@ -27,22 +27,35 @@ import find_torque_velo as fv
 
 
 abc = [0.00272, -0.06, -0.15999999999999998]
-
+abc = [0.00020000000000000052, -0.21599999999999997, -0.020000000000000018]
 
 def get_t_range(data):
   dq = data['dq_f']
   n = 10
+  '''
   for i in range(n,len(dq)):
     dq2 = dq[i-n:i, fv.n_joint]
     if max(dq2)-min(dq2) > 0.01:
       i1 = i+100
       for j in range(i1,len(dq)):
         dq2 = dq[j-n:j, fv.n_joint]
-        if max(dq2)-min(dq2) < 0.01:
+        if max(dq2)-min(dq2) < 0.05:
           i2 = j-100
           data['t_range'] = [i1, i2]
           return
-
+  '''
+  for i in range(n,len(dq)):
+    dq2 = dq[i-n:i, fv.n_joint]
+    if max(dq2)-min(dq2) > 0.01:
+      i1 = i+100
+      break
+  for i in range(len(dq)-1, n-1, -1):
+    dq2 = dq[i-n:i, fv.n_joint]
+    if max(dq2)-min(dq2) > 0.01:
+      i2 = i-100
+      data['t_range'] = [i1, i2]
+      return
+      
 def get_data_from_t_range(data, data_range):
   t = data['t_range']
   if len(data_range.shape)==1:
@@ -104,16 +117,25 @@ def check_data_est(data_est):
   exit()
 
 
-if __name__ == "__main__":
-  dt = 0.020
+def load_data(n_joint):
   files = []
-
+  fv.n_joint = n_joint
+  
+  if fv.n_joint==0:
+    abc_range = [[-0.01, 0.01], [-0.3,0.3], [-0.5, 0.5]]
+    hzs = ['0.125', '0.25', '0.5']
+    wave_s = 1
+    velos = [30,60]
+  elif fv.n_joint==4:
+    abc_range = [[0.001, 0.005], [-0.3,0.0], [-0.5, 0.0]]
+    hzs = ['0.5', '1']
+    wave_s = 2
+    velos = [30,60,90]
 
   # wave
-  dir = 'bag2txt_j5_'
-  hzs = ['0.5', '1']
+  dir = 'bag2txt_j'+str(fv.n_joint+1)+'_'
   for hz in hzs:
-    for s in range(1,3):
+    for s in range(1,wave_s+1):
       f = dir + hz+'hz_s'+str(s)+'/joint_states.txt'
       if not os.path.isfile(f):
         raise Exception('Invalid file : '+f)
@@ -127,8 +149,7 @@ if __name__ == "__main__":
 
 
   # constant velo
-  dir = 'bag2txt_j5_v'
-  velos = [30,60,90]
+  dir = 'bag2txt_j'+str(fv.n_joint+1)+'_v'
   for v in velos:
     fname = dir+str(v)+'/joint_states.txt'
     if not os.path.isfile(fname):
@@ -144,8 +165,10 @@ if __name__ == "__main__":
   data_ests = []
   min_est = 9999999
   for f in files:
+    print('file : '+f['path'])
     data = fv.load_file(f['path'])
     f['get_t_range'](data)
+    print(data['t_range'])
     get_ddq(data)
     fv.get_torque(data, f['path'],b_filter_dq=False, b_filter_ddq=True, b_torque_acc=f['b_torque_acc'])
     f['data'] = data
@@ -165,9 +188,11 @@ if __name__ == "__main__":
       data_est['dq'] = concatenate( (data_est['dq'], dq_f), axis=0 )
       data_est['torque'] = concatenate( (data_est['torque'], tq), axis=0 )
     '''
+    
     data_ests.append({'current': cur, 'dq': dq_f, 'torque': tq})
     if min_est<len(cur):
       min_est = len(cur)
+
 
   data_est = None
   for d in data_ests:
@@ -181,9 +206,17 @@ if __name__ == "__main__":
       data_est['current'] = concatenate( (data_est['current'], d['current']), axis=0 )
       data_est['dq'] = concatenate( (data_est['dq'], d['dq']), axis=0 )
       data_est['torque'] = concatenate( (data_est['torque'], d['torque']), axis=0 )
+  return files, data_est
 
-#  check_data_est(data_est)
-  abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], [[0.001, 0.005], [-0.3,-0.0], [-0.5, 0.0]], 100)
+if __name__ == "__main__":
+  dt = 0.020
+
+  files, data_est = load_data(0)
+  #check_data_est(data_est)
+
+  # j0
+  #abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], abc_range, 100)
+  # j4
 
 
   for f in files:
