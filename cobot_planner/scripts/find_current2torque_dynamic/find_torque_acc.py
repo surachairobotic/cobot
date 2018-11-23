@@ -95,9 +95,24 @@ def get_ddq(data):
   ddq = zeros(dq.shape)
   t = data['t']
   dt2 = (t[1:] - t[:len(t)-1])
+  for i in range(len(dt2)):
+    if dt2[i]<0.015:
+      dt2[i] = 0.015
   for i in range(dq.shape[1]):
     ddq[1:,i] = (dq[1:,i] - dq[:dq.shape[0]-1,i]) / dt2
   data['ddq_f'] = ddq
+
+  for i in range(ddq.shape[0]):
+    d = ddq[i,:]
+    for k in range(len(d)):
+      if abs(d[k])>50.0:
+        for j in range(i-3,i+4):
+          d = ddq[j,:]
+          print(d)
+          print(dq[j,:])
+          print(dt2[j])
+        exit()
+
 
 
 def check_data_est(data_est):
@@ -128,8 +143,8 @@ def load_data(n_joint):
     velos = [30,60]
   elif fv.n_joint==4:
     abc_range = [[0.001, 0.005], [-0.3,0.0], [-0.5, 0.0]]
-    hzs = ['0.5', '1']
-    wave_s = 2
+    hzs = ['0.125', '0.25', '0.5']
+    wave_s = 1
     velos = [30,60,90]
 
   # wave
@@ -142,8 +157,8 @@ def load_data(n_joint):
       files.append({'path': f
         , 'get_t_range': get_t_range
         , 'get_data_from_t_range': get_data_from_t_range
-        , 'b_filter_dq': False
-        , 'b_filter_current': False
+        , 'b_filter_dq': True
+        , 'b_filter_current': True
         , 'b_torque_acc': True
         })
 

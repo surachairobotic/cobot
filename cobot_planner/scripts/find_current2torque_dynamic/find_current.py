@@ -68,14 +68,17 @@ def get_ddq(data):
 
 if __name__ == "__main__":
   dt = 0.020
-  files, data_est = fa.load_data(4)
+  files, data_est = fa.load_data(0)
   
   if fv.n_joint==0:
     abc_range = [[0.0, 200.0], [0.0,3000.0], [0.0, 500.0]]
-    abc = [72.0, 1170.0, 265.0]
+    #abc = [72.0, 1170.0, 265.0]
+    abc = [70.0, 1200.0, 235.0]
   elif fv.n_joint==4:
-    abc_range = [[100.0, 400.0], [0.0,200.0], [0.0, 100.0]]
-    abc = [250.0, 38.0, 46.0]
+    abc_range = [[100.0, 400.0], [0.0,100.0], [0.0, 100.0]]
+#    abc_range = [[-200.0, 200.0], [-200.0,200.0], [-200.0, 200.0]]
+#    abc = [250.0, 38.0, 46.0]
+    abc = [205.0, 20.0, 60.0]
 
   #abc = fv.find_eq(data_est['torque'], data_est['dq'], data_est['current'], abc_range, 100)
 
@@ -92,6 +95,7 @@ if __name__ == "__main__":
 
     bias = fv.create_bias(dq_f)
     data['current_est'] = abc[0]*tq + abc[1]*dq_f + abc[2]*bias
+    data['torque_est'] = (cur_f - (abc[1]*dq_f + abc[2]*bias))/abc[0]
 
 
     # for plotting
@@ -104,19 +108,23 @@ if __name__ == "__main__":
 
     axarr[0].plot(data['t'],data['q'][:,fv.n_joint])
     axarr[1].plot(data['t'],data['dq'][:,fv.n_joint], t, dq_f)
-    axarr[2].plot(data['t'],data['current'][:,fv.n_joint], t, cur_f)
+    axarr[2].plot(t, tq, t, data['torque_est'])
+#    axarr[2].plot(data['t'],data['current'][:,fv.n_joint], t, cur_f)
+    '''
     if f['b_filter_current']:
       c = cur_f
     else:
       c = cur
-    axarr[3].plot(t, c , t, data['current_est'])
+    '''
+    axarr[3].plot(t, cur, t, cur_f, t, data['current_est'], 'k')
 
     axarr[0].set_ylabel('q [rad]')
     axarr[1].set_ylabel('dq [rad/s]')
-    axarr[2].set_ylabel('current [mA]')
-    axarr[3].set_ylabel('torque [N-m]')
+    axarr[2].set_ylabel('torque [N-m]')
+    axarr[3].set_ylabel('current [mA]')
     axarr[0].legend(['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
-    axarr[3].legend(['current', 'estimate'])
+    axarr[2].legend(['torque', 'estimate'])
+    axarr[3].legend(['current', 'current_filter', 'estimate'])
     axarr[len(axarr)-1].set_xlabel('time [s]')
     #break
   plt.show()

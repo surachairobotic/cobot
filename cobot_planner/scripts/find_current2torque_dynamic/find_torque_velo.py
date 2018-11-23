@@ -75,7 +75,7 @@ class LSM3:
 '''
 
 def load_file(fname):
-  global dt
+  global dt, n_joint
   with open(fname, 'rt') as f:
     n_line = 0
     q = []
@@ -104,14 +104,33 @@ def load_file(fname):
     for i in range(data['ddq'].shape[1]):
       data['ddq'][1:,i] = (data['dq'][1:,i] - data['dq'][:-1,i])/(t[1:]-t[:-1])
     '''
-    data['ddq'][1:,:] = (data['dq'][1:,:] - data['dq'][:-1,:])/tile( (t[1:]-t[:-1]) , (data['ddq'].shape[1],1)).T
+    
+    dt2 = t[1:]-t[:-1]
+    for i in range(len(dt2)):
+      if dt2[i]<0.015:
+        dt2[i] = 0.015
+    data['ddq'][1:,:] = (data['dq'][1:,:] - data['dq'][:-1,:])/tile( dt2 , (data['ddq'].shape[1],1)).T
     data['ddq_f'] = filter(data['ddq'], dt)
-
+    
+    '''
+    print(data['ddq'].shape[0])
+    for i in range(data['ddq'].shape[0]):
+      d = data['ddq'][i,:]
+      for k in range(len(d)):
+        if abs(d[k])>50.0:
+          for j in range(i-3,i+4):
+            d = data['ddq'][j,:]
+            print(d)
+            print(data['dq'][j,:])
+            print(dt2[j])
+          exit()
+    '''
     return data
 
 
 
 def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
+  global n_joint
   path = os.path.dirname(os.path.abspath(fname))
 
   fname_torque = path + '/torque'
@@ -158,9 +177,29 @@ def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
       t_ddq, t_no_ddq = cal_torque(q[i,:], dq[i,:], ddq, vars)
       torque.append(t_ddq)
       torque_no_ddq.append(t_no_ddq)
-
+      if t_ddq[n_joint]>10.0:
+        print('***** over *****')
+        print('q : '+str(q[i,:]))
+        for j in range(i-3,i+4):
+          print('dq : '+str(dq[j,:]))
+        for j in range(i-3,i+4):
+          if b_filter_ddq:
+            ddq = data['ddq_f'][j,:]
+          else:
+            ddq = data['ddq'][j,:]
+          print('ddq : '+str(ddq))
+        for j in range(i-3,i+4):
+          print('t : '+str(t[j]))
+          
+        for j in range(i-3,i+4):
+          ddq = (data['dq_f'][j,:]-data['dq_f'][j-1,:])/(t[j]-t[j-1])
+          print('ddq : '+str(ddq[n_joint]))
+        print(data['dq_f'][i,:])
+        print(data['dq_f'][i-1,:])
+        exit()
     data['torque'] = array(torque)
     data['torque_no_ddq'] = array(torque_no_ddq)
+        
 
     with open(fname_torque, 'wt') as f:
       for i in range(len(torque)):
