@@ -1,0 +1,6 @@
+<launch>
+  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
+    <param name="save" value="true"/>
+    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/test"/>
+  </node>
+</launch>

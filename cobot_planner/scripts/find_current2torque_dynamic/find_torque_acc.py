@@ -28,6 +28,7 @@ import find_torque_velo as fv
 
 abc = [0.00272, -0.06, -0.15999999999999998]
 abc = [0.00020000000000000052, -0.21599999999999997, -0.020000000000000018]
+abc_range = None
 
 def get_t_range(data):
   dq = data['dq_f']
@@ -133,14 +134,22 @@ def check_data_est(data_est):
 
 
 def load_data(n_joint):
+  global abc_range
   files = []
   fv.n_joint = n_joint
   
   if fv.n_joint==0:
+    abc = [0.0008000000000000004, -0.3, -0.5]
     abc_range = [[-0.01, 0.01], [-0.3,0.3], [-0.5, 0.5]]
     hzs = ['0.125', '0.25', '0.5']
-    wave_s = 1
+    wave_s = 2
     velos = [30,60]
+  elif fv.n_joint==1:
+    abc = [-0.005500000000000005, -3.8, -2.3999999999999995]
+    abc_range = [[-0.05, 0.0], [-10.0,0.0], [-10.0, 0.0]]
+    hzs = ['0.125', '0.25', '0.5']
+    wave_s = 2
+    velos = [30,60,90]
   elif fv.n_joint==4:
     abc_range = [[0.001, 0.005], [-0.3,0.0], [-0.5, 0.0]]
     hzs = ['0.125', '0.25', '0.5']
@@ -226,12 +235,10 @@ def load_data(n_joint):
 if __name__ == "__main__":
   dt = 0.020
 
-  files, data_est = load_data(0)
+  files, data_est = load_data(1)
   #check_data_est(data_est)
 
-  # j0
-  #abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], abc_range, 100)
-  # j4
+  abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], abc_range, 100)
 
 
   for f in files:

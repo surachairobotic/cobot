@@ -177,6 +177,7 @@ def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
       t_ddq, t_no_ddq = cal_torque(q[i,:], dq[i,:], ddq, vars)
       torque.append(t_ddq)
       torque_no_ddq.append(t_no_ddq)
+      '''
       if t_ddq[n_joint]>10.0:
         print('***** over *****')
         print('q : '+str(q[i,:]))
@@ -197,6 +198,7 @@ def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
         print(data['dq_f'][i,:])
         print(data['dq_f'][i-1,:])
         exit()
+      '''
     data['torque'] = array(torque)
     data['torque_no_ddq'] = array(torque_no_ddq)
         
@@ -218,7 +220,7 @@ def get_t_range(data):
   n = len(t)
 
   n_mean = 10
-  n_clip = 15
+  n_clip = 5
   b_found = False
 
   t_range = []
@@ -228,16 +230,19 @@ def get_t_range(data):
     v1 = min(v)
     v2 = max(v)
     v_cen = (v1+v2)*0.5
-    if abs(v_cen)<0.2:
+    if abs(v_cen)<0.4:
       b_fix = False
     else:
       b_fix = (abs((v2-v1)/v_cen) < 0.4)
 
     if b_found:
       if not b_fix:
+        print(i1)
+        print(i)
         i1+= n_clip
         i2 = i-n_clip
-        if t[i2] - t[i1] > 1.0:
+        print(t[i2] - t[i1])
+        if t[i2] - t[i1] > 0.3:
           t_range.append({'t1': t[i1], 'i1': i1, 't2': t[i2], 'i2': i2})
         b_found = False
     else:

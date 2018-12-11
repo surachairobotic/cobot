@@ -1,0 +1,8 @@
+<launch>
+  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
+    <param name="load" value="true"/>
+    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/test"/>
+  </node>
+<!-->  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
+    args="0 0 0 0 0 0 1 world base_link 100" respawn="false" output="screen" /> -->
+</launch>

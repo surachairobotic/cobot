@@ -68,12 +68,15 @@ def get_ddq(data):
 
 if __name__ == "__main__":
   dt = 0.020
-  files, data_est = fa.load_data(0)
+  files, data_est = fa.load_data(4)
   
   if fv.n_joint==0:
     abc_range = [[0.0, 200.0], [0.0,3000.0], [0.0, 500.0]]
     #abc = [72.0, 1170.0, 265.0]
-    abc = [70.0, 1200.0, 235.0]
+    abc = [46.0, 1230.0, 250.0]
+  elif fv.n_joint==1:
+    abc_range = [[-300.0, 0.0], [-1500.0,0.0], [-1000.0, 0.0]]
+    abc = [-168.0, -855.0, -390.0]
   elif fv.n_joint==4:
     abc_range = [[100.0, 400.0], [0.0,100.0], [0.0, 100.0]]
 #    abc_range = [[-200.0, 200.0], [-200.0,200.0], [-200.0, 200.0]]
