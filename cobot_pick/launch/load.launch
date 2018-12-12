@@ -1,8 +1,22 @@
 <launch>
-  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
+  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
+         output="screen" >
     <param name="load" value="true"/>
-    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/test"/>
+    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/white_box"/>
+    <param name="norm_scale1" value="0.007"/>
+    <param name="norm_scale2" value="0.015"/>
+    <param name="norm_k_search1" value="10"/>
+    <param name="norm_k_search2" value="20"/>
+    <param name="norm_th_rad" value="0.1"/>
+    <param name="norm_th_curvature" value="0.2"/>
+    <param name="segment_radius" value="0.01"/>
+    <param name="min_cluster_size" value="10"/>
+    <param name="max_cluster_size" value="9999999"/>
+    <param name="threshold_pointcloud_distance" value="0.005"/>
+    <param name="norm_k_search_my" value="4"/>
+    <param name="norm_thread" value="2"/>
+
   </node>
-<!-->  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
-    args="0 0 0 0 0 0 1 world base_link 100" respawn="false" output="screen" /> -->
+  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
+    args="0 0 0 0 0 0 1 camera_color_optical_frame my_frame 100" respawn="false" output="screen" />
 </launch>

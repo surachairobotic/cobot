@@ -3,6 +3,7 @@ project(cobot_pick)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
+add_compile_options(-std=c++11 -g -O0)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED)
+find_package(TBB COMPONENTS tbbmalloc tbbmalloc_proxy tbb_preview)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -41,6 +43,6 @@ include_directories(
 
 
 link_directories(/usr/local/lib)
-add_executable(cobot_find_object src/cobot_find_object.cpp)
-target_link_libraries(cobot_find_object ${catkin_LIBRARIES} opencv_core opencv_imgcodecs opencv_highgui ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
+add_executable(cobot_find_object src/cobot_find_object.cpp src/cLabeling.cpp src/zdsfmt.cpp)
+target_link_libraries(cobot_find_object ${catkin_LIBRARIES} opencv_core opencv_imgcodecs opencv_highgui ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} tbb)
 

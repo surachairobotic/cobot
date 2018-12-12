@@ -2,6 +2,7 @@
 #ifndef __CROSDATA_H__
 #define __CROSDATA_H__
 
+#include "cobot_pick/common.h"
 #include "ros/ros.h"
 #include <image_geometry/pinhole_camera_model.h>
 #include <assert.h>
@@ -18,6 +19,9 @@ class cROSData{
 protected:
   bool b_saved;
   ros::Subscriber sub;
+  std::string name_ext;
+
+  const std::string get_file_name(){ return (file_prefix+name_ext); }
 
   // write
   template<typename T>
@@ -85,22 +89,22 @@ public:
   
 
   cROSData():b_saved(false){}
+  cROSData(const std::string &_name):b_saved(false), name_ext(_name){}
 
   bool is_saved(){ return b_saved; }
 
   static void save_mode(ros::NodeHandle &n);
   static void load_mode(sensor_msgs::CameraInfo& msg_cam_info
     , sensor_msgs::Image& msg_depth
+    , sensor_msgs::Image& msg_col
     , pcl::PointCloud<pcl::PointXYZRGB> &cloud );
   static bool is_all_saved();
   static void stop();
 };
 
 class cROSCameraInfo : public cROSData{
-private:
-  const std::string get_file_name(){ return (file_prefix+"_cam_info.bin"); }
-  
 public:
+  cROSCameraInfo():cROSData("_cam_info.bin"){}
 
   bool save(const sensor_msgs::CameraInfo& msg){
     FILE *fp;
@@ -160,11 +164,11 @@ public:
 
 
 
-class cROSDepth : public cROSData{
-private:
-  const std::string get_file_name(){ return (file_prefix+"_depth.bin"); }
-  
+class cROSImage : public cROSData{
 public:
+  cROSImage():cROSData("_img.bin"){}
+  cROSImage(const std::string &_name):cROSData(_name){}
+
   bool save(const sensor_msgs::Image& msg){
     FILE *fp;
     fp = fopen( get_file_name().c_str(), "wb" );
@@ -198,7 +202,7 @@ public:
       read_vector(fp, msg.data);
       check_end(fp);
       fclose(fp);
-      ROS_INFO("depth loaded");
+      ROS_INFO("image loaded");
       return true;
     }
     else{
@@ -217,10 +221,9 @@ public:
 
 
 class cROSPointCloud : public cROSData{
-private:
-  const std::string get_file_name(){ return (file_prefix+"_pc.pcd"); }
-  
 public:
+  cROSPointCloud():cROSData("_pc.pcd"){}
+
   bool save(const sensor_msgs::PointCloud2& msg){
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
     pcl::fromROSMsg( msg, cloud );
@@ -247,17 +250,19 @@ std::string cROSData::file_prefix;
 bool cROSData::b_save_mode = false, cROSData::b_load_mode = false;
 
 cROSCameraInfo ros_cam_info;
-cROSDepth ros_depth;
+cROSImage ros_depth("_depth.bin"), ros_col("_col.bin");
 cROSPointCloud ros_pc;
 
 void cb_cam_info(const sensor_msgs::CameraInfo& msg){ ros_cam_info.cb(msg); }
 void cb_depth(const sensor_msgs::Image& msg){ ros_depth.cb(msg); }
+void cb_col(const sensor_msgs::Image& msg){ ros_col.cb(msg); }
 void cb_pc(const sensor_msgs::PointCloud2& msg){ ros_pc.cb(msg); }
 
 
 void cROSData::save_mode(ros::NodeHandle &n){
   ros_cam_info.sub = n.subscribe("/camera/aligned_depth_to_color/camera_info", 10, cb_cam_info);
   ros_depth.sub = n.subscribe("/camera/aligned_depth_to_color/image_raw", 10, cb_depth);
+  ros_col.sub = n.subscribe("/camera/color/image_raw", 10, cb_col);
   ros_pc.sub = n.subscribe("/camera/depth/color/points", 10, cb_pc);
   ROS_INFO("save mode ...");
   b_save_mode = true;
@@ -266,22 +271,26 @@ void cROSData::save_mode(ros::NodeHandle &n){
 
 void cROSData::load_mode(sensor_msgs::CameraInfo& msg_cam_info
     , sensor_msgs::Image& msg_depth
+    , sensor_msgs::Image& msg_col
     , pcl::PointCloud<pcl::PointXYZRGB> &cloud ){
   ROS_INFO("load mode ...");
   ros_cam_info.load( msg_cam_info );
   ros_depth.load( msg_depth );
+  ros_col.load( msg_col );
   ros_pc.load( cloud );
   ROS_INFO("load OK");
   b_load_mode = true;
 }
 
 bool cROSData::is_all_saved(){
-  return ros_cam_info.is_saved() && ros_depth.is_saved() && ros_pc.is_saved();
+  return ros_cam_info.is_saved() && ros_depth.is_saved() 
+    && ros_pc.is_saved() && ros_col.is_saved();
 }
 
 void cROSData::stop(){
   ros_pc.sub.shutdown();
   ros_cam_info.sub.shutdown();
+  ros_col.sub.shutdown();
   ros_depth.sub.shutdown();
 }
 #endif

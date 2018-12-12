@@ -10,12 +10,10 @@
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
-#include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/search/organized.h>
 #include <pcl/search/kdtree.h>
@@ -27,16 +25,16 @@
 
 #include "cobot_pick/cROSData.h"
 #include "cobot_pick/convert_pc.h"
+#include "cobot_pick/cSegment.h"
 
 using namespace pcl;
 using namespace std;
 
 cv::Mat img;
-ros::Publisher pc_pub;
 image_geometry::PinholeCameraModel model;
 
 
-void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg);
+//void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg);
 
 
 /*
@@ -70,8 +68,8 @@ void pc_callback(const sensor_msgs::PointCloud2& msg)
   }*/
 
   sensor_msgs::PointCloud2 msg2;
-  seg(cloud, msg2);
-  pc_pub.publish(msg2);
+//  seg(cloud, msg2);
+//  pc_pub.publish(msg2);
 }
 
 /*
@@ -128,12 +126,12 @@ void reorganize(pcl::PointCloud<PointT> &cloud){
   cloud.is_dense = false;
 }
 
+#if 0
 void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg){
 //  pcl::PointCloud<pcl::PointXYZ> cloud;
-
-  reorganize(cloud_rgb);
-  pcl::toROSMsg(cloud_rgb, msg);
-  return;
+//  reorganize(cloud_rgb);
+//  pcl::toROSMsg(cloud_rgb, msg);
+//  return;
 
 //  convert_rgb2xyz(cloud_rgb, cloud);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -145,7 +143,7 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   ROS_INFO("width : %d, height : %d", cloud->width, cloud->height);
 
   // Create a search tree, use KDTreee for non-organized data.
-  double scale1 = 0.005, scale2 = 0.01, threshold = 0.5, segradius = 0.01;
+  // double scale1 = 0.007, scale2 = 0.015, threshold = 0.9, segradius = 0.01;
   pcl::search::Search<PointXYZRGB>::Ptr tree;
   ROS_INFO("cloud organized : %d", (int)cloud->isOrganized ());
   if (cloud->isOrganized ())
@@ -158,7 +156,7 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   }
   // Set the input pointcloud for the search tree
   tree->setInputCloud (cloud);
-  if (scale1 >= scale2)
+  if (norm_scale1 >= norm_scale2)
   {
     ROS_ERROR("Error: Large scale must be > small scale!");
     return;
@@ -177,18 +175,18 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   ne.setViewPoint (std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
 
   // calculate normals with the small scale
-  cout << "Calculating normals for scale..." << scale1 << endl;
+  cout << "Calculating normals for scale..." << norm_scale1 << endl;
   pcl::PointCloud<PointNormal>::Ptr normals_small_scale (new pcl::PointCloud<PointNormal>);
 
-  ne.setRadiusSearch (scale1);
+  ne.setRadiusSearch (norm_scale1);
   cout << "Compute ..." << endl;
   ne.compute (*normals_small_scale);
 
   // calculate normals with the large scale
-  cout << "Calculating normals for scale..." << scale2 << endl;
+  cout << "Calculating normals for scale..." << norm_scale2 << endl;
   pcl::PointCloud<PointNormal>::Ptr normals_large_scale (new pcl::PointCloud<PointNormal>);
 
-  ne.setRadiusSearch (scale2);
+  ne.setRadiusSearch (norm_scale2);
   ne.compute (*normals_large_scale);
 
   // Create output cloud for DoN results
@@ -210,6 +208,7 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
 
   // Compute DoN
   don.computeFeature (*doncloud);
+  ROS_INFO("don size : %d, %d", doncloud->width, doncloud->height);
 
   // Save DoN features
 /*  if( f_don.size()>0 ){
@@ -218,14 +217,14 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   }*/
 
   // Filter by magnitude
-  cout << "Filtering out DoN mag <= " << threshold << "..." << endl;
+  cout << "Filtering out DoN mag <= " << norm_threshold << "..." << endl;
 
   // Build the condition for filtering
   pcl::ConditionOr<PointNormal>::Ptr range_cond (
     new pcl::ConditionOr<PointNormal> ()
     );
   range_cond->addComparison (pcl::FieldComparison<PointNormal>::ConstPtr (
-    new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::GT, threshold))
+    new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::LT, norm_threshold))
   );
 
   // Build the filter
@@ -237,13 +236,14 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   // Apply filter
   condrem.filter (*doncloud_filtered);
   doncloud = doncloud_filtered;
+  ROS_INFO("don filtered size : %d, %d", doncloud->width, doncloud->height);
 
   // Save filtered output
   std::cout << "Filtered Pointcloud: " << doncloud->points.size () << " data points." << std::endl;
 //  writer.write<pcl::PointNormal> ("don_filtered.pcd", *doncloud, false); 
 
   // Filter by magnitude
-  cout << "Clustering using EuclideanClusterExtraction with tolerance <= " << segradius << "..." << endl;
+  cout << "Clustering using EuclideanClusterExtraction with tolerance <= " << segment_radius << "..." << endl;
 
   pcl::search::KdTree<PointNormal>::Ptr segtree (new pcl::search::KdTree<PointNormal>);
   segtree->setInputCloud (doncloud);
@@ -251,9 +251,9 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<PointNormal> ec;
 
-  ec.setClusterTolerance (segradius);
-  ec.setMinClusterSize (1);
-  ec.setMaxClusterSize (50);
+  ec.setClusterTolerance (segment_radius);
+  ec.setMinClusterSize (min_cluster_size);
+  ec.setMaxClusterSize (max_cluster_size);
   ec.setSearchMethod (segtree);
   ec.setInputCloud (doncloud);
   ec.extract (cluster_indices);
@@ -334,8 +334,8 @@ void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 
   */
 }
 
-ros::Subscriber ss;
-void cb_ss(const sensor_msgs::Image& msg){}
+#endif
+
 
 int main(int argc, char **argv)
 {
@@ -344,12 +344,15 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cobot_find_object");
   ros::NodeHandle n;
   pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
-  sensor_msgs::PointCloud2 msg;
   bool b_save = false, b_load = false;
+  cSegment seg;
+
   {
     ros::NodeHandle nh("~");
     std::string str;
     bool b;
+    double d;
+    int i;
     if( nh.getParam("save", b) ){
       nh.deleteParam("save");
       b_save = b;
@@ -363,27 +366,108 @@ int main(int argc, char **argv)
       cROSData::file_prefix = str;
     }
     
+    if( nh.getParam("norm_scale1", d) ){
+      nh.deleteParam("norm_scale1");
+      seg.norm_scale1 = d;
+    }
+    if( nh.getParam("norm_scale2", d) ){
+      nh.deleteParam("norm_scale2");
+      seg.norm_scale2 = d;
+    }
+    if( nh.getParam("norm_k_search1", i) ){
+      nh.deleteParam("norm_k_search1");
+      seg.norm_k_search1 = i;
+    }
+    if( nh.getParam("norm_k_search2", i) ){
+      nh.deleteParam("norm_k_search2");
+      seg.norm_k_search2 = i;
+    }
+    if( nh.getParam("norm_th_curvature", d) ){
+      nh.deleteParam("norm_th_curvature");
+      seg.norm_th_curvature = d;
+    }
+    if( nh.getParam("norm_th_rad", d) ){
+      nh.deleteParam("norm_th_rad");
+      seg.norm_th_rad = d;
+    }
+    if( nh.getParam("segment_radius", d) ){
+      nh.deleteParam("segment_radius");
+      seg.segment_radius = d;
+    }
+    if( nh.getParam("min_cluster_size", i) ){
+      nh.deleteParam("min_cluster_size");
+      seg.min_cluster_size = i;
+    }
+    if( nh.getParam("max_cluster_size", i) ){
+      nh.deleteParam("max_cluster_size");
+      seg.max_cluster_size = i;
+    }
+    if( nh.getParam("norm_k_search_my", i) ){
+      nh.deleteParam("norm_k_search_my");
+      seg.norm_k_search_my = i;
+    }
+    if( nh.getParam("norm_thread", i) ){
+      nh.deleteParam("norm_thread");
+      seg.norm_thread = i;
+    }
   }
 
   ROS_INFO("save : %d", (int)b_save);
   ROS_INFO("load : %d", (int)b_load);
   ROS_INFO("file_prefix : %s", cROSData::file_prefix.c_str());
+  ROS_INFO("-- param --");
+  ROS_INFO("norm_scale1 : %.3lf", seg.norm_scale1);
+  ROS_INFO("norm_scale2 : %.3lf", seg.norm_scale2);
+  ROS_INFO("norm_th_rad : %.3lf", seg.norm_th_rad);
+  ROS_INFO("norm_th_curvature : %.3lf", seg.norm_th_curvature);
+  ROS_INFO("segment_radius : %.3lf", seg.segment_radius);
+  ROS_INFO("min_cluster_size : %d", seg.min_cluster_size);
+  ROS_INFO("max_cluster_size : %d", seg.max_cluster_size);
+  ROS_INFO("threshold_pointcloud_distance : %.3lf", seg.threshold_pointcloud_distance);
+  ros::Rate r(10);
 
   if( b_save ){
     cROSData::save_mode(n);
+
+    while (ros::ok()){
+      ros::spinOnce();
+      if( cROSData::is_all_saved() ){
+        cROSData::stop();
+        ros::shutdown();
+        break;
+      }
+      r.sleep();
+    }
   }
   else if( b_load ){
     sensor_msgs::CameraInfo msg_cam_info;
-    sensor_msgs::Image msg_depth;
-    cROSData::load_mode(msg_cam_info, msg_depth, cloud_rgb);
-//      seg(cloud_rgb, msg);
-    msg.header.frame_id = "world";
+    sensor_msgs::Image msg_depth, msg_col;
+    sensor_msgs::PointCloud2 msg_pc_org, msg_pc_seg;
+
+    cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
+    convert_pc(msg_depth, msg_cam_info, msg_col, cloud_rgb);
+    pcl::toROSMsg(cloud_rgb, msg_pc_org);
+    //seg(cloud_rgb, msg_pc_seg);
+    seg.seg(cloud_rgb, msg_pc_seg);
+    msg_pc_org.header.frame_id = "my_frame";
+    msg_pc_seg.header.frame_id = "my_frame";
+
+    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20)
+      , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20);
+    while (ros::ok()){
+      ros::spinOnce();
+      msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
+      pc_pub_org.publish(msg_pc_org);
+      pc_pub_seg.publish(msg_pc_seg);
+      cv::imshow("label", seg.img_col);
+      cv::waitKey(30);
+      r.sleep();
+    }
   }
   return 0;
 
 
 //  img = cv::Mat(640,480,CV_8UC3);
-  pc_pub = n.advertise<sensor_msgs::PointCloud2>("/seg", 20);
 //  ros::Subscriber pc_sub;
   /*
   if( b_save || !b_load ){
@@ -391,22 +475,10 @@ int main(int argc, char **argv)
     cam_info_sub = n.subscribe("/camera/aligned_depth_to_color/camera_info", 10, cam_info_callback);
     depth_sub = n.subscribe("/camera/aligned_depth_to_color/image_raw", 10, depth_callback);
   }*/
-  ros::Rate r(10);
   
   
-  while (ros::ok()){
-    ros::spinOnce();
-//    cv::imshow("PC", img);
-//    cv::waitKey(100);
-    if( cROSData::is_all_saved() ){
-      cROSData::stop();
-      ros::shutdown();
-      break;
-    }
-    msg.header.stamp = ros::Time::now();
-    pc_pub.publish(msg);
-    r.sleep();
-  }
+  
+  
   while( false == ros::isShuttingDown() ){
     ros::spinOnce();
     r.sleep();
