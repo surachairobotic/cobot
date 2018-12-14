@@ -13,7 +13,7 @@
     <param name="min_cluster_size" value="10"/>
     <param name="max_cluster_size" value="9999999"/>
     <param name="threshold_pointcloud_distance" value="0.005"/>
-    <param name="norm_k_search_my" value="4"/>
+    <param name="norm_k_search_my" value="6"/>
     <param name="norm_thread" value="2"/>
 
   </node>

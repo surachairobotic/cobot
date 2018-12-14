@@ -460,6 +460,8 @@ int main(int argc, char **argv)
       pc_pub_org.publish(msg_pc_org);
       pc_pub_seg.publish(msg_pc_seg);
       cv::imshow("label", seg.img_col);
+      cv::imshow("norm_ang", seg.img_norm_ang);
+      cv::imshow("norm1", seg.img_norm1);
       cv::waitKey(30);
       r.sleep();
     }

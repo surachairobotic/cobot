@@ -98,10 +98,13 @@ private:
       , *p_c1 = (uint8_t*)img_norm_curve1.data
       , *p_c2 = (uint8_t*)img_norm_curve2.data
       , *p_a = (uint8_t*)img_norm_ang.data
-      , *p_n[2] = {(uint8_t*)img_norm1.data, (uint8_t*)img_norm2.data};
+      , *p_n1 = (uint8_t*)img_norm1.data
+      , *p_n2 = (uint8_t*)img_norm2.data;
 
     const double TH_DIS2 = POW2(threshold_pointcloud_distance);
     memset( p, 0, img_bin.rows*img_bin.cols);
+    memset( p_a, 0, img_bin.rows*img_bin.cols);
+    memset( p_n1, 0, img_bin.rows*img_bin.cols);
     
     int cnt = 0;
     for(int i=img_bin.rows-2;i>=0;i--){
@@ -112,6 +115,59 @@ private:
           , &p2 = cloud->points[j2+1], &p3 = cloud->points[j2+img_bin.cols];
         if( IS_VALID_POINT(p1) && DIS2( p1, p2 )<TH_DIS2 && DIS2( p1, p3 )<TH_DIS2 ){
           p[j2] = 255;
+          // normal angle
+          {
+            double a = fabs(normal_my->points[j2].normal_z);
+            if( a>1.0 ) a = 1.0;
+            a = fabs(acos(a))*255.0 * 2.0/( M_PI ); // max = 45 deg
+            p_a[j2] = a>255.0 ? 255.0 : a;
+          }
+          // diff normal angle
+          {
+            const pcl::PointNormal *nx[] = { &normal_my->points[j2]
+              , &normal_my->points[j2+1]
+              , &normal_my->points[j2+img_bin.cols] };
+#define NORMAL_INNER(n1, n2) ((n1).normal_x*(n2).normal_x \
+  +(n1).normal_y*(n2).normal_y+(n1).normal_z*(n2).normal_z)
+#define IS_VALID_NORMAL(n) ((n).normal_x!=0.0 || (n).normal_y!=0.0 || (n).normal_z!=0.0 )
+            double ang[2] = {-1.0, -1.0};
+            if( IS_VALID_NORMAL(*nx[0]) ){
+              for(int k=0;k<2;k++){
+                if( IS_VALID_NORMAL(*nx[k+1]) ){
+                  double inner = NORMAL_INNER( *nx[0], *nx[k+1] );
+                  if( inner>1.0 ) ang[k] = 0.0;
+                  else if( inner<-1.0 ) ang[k] = 0.0;//M_PI;
+                  else ang[k] = acos(inner);
+                  /*
+                  printf("n[0]: %.3lf, %.3lf, %.3lf\n"
+                    , nx[0]->normal_x, nx[0]->normal_y, nx[0]->normal_z);
+                  printf("n[%d]: %.3lf, %.3lf, %.3lf\n"
+                    , k+1, nx[k+1]->normal_x, nx[k+1]->normal_y, nx[k+1]->normal_z);
+                  */
+//                  if( i>20 && j>20 )
+//                    assert(0);
+//                  printf("ang[%d]: %.3lf\n", k, ang[k]);
+                }
+                else{
+                  break;
+                }
+              }
+              if( ang[0]>=0.0 && ang[1]>=0.0 ){
+                double a = ang[0]>ang[1] ? ang[0] : ang[1];
+                assert(a>=0.0 && a<=M_PI);
+                int v = (1.0 - a/(M_PI/18))*255;
+                /*
+                if( v<30 ){
+                  printf("[%d][%d] : ang = %.3lf. %.3lf\n %.3lf, %.3lf, %.3lf\n %.3lf, %.3lf, %.3lf\n %.3lf, %.3lf, %.3lf"
+                    , i, j, ang[0], ang[1]
+                    , nx[0]->normal_x, nx[0]->normal_y, nx[0]->normal_z
+                    , nx[1]->normal_x, nx[1]->normal_y, nx[1]->normal_z
+                    , nx[2]->normal_x, nx[2]->normal_y, nx[2]->normal_z);
+                }*/
+                p_n1[j2] = v>0 ? 255 : 0;//v>255 ? 255 : (v<0 ? 0 : v);
+              }
+            }
+          }
         }
         else{
           cnt++;
@@ -119,7 +175,7 @@ private:
       }
     }
     ROS_INFO("cnt : %d", cnt);
-    label.ExecBin(img_bin, img_label);
+    label.ExecBin(img_norm1, img_label);
     label.CreateImageResult( img_label, img_col, true);
 /*
     for(int i=0;i<cloud->points.size();i++,n1++,n2++,p++){
