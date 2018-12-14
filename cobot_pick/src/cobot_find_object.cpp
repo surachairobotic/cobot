@@ -3,6 +3,9 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include "sensor_msgs/Image.h"
+#include "image_transport/image_transport.h"
+#include "cv_bridge/cv_bridge.h"
+#include "sensor_msgs/image_encodings.h"
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -24,14 +27,18 @@
 #include <pcl/features/don.h>
 
 #include "cobot_pick/cROSData.h"
-#include "cobot_pick/convert_pc.h"
+#include "cobot_pick/cConvert3D.h"
 #include "cobot_pick/cSegment.h"
+#include "cobot_pick/cSelectObject.h"
+
 
 using namespace pcl;
 using namespace std;
 
 cv::Mat img;
 image_geometry::PinholeCameraModel model;
+
+float cConvert3D::center_x, cConvert3D::center_y, cConvert3D::constant_x, cConvert3D::constant_y;
 
 
 //void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg);
@@ -346,6 +353,7 @@ int main(int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
   bool b_save = false, b_load = false;
   cSegment seg;
+  cSelectObject select_obj;
 
   {
     ros::NodeHandle nh("~");
@@ -368,64 +376,100 @@ int main(int argc, char **argv)
     
     if( nh.getParam("norm_scale1", d) ){
       nh.deleteParam("norm_scale1");
-      seg.norm_scale1 = d;
+      config.norm_scale1 = d;
     }
     if( nh.getParam("norm_scale2", d) ){
       nh.deleteParam("norm_scale2");
-      seg.norm_scale2 = d;
+      config.norm_scale2 = d;
     }
     if( nh.getParam("norm_k_search1", i) ){
       nh.deleteParam("norm_k_search1");
-      seg.norm_k_search1 = i;
+      config.norm_k_search1 = i;
     }
     if( nh.getParam("norm_k_search2", i) ){
       nh.deleteParam("norm_k_search2");
-      seg.norm_k_search2 = i;
-    }
-    if( nh.getParam("norm_th_curvature", d) ){
-      nh.deleteParam("norm_th_curvature");
-      seg.norm_th_curvature = d;
+      config.norm_k_search2 = i;
     }
     if( nh.getParam("norm_th_rad", d) ){
       nh.deleteParam("norm_th_rad");
-      seg.norm_th_rad = d;
+      config.norm_th_rad = d;
+    }/*
+    if( nh.getParam("norm_th_curvature", d) ){
+      nh.deleteParam("norm_th_curvature");
+      config.norm_th_curvature = d;
     }
     if( nh.getParam("segment_radius", d) ){
       nh.deleteParam("segment_radius");
-      seg.segment_radius = d;
+      config.segment_radius = d;
     }
     if( nh.getParam("min_cluster_size", i) ){
       nh.deleteParam("min_cluster_size");
-      seg.min_cluster_size = i;
+      config.min_cluster_size = i;
     }
     if( nh.getParam("max_cluster_size", i) ){
       nh.deleteParam("max_cluster_size");
-      seg.max_cluster_size = i;
-    }
+      config.max_cluster_size = i;
+    }*/
     if( nh.getParam("norm_k_search_my", i) ){
       nh.deleteParam("norm_k_search_my");
-      seg.norm_k_search_my = i;
+      config.norm_k_search_my = i;
     }
     if( nh.getParam("norm_thread", i) ){
       nh.deleteParam("norm_thread");
-      seg.norm_thread = i;
+      config.norm_thread = i;
     }
+
+    // select
+    if( nh.getParam("reg_min_pix", i) ){
+      nh.deleteParam("reg_min_pix");
+      config.reg_min_pix = i;
+    }
+    if( nh.getParam("reg_max_pix", i) ){
+      nh.deleteParam("reg_max_pix");
+      config.reg_max_pix = i;
+    }
+    if( nh.getParam("reg_min_ratio", d) ){
+      nh.deleteParam("reg_min_ratio");
+      config.reg_min_ratio = d;
+    }
+    if( nh.getParam("reg_max_ratio", d) ){
+      nh.deleteParam("reg_max_ratio");
+      config.reg_max_ratio = d;
+    }
+    if( nh.getParam("warp_meter2pixel", d) ){
+      nh.deleteParam("warp_meter2pixel");
+      config.warp_meter2pixel = d;
+    }
+
+    
   }
 
   ROS_INFO("save : %d", (int)b_save);
   ROS_INFO("load : %d", (int)b_load);
   ROS_INFO("file_prefix : %s", cROSData::file_prefix.c_str());
   ROS_INFO("-- param --");
-  ROS_INFO("norm_scale1 : %.3lf", seg.norm_scale1);
-  ROS_INFO("norm_scale2 : %.3lf", seg.norm_scale2);
-  ROS_INFO("norm_th_rad : %.3lf", seg.norm_th_rad);
-  ROS_INFO("norm_th_curvature : %.3lf", seg.norm_th_curvature);
-  ROS_INFO("segment_radius : %.3lf", seg.segment_radius);
-  ROS_INFO("min_cluster_size : %d", seg.min_cluster_size);
-  ROS_INFO("max_cluster_size : %d", seg.max_cluster_size);
-  ROS_INFO("threshold_pointcloud_distance : %.3lf", seg.threshold_pointcloud_distance);
-  ros::Rate r(10);
+  ROS_INFO("norm_scale1 : %.3lf", config.norm_scale1);
+  ROS_INFO("norm_scale2 : %.3lf", config.norm_scale2);
+  ROS_INFO("norm_k_search1 : %d", config.norm_k_search1);
+  ROS_INFO("norm_k_search2 : %d", config.norm_k_search2);
+  ROS_INFO("norm_k_search_my : %d", config.norm_k_search_my);
+  ROS_INFO("norm_thread : %d", config.norm_thread);  
+  ROS_INFO("norm_th_rad : %.3lf", config.norm_th_rad);
+  ROS_INFO("threshold_pointcloud_distance : %.3lf", config.threshold_pointcloud_distance);
+/*
+  ROS_INFO("norm_th_curvature : %.3lf", config.norm_th_curvature);
+  ROS_INFO("segment_radius : %.3lf", config.segment_radius);
+  ROS_INFO("min_cluster_size : %d", config.min_cluster_size);
+  ROS_INFO("max_cluster_size : %d", config.max_cluster_size);
+  */
 
+  ROS_INFO("reg_min_pix : %d", config.reg_min_pix);
+  ROS_INFO("reg_max_pix : %d", config.reg_max_pix);
+  ROS_INFO("reg_min_ratio : %.3lf", config.reg_min_ratio);
+  ROS_INFO("reg_max_ratio : %.3lf", config.reg_max_ratio);
+  ROS_INFO("warp_meter2pixel : %.3lf", config.warp_meter2pixel);
+
+  ros::Rate r(10);
   if( b_save ){
     cROSData::save_mode(n);
 
@@ -443,12 +487,16 @@ int main(int argc, char **argv)
     sensor_msgs::CameraInfo msg_cam_info;
     sensor_msgs::Image msg_depth, msg_col;
     sensor_msgs::PointCloud2 msg_pc_org, msg_pc_seg;
+    cv_bridge::CvImagePtr p_img_col;
 
     cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
-    convert_pc(msg_depth, msg_cam_info, msg_col, cloud_rgb);
+    p_img_col = cv_bridge::toCvCopy(msg_col, sensor_msgs::image_encodings::BGR8);
+
+    cConvert3D::convert_pc(msg_depth, msg_cam_info, msg_col, cloud_rgb);
     pcl::toROSMsg(cloud_rgb, msg_pc_org);
     //seg(cloud_rgb, msg_pc_seg);
     seg.seg(cloud_rgb, msg_pc_seg);
+    select_obj.run(seg, p_img_col->image);
     msg_pc_org.header.frame_id = "my_frame";
     msg_pc_seg.header.frame_id = "my_frame";
 
@@ -459,9 +507,9 @@ int main(int argc, char **argv)
       msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
       pc_pub_org.publish(msg_pc_org);
       pc_pub_seg.publish(msg_pc_seg);
-      cv::imshow("label", seg.img_col);
-      cv::imshow("norm_ang", seg.img_norm_ang);
-      cv::imshow("norm1", seg.img_norm1);
+//      cv::imshow("label", seg.img_col);
+//      cv::imshow("norm_ang", seg.img_norm_ang);
+//      cv::imshow("norm1", seg.img_norm1);
       cv::waitKey(30);
       r.sleep();
     }

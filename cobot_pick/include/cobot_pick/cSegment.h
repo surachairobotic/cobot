@@ -21,7 +21,6 @@
 class cSegment{
 
 private:
-  cLabeling label;
 
   bool cal_normal(){
 
@@ -34,7 +33,7 @@ private:
 
     // Set the input pointcloud for the search tree
     tree->setInputCloud (cloud);
-    if (norm_scale1 >= norm_scale2){
+    if (config.norm_scale1 >= config.norm_scale2){
       ROS_ERROR("Error: Large scale must be > small scale!");
       return false;
     }
@@ -55,27 +54,27 @@ private:
 //    cout << "Calculating normals for scale..." << norm_scale1 << endl;
 //    pcl::PointCloud<PointNormal>::Ptr normals_small_scale (new pcl::PointCloud<PointNormal>);
 
-    if( norm_k_search1>0 )
-      ne.setKSearch(norm_k_search1);
+    if( config.norm_k_search1>0 )
+      ne.setKSearch(config.norm_k_search1);
     else
-      ne.setRadiusSearch (norm_scale1);
+      ne.setRadiusSearch (config.norm_scale1);
     ne.compute (*normals_small_scale);
 
     // calculate normals with the large scale
 //    cout << "Calculating normals for scale..." << norm_scale2 << endl;
 //    pcl::PointCloud<PointNormal>::Ptr normals_large_scale (new pcl::PointCloud<PointNormal>);
 
-    if( norm_k_search2>0 )
-      ne.setKSearch(norm_k_search2);
+    if( config.norm_k_search2>0 )
+      ne.setKSearch(config.norm_k_search2);
     else
-      ne.setRadiusSearch (norm_scale2);
+      ne.setRadiusSearch (config.norm_scale2);
     ne.compute (*normals_large_scale);
 
     return true;
   }
 
   bool cal_normal_my(){
-    CalNormal3_with_TBB( cloud, normal_my, norm_k_search_my, norm_thread);
+    CalNormal3_with_TBB( cloud, normal_my, config.norm_k_search_my, config.norm_thread);
     return true;
   }
 
@@ -85,7 +84,7 @@ private:
     //const pcl::PointNormal *n1 = &normals_small_scale->points[0]
     //  , *n2 = &normals_large_scale->points[0]
     //  , **ns[2] = {&n1, &n2};
-    const double th_cos = cos(norm_th_rad);
+    const double th_cos = cos(config.norm_th_rad);
     img_bin = cv::Mat(cloud->height,cloud->width,CV_8UC1);
     img_label = cv::Mat(cloud->height,cloud->width,CV_16UC1);
     img_col = cv::Mat(cloud->height,cloud->width,CV_8UC3);
@@ -101,7 +100,7 @@ private:
       , *p_n1 = (uint8_t*)img_norm1.data
       , *p_n2 = (uint8_t*)img_norm2.data;
 
-    const double TH_DIS2 = POW2(threshold_pointcloud_distance);
+    const double TH_DIS2 = POW2(config.threshold_pointcloud_distance);
     memset( p, 0, img_bin.rows*img_bin.cols);
     memset( p_a, 0, img_bin.rows*img_bin.cols);
     memset( p_n1, 0, img_bin.rows*img_bin.cols);
@@ -218,23 +217,15 @@ private:
   }
 
 public:
-  double norm_scale1, norm_scale2, norm_th_rad, norm_th_curvature, segment_radius
-    , threshold_pointcloud_distance;
-  int min_cluster_size, max_cluster_size, norm_k_search1, norm_k_search2
-    , norm_k_search_my, norm_thread;
+  
   pcl::PointCloud<pcl::PointNormal>::Ptr normals_small_scale, normals_large_scale, normal_my;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
   cv::Mat img_label, img_bin, img_col, img_norm_curve1, img_norm_curve2, img_norm_ang
     , img_norm1, img_norm2;
+  cLabeling label;
 
 
-  cSegment():norm_scale1(0.007), norm_scale2(0.015)
-    , norm_k_search1(0), norm_k_search2(0)
-    , norm_th_rad(0.1), threshold_pointcloud_distance(0.01)
-    , norm_th_curvature(0.9),segment_radius(0.01)
-    , norm_k_search_my(4), norm_thread(1)
-    , min_cluster_size(10), max_cluster_size(50000)
-    , cloud( new pcl::PointCloud<pcl::PointXYZRGB>())
+  cSegment(): cloud( new pcl::PointCloud<pcl::PointXYZRGB>())
     , normals_small_scale (new pcl::PointCloud<pcl::PointNormal>)
     , normals_large_scale (new pcl::PointCloud<pcl::PointNormal>)
     , normal_my (new pcl::PointCloud<pcl::PointNormal>)

@@ -15,6 +15,10 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   image_geometry
+
+  sensor_msgs
+  cv_bridge
+  image_transport
 )
 
 find_package(PCL REQUIRED)

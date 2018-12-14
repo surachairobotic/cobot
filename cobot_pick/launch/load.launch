@@ -2,7 +2,7 @@
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
          output="screen" >
     <param name="load" value="true"/>
-    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/white_box"/>
+    <param name="file_prefix" value="/home/tong/catkin_ws/src/cobot/cobot_pick/src/white_box_label"/>
     <param name="norm_scale1" value="0.007"/>
     <param name="norm_scale2" value="0.015"/>
     <param name="norm_k_search1" value="10"/>
@@ -15,6 +15,17 @@
     <param name="threshold_pointcloud_distance" value="0.005"/>
     <param name="norm_k_search_my" value="6"/>
     <param name="norm_thread" value="2"/>
+
+    <param name="reg_min_pix" value="3000"/>
+    <param name="reg_max_pix" value="30000"/>
+    <param name="reg_min_ratio" value="1.0"/>
+    <param name="reg_max_ratio" value="5.0"/>
+    <param name="warp_meter2pixel" value="2000.0"/>
+
+    <param name="ransac_repeat_time" value="100"/>
+    <param name="ransac_th_error" value="0.01"/>
+
+    
 
   </node>
   <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
