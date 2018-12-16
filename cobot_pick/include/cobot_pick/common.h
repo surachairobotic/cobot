@@ -8,6 +8,8 @@ const double INVALID_POINT = 0.0;
 #define SET_INVALID_POINT(p)  ((p).z = INVALID_POINT)
 //#define DIS2(p,q) (POW2((p).x-(q).x)+POW2((p).y-(q).y)+POW2((p).z-(q).z))
 
+const std::string save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/");
+
 template<typename T>
 inline double DIS2(const T &p1, const T &p2){
   return POW2(p1.x-p2.x)+POW2(p1.y-p2.y)+POW2(p1.z-p2.z);
@@ -63,7 +65,7 @@ struct tConfig{
     , norm_k_search_my, norm_thread;
 
   // select object
-  int reg_min_pix, reg_max_pix, ransac_repeat_time;
+  int reg_min_pix, reg_max_pix, ransac_repeat_time, th_text_binary;
   double reg_min_ratio, reg_max_ratio, ransac_th_error;
   double warp_meter2pixel;
 
@@ -79,7 +81,9 @@ struct tConfig{
     // select object
     ,reg_min_pix(0),reg_max_pix(99999999)
     ,reg_min_ratio(1.0), reg_max_ratio(1000000.0), ransac_repeat_time(100)
-    , ransac_th_error(0.01), warp_meter2pixel(2000.0){}
+    , ransac_th_error(0.01), warp_meter2pixel(2000.0)
+    , th_text_binary(120)
+    {}
 } config;
 
 #endif

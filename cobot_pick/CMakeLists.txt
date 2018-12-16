@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   image_geometry
+  visualization_msgs
+  geometry_msgs
 
   sensor_msgs
   cv_bridge
@@ -22,10 +24,17 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED)
+# find_package( TESSERACT REQUIRED )
 find_package(TBB COMPONENTS tbbmalloc tbbmalloc_proxy tbb_preview)
-include_directories(${PCL_INCLUDE_DIRS})
-link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+find_package( PkgConfig REQUIRED)
+pkg_search_module( TESSERACT REQUIRED tesseract )
+pkg_search_module( LEPTONICA REQUIRED lept )
+include_directories( ${TESSERACT_INCLUDE_DIRS} )
+include_directories( ${LEPTONICA_INCLUDE_DIRS} )
+link_directories( ${TESSERACT_LIBRARY_DIRS} )
+link_directories( ${LEPTONICA_LIBRARY_DIRS} )
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -43,10 +52,23 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+#   ${TESSERACT_INCLUDE_DIRS}
 )
 
 
-link_directories(/usr/local/lib)
+link_directories(/usr/local/lib ${PCL_LIBRARY_DIRS})
 add_executable(cobot_find_object src/cobot_find_object.cpp src/cLabeling.cpp src/zdsfmt.cpp)
-target_link_libraries(cobot_find_object ${catkin_LIBRARIES} opencv_core opencv_imgcodecs opencv_highgui ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} tbb)
+target_link_libraries(
+  cobot_find_object
+  ${catkin_LIBRARIES}
+  opencv_core
+  opencv_imgcodecs
+  opencv_highgui
+  ${PCL_COMMON_LIBRARIES}
+  ${PCL_IO_LIBRARIES}
+  tbb
+  ${TESSERACT_LIBRARIES}
+  ${LEPTONICA_LIBRARIES}
+)
 

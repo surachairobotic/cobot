@@ -440,6 +440,12 @@ int main(int argc, char **argv)
       nh.deleteParam("warp_meter2pixel");
       config.warp_meter2pixel = d;
     }
+    if( nh.getParam("th_text_binary", i) ){
+      nh.deleteParam("th_text_binary");
+      config.th_text_binary = i;
+    }
+
+    
 
     
   }
@@ -456,6 +462,9 @@ int main(int argc, char **argv)
   ROS_INFO("norm_thread : %d", config.norm_thread);  
   ROS_INFO("norm_th_rad : %.3lf", config.norm_th_rad);
   ROS_INFO("threshold_pointcloud_distance : %.3lf", config.threshold_pointcloud_distance);
+  ROS_INFO("th_text_binary : %d", config.th_text_binary);
+
+  
 /*
   ROS_INFO("norm_th_curvature : %.3lf", config.norm_th_curvature);
   ROS_INFO("segment_radius : %.3lf", config.segment_radius);
@@ -486,7 +495,7 @@ int main(int argc, char **argv)
   else if( b_load ){
     sensor_msgs::CameraInfo msg_cam_info;
     sensor_msgs::Image msg_depth, msg_col;
-    sensor_msgs::PointCloud2 msg_pc_org, msg_pc_seg;
+    sensor_msgs::PointCloud2 msg_pc_org, msg_pc_seg, msg_pc_plane;
     cv_bridge::CvImagePtr p_img_col;
 
     cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
@@ -497,20 +506,31 @@ int main(int argc, char **argv)
     //seg(cloud_rgb, msg_pc_seg);
     seg.seg(cloud_rgb, msg_pc_seg);
     select_obj.run(seg, p_img_col->image);
+    pcl::toROSMsg(select_obj.plane_pc, msg_pc_plane);
+
     msg_pc_org.header.frame_id = "my_frame";
     msg_pc_seg.header.frame_id = "my_frame";
+    msg_pc_plane.header.frame_id = "my_frame";
 
     ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20)
-      , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20);
+      , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20)
+      , pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20)
+      , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20);
     while (ros::ok()){
       ros::spinOnce();
       msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
       pc_pub_org.publish(msg_pc_org);
       pc_pub_seg.publish(msg_pc_seg);
+      pc_pub_plane.publish(msg_pc_plane);
+      for(int i=select_obj.plane_frames.size()-1;i>=0;i--)
+        pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
 //      cv::imshow("label", seg.img_col);
 //      cv::imshow("norm_ang", seg.img_norm_ang);
 //      cv::imshow("norm1", seg.img_norm1);
-      cv::waitKey(30);
+      char k = (char)cv::waitKey(30);
+      if( k==27 || k=='q' ){
+        break;
+      }
       r.sleep();
     }
   }
