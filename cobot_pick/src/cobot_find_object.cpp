@@ -440,13 +440,27 @@ int main(int argc, char **argv)
       nh.deleteParam("warp_meter2pixel");
       config.warp_meter2pixel = d;
     }
-    if( nh.getParam("th_text_binary", i) ){
-      nh.deleteParam("th_text_binary");
-      config.th_text_binary = i;
+
+    if( nh.getParam("threshold_pointcloud_distance", d) ){
+      nh.deleteParam("threshold_pointcloud_distance");
+      config.threshold_pointcloud_distance = d;
     }
-
-    
-
+    if( nh.getParam("th_text_binary_neighbour", i) ){
+      nh.deleteParam("th_text_binary_neighbour");
+      config.th_text_binary_neighbour = i;
+    }
+    if( nh.getParam("th_text_binary_adapt_mean", i) ){
+      nh.deleteParam("th_text_binary_adapt_mean");
+      config.th_text_binary_adapt_mean = i;
+    }
+    if( nh.getParam("text_ransac_repeat_time", i) ){
+      nh.deleteParam("text_ransac_repeat_time");
+      config.text_ransac_repeat_time = i;
+    }
+    if( nh.getParam("text_ransac_th_error", d) ){
+      nh.deleteParam("text_ransac_th_error");
+      config.text_ransac_th_error = d;
+    }
     
   }
 
@@ -462,7 +476,10 @@ int main(int argc, char **argv)
   ROS_INFO("norm_thread : %d", config.norm_thread);  
   ROS_INFO("norm_th_rad : %.3lf", config.norm_th_rad);
   ROS_INFO("threshold_pointcloud_distance : %.3lf", config.threshold_pointcloud_distance);
-  ROS_INFO("th_text_binary : %d", config.th_text_binary);
+  ROS_INFO("th_text_binary_neighbour : %d", config.th_text_binary_neighbour);
+  ROS_INFO("th_text_binary_adapt_mean : %d", config.th_text_binary_adapt_mean);
+  ROS_INFO("text_ransac_repeat_time : %d", config.text_ransac_repeat_time);
+  ROS_INFO("text_ransac_th_error : %.3lf", config.text_ransac_th_error);
 
   
 /*
@@ -501,6 +518,11 @@ int main(int argc, char **argv)
     cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
     p_img_col = cv_bridge::toCvCopy(msg_col, sensor_msgs::image_encodings::BGR8);
 
+    /// add frames to image labels ///
+//    cv::imwrite(save_path + "img_col.bmp", p_img_col->image);
+//    p_img_col->image = cv::imread(save_path + "img_col_frame.bmp");
+    //////////////////////////////////
+
     cConvert3D::convert_pc(msg_depth, msg_cam_info, msg_col, cloud_rgb);
     pcl::toROSMsg(cloud_rgb, msg_pc_org);
     //seg(cloud_rgb, msg_pc_seg);
@@ -515,7 +537,8 @@ int main(int argc, char **argv)
     ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20)
       , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20)
       , pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20)
-      , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20);
+      , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20)
+      , pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20);
     while (ros::ok()){
       ros::spinOnce();
       msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
@@ -524,9 +547,11 @@ int main(int argc, char **argv)
       pc_pub_plane.publish(msg_pc_plane);
       for(int i=select_obj.plane_frames.size()-1;i>=0;i--)
         pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
-//      cv::imshow("label", seg.img_col);
-//      cv::imshow("norm_ang", seg.img_norm_ang);
-//      cv::imshow("norm1", seg.img_norm1);
+      for(int i=seg.normal_markers.size()-1;i>=0;i--)
+        pc_pub_normal.publish(seg.normal_markers[i]);
+      cv::imshow("label", seg.img_col);
+      cv::imshow("norm_ang", seg.img_norm_ang);
+      cv::imshow("norm1", seg.img_norm1);
       char k = (char)cv::waitKey(30);
       if( k==27 || k=='q' ){
         break;

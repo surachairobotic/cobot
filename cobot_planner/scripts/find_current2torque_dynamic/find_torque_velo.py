@@ -24,7 +24,7 @@ import copy
 from scipy import signal
 import os
 
-n_joint = 4
+n_joint = 0
 dt = 0.020
 
 '''
@@ -129,7 +129,7 @@ def load_file(fname):
 
 
 
-def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
+def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc, b_recal):
   global n_joint
   path = os.path.dirname(os.path.abspath(fname))
 
@@ -142,7 +142,7 @@ def get_torque(data, fname, b_filter_dq, b_filter_ddq, b_torque_acc):
 
   torque = []
   torque_no_ddq = []
-  if os.path.isfile(fname_torque):
+  if os.path.isfile(fname_torque) and not b_recal:
     with open(fname_torque, 'rt') as f:
       for line in f:
         arr = line.strip().split(' ')
@@ -237,11 +237,8 @@ def get_t_range(data):
 
     if b_found:
       if not b_fix:
-        print(i1)
-        print(i)
         i1+= n_clip
         i2 = i-n_clip
-        print(t[i2] - t[i1])
         if t[i2] - t[i1] > 0.3:
           t_range.append({'t1': t[i1], 'i1': i1, 't2': t[i2], 'i2': i2})
         b_found = False
@@ -362,6 +359,36 @@ def find_eq( x, y, z, range_abc, n_loop ):
           abc = [a,b,c]
           print('['+str((i*(n_loop**2) + j*n_loop + k)/float(n_loop**3))+'] '+str(e/len(x))+' : '+str(abc))
   return abc
+
+
+# z = abc[0]*w + abc[1]*x + abc[2]*y + abc[3]
+def find_eq_with_acc( w, x, y, z, range_abc, n_loop ):
+  abc = []
+  dabc = []
+  min_err = 99999999.0
+  for i in range(4):
+    dabc.append( (range_abc[i][1] - range_abc[i][0])/float(n_loop) )
+
+  bias = create_bias(y)
+  for i in range(n_loop):
+    a = range_abc[0][0] + dabc[0]*i
+    for j in range(n_loop):
+      b = range_abc[1][0] + dabc[1]*j
+      for k in range(n_loop):
+        c = range_abc[2][0] + dabc[2]*k
+        for l in range(n_loop):
+          d = range_abc[3][0] + dabc[3]*l
+
+          z2 = a*w + b*x + c*y + d*bias
+          e = linalg.norm(z2-z)
+          if e<min_err:
+            min_err = e
+            abc = [a,b,c,d]
+            print('['+str((i*(n_loop**3) + j*(n_loop**2) + k*n_loop + l)/float(n_loop**4))+'] '+str(e/len(x))+' : '+str(abc))
+  return abc
+
+
+
 
 
 def create_bias(data):

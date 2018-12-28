@@ -65,8 +65,9 @@ struct tConfig{
     , norm_k_search_my, norm_thread;
 
   // select object
-  int reg_min_pix, reg_max_pix, ransac_repeat_time, th_text_binary;
-  double reg_min_ratio, reg_max_ratio, ransac_th_error;
+  int reg_min_pix, reg_max_pix, ransac_repeat_time, th_text_binary_neighbour
+    , th_text_binary_adapt_mean, text_ransac_repeat_time;
+  double reg_min_ratio, reg_max_ratio, ransac_th_error, text_ransac_th_error;
   double warp_meter2pixel;
 
   tConfig():
@@ -82,7 +83,9 @@ struct tConfig{
     ,reg_min_pix(0),reg_max_pix(99999999)
     ,reg_min_ratio(1.0), reg_max_ratio(1000000.0), ransac_repeat_time(100)
     , ransac_th_error(0.01), warp_meter2pixel(2000.0)
-    , th_text_binary(120)
+    , th_text_binary_neighbour(120)
+    , th_text_binary_adapt_mean(20)
+    , text_ransac_repeat_time(200), text_ransac_th_error(2)
     {}
 } config;
 

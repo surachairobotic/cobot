@@ -12,9 +12,145 @@
 #include "cobot_pick/cSegment.h"
 #include "cobot_pick/zdsfmt.h"
 #include "cobot_pick/cLabeling.h"
-#include <tesseract/baseapi.h>
-#include <leptonica/allheaders.h>
+#include "cobot_pick/cPCA_2D.h"
+#include "cobot_pick/cOCR.h"
 #include <visualization_msgs/Marker.h>
+
+
+void fill_region(const tRegInfo *p_reg, const cv::Mat &img_label, cv::Mat &img){
+  img = cv::Mat( p_reg->y2-p_reg->y1+1
+      , p_reg->x2-p_reg->x1+1, CV_8UC1);
+  for (int i = img.rows - 1; i >= 0; i--)
+  {
+    unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * (i + p_reg->y1)) + p_reg->x1;
+    unsigned char *p = (unsigned char *)(img.data + img.step * i);
+//      unsigned char *p = (unsigned char *)(img.data + img.step * i);
+    for (int j = img.cols - 1; j >= 0; j--)
+    {
+      p[j] = (p_label[j] == p_reg->n_label) ? 0 : 255;
+    }
+  }
+
+  // fill
+  {
+    cLabeling label;
+    cv::Mat img_label;
+    label.ExecBin(img, img_label);
+    for(int k=label.reg_info.size()-1;k>=0;k--){
+      const tRegInfo &r = label.reg_info[k];
+      if( r.x1==0 || r.x2==img.cols-1 || 
+        r.y1==0 || r.y2==img.rows-1 ){
+        continue;
+      }
+      for(int i=r.y1;i<=r.y2;i++){
+        unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * i);
+        unsigned char *p = (unsigned char *)(img.data + img.step * i);
+        for(int j=r.x1;j<=r.x2;j++){
+          if( p_label[j]==r.n_label ){
+            p[j] = 0;
+          }
+        }
+      }
+    }
+    cv::bitwise_not(img, img);
+  }
+}
+
+void binarize(const cv::Mat &src, cv::Mat &dst, const int block_size
+    , const int mean_bias){
+  int *sum_row = new int[block_size*2+1];
+  int x1, x2, y1, y2, n;
+  cv::Mat img_gray = cv::Mat( src.size(), CV_8UC1 );
+
+  dst = cv::Mat( src.size(), CV_8UC1);
+  cv::cvtColor( src, img_gray, cv::COLOR_BGR2GRAY);
+  const unsigned char *p = img_gray.data;
+  unsigned char *p2 = dst.data;
+  const int w = src.cols, h = src.rows;
+  for(int i=0;i<h;i++){
+    
+    y1 = i-block_size;
+    y2 = i+block_size;
+    if( y1<0 ) y1 = 0;
+    if( y2>=h ) y2 = h-1;
+    for(int j=0;j<w;j++){
+      
+      x1 = j-block_size;
+      x2 = j+block_size;
+      if( x1<0 ) x1 = 0;
+      if( x2>=w ) x2 = w-1;
+
+      if( j==0 ){
+        n = 0;
+        memset( sum_row, 0, sizeof(int)*(block_size*2+1) );
+        for(int y=y1;y<=y2;y++){
+          for(int x=x1;x<=x2;x++){
+            int v = p[w*y + x];
+            if( v>0 ){
+              n++;
+              //assert( y-y1>=0 && y-y1<block_size*2+1 );
+              sum_row[y-y1]+= v;
+            }
+          }
+        }
+      }
+      else{
+        if( j-block_size>0 ){
+          int x0 = x1-1;
+          for(int y=y1;y<=y2;y++){
+            int v =  p[w*y+x0];
+            if( v>0 ){
+              n--;
+              //assert( y-y1>=0 && y-y1<block_size*2+1 );
+              sum_row[y-y1]-= v;
+            }
+          }
+        }
+        if( j+block_size<w ){
+          for(int y=y1;y<=y2;y++){
+            int v = p[w*y+x2];
+            if( v>0 ){
+              n++;
+              //assert( y-y1>=0 && y-y1<block_size*2+1 );
+              sum_row[y-y1]+= v;
+            }
+          }
+        }
+      }
+
+      int sum = 0;
+      for(int y=y1;y<=y2;y++){
+        //assert( y-y1>=0 && y-y1<block_size*2+1 );
+        sum+= sum_row[y-y1];
+      }
+
+      /*{
+        int s = 0, n2 = 0;
+        for(int y=y1;y<=y2;y++){
+          for(int x=x1;x<=x2;x++){
+            int v = p[w*y+x];
+            if( v>0 ){
+              n2++;
+              s+= v;
+            }
+          }
+        }
+        assert( s==sum && n==n2 );
+      }*/
+      p2[w*i+j] = ( n>0 && p[w*i+j] + mean_bias >= sum/n ) ? 255 : 0;
+    }
+  }
+
+  /*{
+    static int cnt = 0;
+    char str[16];
+    sprintf(str, "gray%d", cnt++);
+    cv::imshow(str, dst);
+  }*/
+
+  delete [] sum_row;
+}
+
 
 class cPlane
 {
@@ -54,20 +190,65 @@ public:
   void warp(const cv::Mat &img_col, const cSegment *p_seg)
   {
     // create image
-    cv::Mat img = cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1, p_reg->y2 - p_reg->y1 + 1)).clone();
     const cv::Mat &img_label = p_seg->img_label;
-    for (int i = img.rows - 1; i >= 0; i--)
+    cv::Mat img;
+//    cv::Mat img = cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1, p_reg->y2 - p_reg->y1 + 1)).clone();
+    /*
+    cv::Mat img_filter = cv::Mat( p_reg->y2-p_reg->y1+1
+      , p_reg->x2-p_reg->x1+1, CV_8UC1);
+    for (int i = img_filter.rows - 1; i >= 0; i--)
     {
       unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * (i + p_reg->y1)) + p_reg->x1;
-      unsigned char *p = (unsigned char *)(img.data + img.step * i);
-      for (int j = img.cols - 1; j >= 0; j--)
+      unsigned char *p = (unsigned char *)(img_filter.data + img_filter.step * i);
+//      unsigned char *p = (unsigned char *)(img.data + img.step * i);
+      for (int j = img_filter.cols - 1; j >= 0; j--)
       {
-        if (p_label[j] != p_reg->n_label)
-        {
-          int j2 = j * 3;
-          p[j2] = p[j2 + 1] = p[j2 + 2] = 0;
+        p[j] = (p_label[j] == p_reg->n_label) ? 0 : 255;
+      }
+    }
+
+    // fill
+    {
+      cLabeling label;
+      cv::Mat img_label;
+      label.ExecBin(img_filter, img_label);
+      for(int k=label.reg_info.size()-1;k>=0;k--){
+        const tRegInfo &r = label.reg_info[k];
+        if( r.x1==0 || r.x2==img_filter.cols-1 || 
+          r.y1==0 || r.y2==img_filter.rows-1 ){
+          continue;
+        }
+        for(int i=r.y1;i<=r.y2;i++){
+          unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * i);
+          unsigned char *p = (unsigned char *)(img_filter.data + img_filter.step * i);
+          for(int j=r.x1;j<=r.x2;j++){
+            if( p_label[j]==r.n_label ){
+              p[j] = 0;
+            }
+          }
         }
       }
+
+      
+      static int cnt = 0;
+      char str[16];
+      sprintf(str, "fil%d", cnt++);
+//      cv::imshow(str, img_filter);
+      cv::bitwise_not(img_filter, img_filter);
+      img = cv::Mat( img_filter.size(), CV_8UC3, cv::Scalar(0));
+      cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1
+        , p_reg->y2 - p_reg->y1 + 1))
+        .copyTo(img, img_filter);
+      sprintf(str, "img_fil%d", cnt++);
+//      cv::imshow(str, img);
+    }*/
+    {
+      cv::Mat img_filter;
+      fill_region( p_reg, img_label, img_filter);
+      img = cv::Mat( img_filter.size(), CV_8UC3, cv::Scalar(0));
+      cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1
+        , p_reg->y2 - p_reg->y1 + 1))
+        .copyTo(img, img_filter);
     }
 
     const double np = INNER_3D(normal, point);
@@ -92,8 +273,8 @@ public:
     warp_src[2].y = p_reg->y2;
     warp_src[3].x = p_reg->x1;
     warp_src[3].y = p_reg->y2;*/
-    printf("warp src 1: %d, %d\n", p_reg->x1, p_reg->y1);
-    printf("warp src 2: %d, %d\n", p_reg->x2, p_reg->y2);
+    //printf("warp src 1: %d, %d\n", p_reg->x1, p_reg->y1);
+    //printf("warp src 2: %d, %d\n", p_reg->x2, p_reg->y2);
     for (int i = 3; i >= 0; i--)
     {
       cConvert3D::get_vector(warp_src[i].x + p_reg->x1, warp_src[i].y + p_reg->y1, corners[i]);
@@ -103,7 +284,6 @@ public:
       p.x *= k;
       p.y *= k;
       p.z *= k;
-      printf("pnt : %.3f, %.3f, %.3f\n", p.x, p.y, p.z);
 
       // check if the point is really on the plane
       {
@@ -144,6 +324,7 @@ class cSelectObject
 {
 private:
   std::vector<int> reg_index;
+  cOCR ocr;
 
   void filter_region()
   {
@@ -334,32 +515,301 @@ private:
 
   void find_text(){
     cLabeling label;
-    for (int k = planes.size() - 1; k >= 0; k--){
-      cv::Mat img_gray = cv::Mat( planes[k].img_plane.size(), CV_8UC1 )
-        , img_bin = cv::Mat( planes[k].img_plane.size(), CV_8UC1 )
+    for (int i_plane = planes.size() - 1; i_plane >= 0; i_plane--){
+      printf("** find_text %d **\n", i_plane);
+      cPlane &plane = planes[i_plane];
+      cv::Mat //img_gray = cv::Mat( plane.img_plane.size(), CV_8UC1 )
+        img_bin// = cv::Mat( plane.img_plane.size(), CV_8UC1 )
         , img_label, img_result;
-      cv::cvtColor( planes[k].img_plane, img_gray, cv::COLOR_BGR2GRAY);
+      /*
+      cv::cvtColor( plane.img_plane, img_gray, cv::COLOR_BGR2GRAY);
       cv::adaptiveThreshold(img_gray,img_bin, 255
-        , CV_ADAPTIVE_THRESH_MEAN_C,CV_THRESH_BINARY, config.th_text_binary, 0); 
-//      cv::threshold(img_gray,img_bin, config.th_text_binary, 255, CV_THRESH_BINARY);// | CV_THRESH_OTSU);
+        , CV_ADAPTIVE_THRESH_MEAN_C,CV_THRESH_BINARY
+        , config.th_text_binary_neighbour, config.th_text_binary_adapt_mean);
+      */
+      binarize( plane.img_plane, img_bin, config.th_text_binary_neighbour
+        , config.th_text_binary_adapt_mean );
+//      cv::threshold(img_gray,img_bin, config.th_text_binary_neighbour, 255, CV_THRESH_BINARY);// | CV_THRESH_OTSU);
       label.ExecBin( img_bin, img_label);
       label.CreateImageResult( img_label, img_result, true);
       {
-        char str[16];
-        sprintf(str, "text%d", k);
+        char str[20];
+        sprintf(str, "text_region%d.bmp", i_plane);
         cv::imshow(str, img_result);
-        sprintf(str, "gray%d", k);
-        cv::imshow(str, img_gray);
+        cv::imwrite(save_path + str, img_result);
+
+        sprintf(str, "plane%d.bmp", i_plane);
+        cv::imshow(str, plane.img_plane);
+        cv::imwrite(save_path + str, plane.img_plane);
       }
-/*      for(int i=img.rows-1;i>=0;i--){
-        for(int j=img.cols-1;j>=0;j--){
-          
+
+
+      cPCA_2D pca;
+      for(int k=label.reg_info.size()-1;k>=0;k--){
+        const tRegInfo &r = label.reg_info[k];
+        /* pix = 789, ratio = 1.739
+           pix = 722, ratio = 1.400 */
+        if( r.pix_num<300 || r.pix_num>1000 ){
+          printf("invalid text reg : pix_num = %d\n", r.pix_num);
+          continue;
         }
-      }*/
+        double ratio = double(r.x2-r.x1+1)/(r.y2-r.y1+1);
+        if( ratio<1.0 )
+          ratio = 1.0/ratio;
+        if( ratio>3.0 ){
+          printf("invalid text reg : ratio = %.3lf\n", ratio);
+          continue;
+        }
+
+        cv::Mat img_filter;
+        fill_region( &r, img_label, img_filter);
+
+        double vx[2], vy[2];
+        double min_x, min_y, max_x, max_y;
+        double center[2];
+        min_x = min_y = 9999999.0;
+        max_x = max_y = -min_x;
+
+        // find label direction using edges
+        cv::Mat img_edge =cv::Mat(img_filter.size(), CV_8UC1, cv::Scalar(0));
+        {
+          std::vector<cv::Point2i> edges;
+          const int step = img_filter.step;
+          
+          cv::Point2i pnt;
+          for(int i=img_filter.rows-2;i>=0;i--){
+            unsigned char *p = img_filter.data + img_filter.step * i
+              , *p2 = img_edge.data +  + img_edge.step * i;
+            for(int j=img_filter.cols-2;j>=0;j--){
+              if( p[j]!=p[j+1] || p[j]!=p[j+step] ){
+                pnt.x = j;
+                pnt.y = i;
+                edges.push_back(pnt);
+                p2[j] = 255;
+              }
+            }
+          }          
+          for(int i=img_filter.rows-1;i>=0;i--){
+            unsigned char *p = img_filter.data + img_filter.step*i
+              , *p2 = img_edge.data + img_edge.step*i;
+            if( p[0]>0 ){
+              pnt.x = 0;
+              pnt.y = i;
+              edges.push_back(pnt);
+              p2[0] = 255;
+            }
+            if( p[img_filter.cols-1]>0 ){
+              pnt.x = img_filter.cols-1;
+              pnt.y = i;
+              edges.push_back(pnt);
+              p2[img_filter.cols-1] = 255;
+            }
+          }
+          for(int j=img_filter.cols-1;j>0;j--){
+            unsigned char *p = img_filter.data + j
+              , *p2 = img_edge.data + j;
+            if( p[0]>0 ){
+              pnt.x = j;
+              pnt.y = 0;
+              edges.push_back(pnt);
+              p2[0] = 255;
+            }
+            int i2 = img_filter.step*(img_filter.rows-1);
+            if( p[i2]>0 ){
+              pnt.x = j;
+              pnt.y = img_filter.rows-1;
+              edges.push_back(pnt);
+              p2[i2] = 255;
+            }
+          }
+          // ransac
+          const double TH_DIS = config.text_ransac_th_error;
+          int best_cnt = 0;
+          cv::Point2d best_v;
+          cv::Point2i best_p;
+          for(int k=config.text_ransac_repeat_time;k>0;k--){
+            const cv::Point2i *p1 = &edges[NextMt() % edges.size()], *p2;
+            int cnt = 0;
+            cv::Point2d v;
+            for(;;){
+              p2 = &edges[NextMt() % edges.size()];
+              v.x = p2->x-p1->x;
+              v.y = p2->y-p1->y;
+              double len2 = POW2(v.x)+POW2(v.y);
+              if( len2>=25 ){
+                double len = 1.0/sqrt(len2);
+                v.x*= len;
+                v.y*= len;
+                break;
+              }
+              assert(++cnt<100);
+            }
+            cnt = 0;
+            for(int i=edges.size()-1;i>=0;i--){
+              const cv::Point2i &p = edges[i];
+              double x = p.x - p1->x, y = p.y - p1->y
+                , dis = fabs(x*v.y - y*v.x);
+              if( dis<=TH_DIS ){
+                cnt++;
+              }
+            }
+            if( cnt>best_cnt ){
+              best_cnt = cnt;
+              best_v.x = v.x;
+              best_v.y = v.y;
+              best_p.x = p1->x;
+              best_p.y = p1->y;
+            }
+          }
+          assert( best_cnt>0 );
+          //printf("cnt : %d / %d\n", best_cnt, int(edges.size()));
+
+          {
+            double len = 1.0/sqrt( POW2(best_v.x)+POW2(best_v.y) );
+            vx[0] = best_v.x * len;
+            vx[1] = best_v.y * len;
+            vy[0] = -vx[1];
+            vy[1] = vx[0];
+            center[0] = best_p.x;
+            center[1] = best_p.y;
+          }
+          for(int i=edges.size()-1;i>=0;i--){
+            const cv::Point2i &p = edges[i];
+            double x = p.x - center[0], y = p.y - center[1]
+              , new_x = x*vx[0] + y*vx[1], new_y = x*vy[0] + y*vy[1];
+            if( new_x>max_x ) max_x = new_x;
+            if( new_x<min_x ) min_x = new_x;
+            if( new_y>max_y ) max_y = new_y;
+            if( new_y<min_y ) min_y = new_y;
+          }
+          assert( min_x < 99999.0 );
+        }
+        /*
+        // find label's direction using PCA
+        {
+          pca.reset();
+          for(int i=img_filter.rows-1;i>=0;i--){
+            unsigned char *p = img_filter.data + img_filter.step * i;
+            for(int j=img_filter.cols-1;j>=0;j--){
+              if( p[j] ){
+                pca.n++;
+                pca.nx+= j;
+                pca.ny+= i;
+                pca.xx+= j*j;
+                pca.yy+= i*i;
+                pca.xy+= i*j;
+              }
+            }
+          }
+          pca.run();
+          vx[0] = pca.eig_v->data.db[0];
+          vx[1] = pca.eig_v->data.db[2];
+          vy[0] = pca.eig_v->data.db[1];
+          vy[1] = pca.eig_v->data.db[3];
+          
+          for(int i=img_filter.rows-1;i>=0;i--){
+            const unsigned char *p = img_filter.data + img_filter.step * i;
+            for(int j=img_filter.cols-1;j>=0;j--){
+              if( p[j] ){
+                const double x = j - pca.mean[0], y = i - pca.mean[1]
+                  , new_x = x*vx[0] + y*vx[1], new_y = x*vy[0] + y*vy[1];
+                if( new_x>max_x ) max_x = new_x;
+                if( new_x<min_x ) min_x = new_x;
+                if( new_y>max_y ) max_y = new_y;
+                if( new_y<min_y ) min_y = new_y;
+              }
+            }
+          }
+          center[0] = pca.mean[0];
+          center[1] = pca.mean[1];
+        }
+        */
+//        assert( max_x-min_x >= max_y-min_y );
+        const int *r_xy = &r.x1;
+        #define CAL_CORENER(x,y,axis) ( x*vx[axis] + y*vy[axis] + center[axis] + r_xy[axis] )
+        cv::Point2f warp_src[4], warp_dst[4];
+        warp_src[0].x = CAL_CORENER(min_x, min_y, 0);
+        warp_src[0].y = CAL_CORENER(min_x, min_y, 1);
+        warp_src[1].x = CAL_CORENER(max_x, min_y, 0);
+        warp_src[1].y = CAL_CORENER(max_x, min_y, 1);
+        warp_src[2].x = CAL_CORENER(max_x, max_y, 0);
+        warp_src[2].y = CAL_CORENER(max_x, max_y, 1);
+        warp_src[3].x = CAL_CORENER(min_x, max_y, 0);
+        warp_src[3].y = CAL_CORENER(min_x, max_y, 1);
+        
+        printf("vx : %.3lf, %.3lf\n", vx[0], vx[1]);
+        printf("vy : %.3lf, %.3lf\n", vy[0], vy[1]);
+        printf("mx : %.3lf, %.3lf\n", min_x, max_x);
+        printf("my : %.3lf, %.3lf\n", min_y, max_y);
+        for(int i=0;i<4;i++){
+          printf("warp_src[%d] : %.3f, %.3f\n", i, warp_src[i].x, warp_src[i].y);
+        }
+
+        warp_dst[0].x = 0.0f;
+        warp_dst[0].y = 0.0f;
+        warp_dst[1].x = max_x-min_x;
+        warp_dst[1].y = 0.0f;
+        warp_dst[2].x = max_x-min_x;
+        warp_dst[2].y = max_y-min_y;
+        warp_dst[3].x = 0.0f;
+        warp_dst[3].y = max_y-min_y;
+        cv::Mat img_text = cv::Mat( max_y-min_y, max_x-min_x, CV_8UC3);
+        cv::Mat trans = cv::getPerspectiveTransform(warp_src, warp_dst);
+        cv::warpPerspective(plane.img_plane, img_text, trans, img_text.size());
+
+        {
+          cv::Mat img_flip;
+          cv::flip( img_text, img_flip, -1);
+          cv::Mat *pi[2] = {&img_text, &img_flip};
+          cv::Mat img_gray = cv::Mat( img_text.size(), CV_8UC1);
+          for(int k=1;k>=0;k--){
+            cv::cvtColor( *pi[k], img_gray, cv::COLOR_BGR2GRAY);
+            const int MEAN = 140;
+            for(int i=img_gray.rows-1;i>=0;i--){
+              unsigned char *p = img_gray.data + i*img_gray.step;
+              for(int j=img_gray.cols-1;j>=0;j--){
+                int v = 3*(p[j]-MEAN) + MEAN;
+                p[j] = v<0 ? 0 : (v>255 ? 255 : v);
+              }
+            }
+            ocr.get_text(img_gray);
+            for(int i=0;i<ocr.confs.size();i++){
+              printf("text flip [%d]: %s, %.3f\n", k, ocr.texts[i].c_str(), ocr.confs[i]);
+            }
+            char str[20];
+            sprintf(str, "text_gray%d-%d.tif", i_plane, k);
+            cv::imshow(str, img_gray);
+            cv::imwrite(save_path + str, img_gray);
+          }
+
+        }
+        {
+          char str[32];
+          sprintf(str, "text%d.bmp", i_plane);
+          cv::imshow(str, img_text);
+          cv::imwrite(save_path + str, img_text);
+
+          sprintf(str, "filter%d.bmp", i_plane);
+          cv::line( img_filter
+            , cv::Point( center[0], center[1] )
+            , cv::Point(CAL_CORENER( max_x, 0, 0 )-r_xy[0], CAL_CORENER( max_x, 0, 1)-r_xy[1] )
+            , cv::Scalar(150), 1);
+          cv::line( img_filter
+            , cv::Point( center[0], center[1] )
+            , cv::Point(CAL_CORENER( 0, max_y, 0 )-r_xy[0], CAL_CORENER( 0, max_y, 1)-r_xy[1] )
+            , cv::Scalar(150), 1);
+          cv::imshow(str, img_filter);
+          cv::imwrite(save_path + str, img_filter);
+
+          sprintf(str, "filter_edge%d.bmp", i_plane);
+          cv::imshow(str, img_edge);
+        }
+      }
     }
   }
 
-  void ocr()
+
+/*  void ocr()
   {
     tesseract::TessBaseAPI *ocr = new tesseract::TessBaseAPI();
 
@@ -401,7 +851,7 @@ private:
       ocr->Clear();
     }
     delete ocr;
-  }
+  }*/
 
   void create_plane_pointclouds()
   {
@@ -511,6 +961,8 @@ public:
       aa[i] = (unsigned int)rand();
     }
     InitMtEx(aa, 128);
+
+    
   }
 
   void run(cSegment &seg, cv::Mat &img_col)
@@ -525,13 +977,11 @@ public:
     t = ros::Time::now();
     find_text();
     ROS_INFO("find_text() : %.3lf s", (ros::Time::now() - t).toSec());
-/*    ocr();
-    ROS_INFO("ocr() : %.3lf s", (ros::Time::now() - t).toSec());
+    
     t = ros::Time::now();
     create_plane_pointclouds();
     ROS_INFO("create_plane_pointclouds() : %.3lf s", (ros::Time::now() - t).toSec());
     t = ros::Time::now();
-    */
     draw_reg();
     ROS_INFO("draw_reg() : %.3lf s", (ros::Time::now() - t).toSec());
   }

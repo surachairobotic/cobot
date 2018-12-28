@@ -118,7 +118,10 @@ private:
           {
             double a = fabs(normal_my->points[j2].normal_z);
             if( a>1.0 ) a = 1.0;
-            a = fabs(acos(a))*255.0 * 2.0/( M_PI ); // max = 45 deg
+            a = acos(a);
+            if( a>M_PI*0.5 )
+              a = M_PI - a;
+            a*= 255.0 * 2.0/( M_PI ); // max = 45 deg
             p_a[j2] = a>255.0 ? 255.0 : a;
           }
           // diff normal angle
@@ -136,7 +139,12 @@ private:
                   double inner = NORMAL_INNER( *nx[0], *nx[k+1] );
                   if( inner>1.0 ) ang[k] = 0.0;
                   else if( inner<-1.0 ) ang[k] = 0.0;//M_PI;
-                  else ang[k] = acos(inner);
+                  else{
+                    ang[k] = acos(inner);
+                    if( ang[k]>M_PI*0.5 )
+                      ang[k] = M_PI - ang[k];
+                  }
+
                   /*
                   printf("n[0]: %.3lf, %.3lf, %.3lf\n"
                     , nx[0]->normal_x, nx[0]->normal_y, nx[0]->normal_z);
@@ -153,17 +161,31 @@ private:
               }
               if( ang[0]>=0.0 && ang[1]>=0.0 ){
                 double a = ang[0]>ang[1] ? ang[0] : ang[1];
-                assert(a>=0.0 && a<=M_PI);
-                int v = (1.0 - a/(M_PI/18))*255;
-                /*
-                if( v<30 ){
-                  printf("[%d][%d] : ang = %.3lf. %.3lf\n %.3lf, %.3lf, %.3lf\n %.3lf, %.3lf, %.3lf\n %.3lf, %.3lf, %.3lf"
-                    , i, j, ang[0], ang[1]
-                    , nx[0]->normal_x, nx[0]->normal_y, nx[0]->normal_z
-                    , nx[1]->normal_x, nx[1]->normal_y, nx[1]->normal_z
-                    , nx[2]->normal_x, nx[2]->normal_y, nx[2]->normal_z);
+                assert(a>=0.0 && a<=M_PI*0.5);
+
+/*                static bool b = false;
+                if( !b && a>1.5 && abs(418-j)<30 && abs(184-i)<30 ){
+                  printf("Invalid normal diff\n");
+                  for(int i=0;i<3;i++)
+                    printf("n : %.3lf, %.3lf, %.3lf\n"
+                      , nx[i]->normal_x, nx[i]->normal_y, nx[i]->normal_z);
+                  b = true;
+
+                  float col[3][3] = {
+                    {1.0,0.2,0.2},
+                    {0.2,1.0,0.2},
+                    {0.2,0.2,1.0},
+                  };
+                  add_normal_marker(normal_markers, cloud, config.norm_k_search_my
+                    , i, j, &col[0][0] );
+                  add_normal_marker(normal_markers, cloud, config.norm_k_search_my
+                    , i, j+1, &col[1][0] );
+                  add_normal_marker(normal_markers, cloud, config.norm_k_search_my
+                    , i+1, j, &col[2][0] );
                 }*/
-                p_n1[j2] = v>0 ? 255 : 0;//v>255 ? 255 : (v<0 ? 0 : v);
+//                int v = (1.0 - a/(M_PI/36))*255;
+//                p_n1[j2] = v>0 ? 255 : 0;//v>255 ? 255 : (v<0 ? 0 : v);
+                p_n1[j2] = a > config.norm_th_rad ? 0 : 255;
               }
             }
           }
@@ -223,6 +245,7 @@ public:
   cv::Mat img_label, img_bin, img_col, img_norm_curve1, img_norm_curve2, img_norm_ang
     , img_norm1, img_norm2;
   cLabeling label;
+  std::vector<visualization_msgs::Marker> normal_markers;
 
 
   cSegment(): cloud( new pcl::PointCloud<pcl::PointXYZRGB>())
@@ -234,16 +257,9 @@ public:
 
   void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg){
     cloud = cloud_rgb.makeShared();
-    ROS_INFO("width : %d, height : %d", cloud->width, cloud->height);
-
-    ros::Time t = ros::Time::now();
 //    cal_normal();
     cal_normal_my();
-    printf("xx : %lf", cloud->points[0].x);
-    ROS_INFO("cal_normal() : %.3lf s", (ros::Time::now()-t).toSec());
-    t = ros::Time::now();
     filter_normal();
-    ROS_INFO("filter_normal() : %.3lf s", (ros::Time::now()-t).toSec());
   }
 };
 

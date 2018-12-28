@@ -133,7 +133,7 @@ def check_data_est(data_est):
   exit()
 
 
-def load_data(n_joint):
+def load_data(n_joint, b_recal_torque):
   global abc_range
   files = []
   fv.n_joint = n_joint
@@ -145,14 +145,28 @@ def load_data(n_joint):
     wave_s = 2
     velos = [30,60]
   elif fv.n_joint==1:
-    abc = [-0.005500000000000005, -3.8, -2.3999999999999995]
+#    abc = [-0.005500000000000005, -3.8, -2.3999999999999995]
+    abc = [-0.005500000000000005, -4.699999999999999, -2.1999999999999993]
     abc_range = [[-0.05, 0.0], [-10.0,0.0], [-10.0, 0.0]]
-    hzs = ['0.125', '0.25', '0.5']
-    wave_s = 2
+    hzs = ['0.125', '0.125', '0.25', '0.125', '0.25', '0.25', '0.5']
+    wave_s = 1
     velos = [30,60,90]
+  elif fv.n_joint==2:
+    hzs = ['0.125', '0.25']
+    wave_s = 1
+    velos = [30,60,90]
+  elif fv.n_joint==3:
+    hzs = ['0.125', '0.25']
+    wave_s = 1
+    velos = [30,60,90]
+    
   elif fv.n_joint==4:
     abc_range = [[0.001, 0.005], [-0.3,0.0], [-0.5, 0.0]]
     hzs = ['0.125', '0.25', '0.5']
+    wave_s = 1
+    velos = [30,60,90]
+  elif fv.n_joint==5:
+    hzs = ['0.125', '0.25', '0.5','0.125', '0.25', '0.5','0.125', '0.25', '0.5']
     wave_s = 1
     velos = [30,60,90]
 
@@ -194,7 +208,7 @@ def load_data(n_joint):
     f['get_t_range'](data)
     print(data['t_range'])
     get_ddq(data)
-    fv.get_torque(data, f['path'],b_filter_dq=False, b_filter_ddq=True, b_torque_acc=f['b_torque_acc'])
+    fv.get_torque(data, f['path'],b_filter_dq=False, b_filter_ddq=True, b_torque_acc=f['b_torque_acc'], b_recal=b_recal_torque)
     f['data'] = data
 
     if f['b_filter_current']:
@@ -203,6 +217,8 @@ def load_data(n_joint):
       cur = f['get_data_from_t_range'](data, data['current'][:,fv.n_joint])
     dq_f = f['get_data_from_t_range'](data, data['dq_f'][:,fv.n_joint])
     tq = f['get_data_from_t_range'](data, data['torque'][:,fv.n_joint])
+    ddq = f['get_data_from_t_range'](data, data['ddq'][:,fv.n_joint])
+    ddq_f = f['get_data_from_t_range'](data, data['ddq_f'][:,fv.n_joint])
 
     '''
     if data_est is None:
@@ -213,7 +229,8 @@ def load_data(n_joint):
       data_est['torque'] = concatenate( (data_est['torque'], tq), axis=0 )
     '''
     
-    data_ests.append({'current': cur, 'dq': dq_f, 'torque': tq})
+    data_ests.append({'current': cur, 'dq': dq_f, 'torque': tq
+      , 'ddq': ddq, 'ddq_f': ddq_f })
     if min_est<len(cur):
       min_est = len(cur)
 
@@ -224,18 +241,22 @@ def load_data(n_joint):
       d['current'] = d['current'][:min_est]
       d['dq'] = d['dq'][:min_est]
       d['torque'] = d['torque'][:min_est]
+      d['ddq'] = d['ddq'][:min_est]
+      d['ddq_f'] = d['ddq_f'][:min_est]
     if data_est is None:
       data_est = d
     else:
       data_est['current'] = concatenate( (data_est['current'], d['current']), axis=0 )
       data_est['dq'] = concatenate( (data_est['dq'], d['dq']), axis=0 )
       data_est['torque'] = concatenate( (data_est['torque'], d['torque']), axis=0 )
+      data_est['ddq'] = concatenate( (data_est['ddq'], d['ddq']), axis=0 )
+      data_est['ddq_f'] = concatenate( (data_est['ddq_f'], d['ddq_f']), axis=0 )
   return files, data_est
 
 if __name__ == "__main__":
   dt = 0.020
 
-  files, data_est = load_data(1)
+  files, data_est = load_data(0, False)
   #check_data_est(data_est)
 
   abc = fv.find_eq(data_est['current'], data_est['dq'], data_est['torque'], abc_range, 100)

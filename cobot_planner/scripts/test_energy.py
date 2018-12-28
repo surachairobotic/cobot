@@ -98,21 +98,23 @@ def cal_energy(q,dq, vars):
   '''
   return [U,T]
 
-t = time.time()
-dt = 0.001
-with open('q.txt','wt') as f:
-  for i in range(10000):
-    vars = eq.get_vars(q)
-#    print(vars[4])
-#    exit()
-    U,T = cal_energy(q,dq,vars)
-#    print(U+T)
-    ddq = cal_ddq(q, dq, vars)
-    dq+= ddq*dt
-    q+= dq*dt
 
-    f.write('%f '% (dt*i))
-    for j in range(len(q)):
-      f.write('%f %f %f '% (q[j],dq[j],ddq[j]))
-    f.write('%f %f\n'% (U, T))
-print(time.time()-t)
+if __name__ == "__main__":
+  t = time.time()
+  dt = 0.001
+  with open('q.txt','wt') as f:
+    for i in range(10000):
+      vars = eq.get_vars(q)
+  #    print(vars[4])
+  #    exit()
+      U,T = cal_energy(q,dq,vars)
+  #    print(U+T)
+      ddq = cal_ddq(q, dq, vars)
+      dq+= ddq*dt
+      q+= dq*dt
+
+      f.write('%f '% (dt*i))
+      for j in range(len(q)):
+        f.write('%f %f %f '% (q[j],dq[j],ddq[j]))
+      f.write('%f %f\n'% (U, T))
+  print(time.time()-t)

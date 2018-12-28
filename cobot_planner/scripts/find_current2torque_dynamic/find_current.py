@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-find equation to estimate dq from current and torque
+find equation to estimate current from torque and dq
 data : wave + constant velo
 '''
 
@@ -28,7 +28,7 @@ import find_torque_acc as fa
 
 
 
-
+'''
 # w = abc[0]*x + abc[1]*y + abc[2]*x + abc[3]
 def find_eq( x, y, z, w, range_abc, n_loop ):
   abc = []
@@ -63,27 +63,41 @@ def get_ddq(data):
   for i in range(dq.shape[1]):
     ddq[1:,i] = (dq[1:,i] - dq[:dq.shape[0]-1,i]) / dt2
   data['ddq_f'] = ddq
-
+'''
 
 
 if __name__ == "__main__":
   dt = 0.020
-  files, data_est = fa.load_data(4)
+  files, data_est = fa.load_data(5, False)
   
   if fv.n_joint==0:
-    abc_range = [[0.0, 200.0], [0.0,3000.0], [0.0, 500.0]]
-    #abc = [72.0, 1170.0, 265.0]
-    abc = [46.0, 1230.0, 250.0]
+    abc_range = [[100.0, 400.0], [0.0,2000.0], [0.0, 500.0]]
+    #abc = [46.0, 1230.0, 250.0]
+    abc = [355.0, 1240.0, 245.0]
   elif fv.n_joint==1:
     abc_range = [[-300.0, 0.0], [-1500.0,0.0], [-1000.0, 0.0]]
-    abc = [-168.0, -855.0, -390.0]
+#    abc = [-168.0, -855.0, -390.0]
+    abc = [-177.0, -690.0, -650.0]
+  elif fv.n_joint==2:
+    abc_range = [[100.0, 300.0], [400.0,800.0], [100.0, 300.0]]
+    abc = [180.0, 564.0, 206.0]
+  elif fv.n_joint==3:
+    abc_range = [[100.0, 400.0], [500.0,800.0], [100.0, 400.0]]
+    abc = [256.0, 689.0, 232.0]
   elif fv.n_joint==4:
     abc_range = [[100.0, 400.0], [0.0,100.0], [0.0, 100.0]]
 #    abc_range = [[-200.0, 200.0], [-200.0,200.0], [-200.0, 200.0]]
 #    abc = [250.0, 38.0, 46.0]
-    abc = [205.0, 20.0, 60.0]
+    abc = [241.0, 22.0, 58.0]
+  elif fv.n_joint==5:
+    abc_range = [[0.0, 0.0], [10.0, 100.0], [0.0,50.0], [20.0, 100.0]]
+    abc = [0.0, 40.0, 15.0, 52.0]
+  else:
+    assert(0)
 
-  #abc = fv.find_eq(data_est['torque'], data_est['dq'], data_est['current'], abc_range, 100)
+  #abc = fv.find_eq(data_est['torque'], data_est['dq'], data_est['current'], abc_range, 20)
+  #abc = fv.find_eq_with_acc(data_est['torque'], data_est['ddq_f'], data_est['dq'], data_est['current'], abc_range, 20)
+  
 
   for f in files:
     data = f['data']
@@ -97,21 +111,26 @@ if __name__ == "__main__":
 
 
     bias = fv.create_bias(dq_f)
-    data['current_est'] = abc[0]*tq + abc[1]*dq_f + abc[2]*bias
-    data['torque_est'] = (cur_f - (abc[1]*dq_f + abc[2]*bias))/abc[0]
+    if len(abc)==3:
+      data['current_est'] = abc[0]*tq + abc[1]*dq_f + abc[2]*bias
+      data['torque_est'] = (cur_f - (abc[1]*dq_f + abc[2]*bias))/abc[0]
+    else:
+      data['current_est'] = abc[0]*tq + abc[1]*ddq_f + abc[2]*dq_f + abc[3]*bias
+      data['torque_est'] = (cur_f - (abc[1]*ddq_f + abc[2]*dq_f + abc[3]*bias))/abc[0]
 
 
     # for plotting
 
     # plot
-    _, axarr = plt.subplots(4, sharex=True)
+    _, axarr = plt.subplots(5, sharex=True)
     for i in range(len(axarr)):
       axarr[i].hold(True)
       axarr[i].grid(linestyle='-', linewidth='0.5')
 
     axarr[0].plot(data['t'],data['q'][:,fv.n_joint])
     axarr[1].plot(data['t'],data['dq'][:,fv.n_joint], t, dq_f)
-    axarr[2].plot(t, tq, t, data['torque_est'])
+    axarr[2].plot(data['t'],data['ddq'][:,fv.n_joint], t, ddq_f)
+    axarr[3].plot(t, tq, t, data['torque_est'])
 #    axarr[2].plot(data['t'],data['current'][:,fv.n_joint], t, cur_f)
     '''
     if f['b_filter_current']:
@@ -119,15 +138,16 @@ if __name__ == "__main__":
     else:
       c = cur
     '''
-    axarr[3].plot(t, cur, t, cur_f, t, data['current_est'], 'k')
+    axarr[4].plot(t, cur, t, cur_f, t, data['current_est'], 'k')
 
     axarr[0].set_ylabel('q [rad]')
     axarr[1].set_ylabel('dq [rad/s]')
-    axarr[2].set_ylabel('torque [N-m]')
-    axarr[3].set_ylabel('current [mA]')
-    axarr[0].legend(['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
-    axarr[2].legend(['torque', 'estimate'])
-    axarr[3].legend(['current', 'current_filter', 'estimate'])
+    axarr[2].set_ylabel('ddq [rad/s2]')
+    axarr[3].set_ylabel('torque [N-m]')
+    axarr[4].set_ylabel('current [mA]')
+#    axarr[0].legend(['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
+    axarr[3].legend(['torque', 'estimate'])
+    axarr[4].legend(['current', 'current_filter', 'estimate'])
     axarr[len(axarr)-1].set_xlabel('time [s]')
     #break
   plt.show()
