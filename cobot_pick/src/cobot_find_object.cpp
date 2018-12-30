@@ -538,7 +538,8 @@ int main(int argc, char **argv)
       , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20)
       , pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20)
       , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20)
-      , pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20);
+      , pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20)
+      , pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
     while (ros::ok()){
       ros::spinOnce();
       msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
@@ -549,6 +550,8 @@ int main(int argc, char **argv)
         pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
       for(int i=seg.normal_markers.size()-1;i>=0;i--)
         pc_pub_normal.publish(seg.normal_markers[i]);
+      for(int i=select_obj.pick_markers.size()-1;i>=0;i--)
+        pc_pub_pick.publish(select_obj.pick_markers[i]);
       cv::imshow("label", seg.img_col);
       cv::imshow("norm_ang", seg.img_norm_ang);
       cv::imshow("norm1", seg.img_norm1);

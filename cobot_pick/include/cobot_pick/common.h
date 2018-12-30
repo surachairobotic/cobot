@@ -9,6 +9,13 @@ const double INVALID_POINT = 0.0;
 //#define DIS2(p,q) (POW2((p).x-(q).x)+POW2((p).y-(q).y)+POW2((p).z-(q).z))
 
 const std::string save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/");
+const int cols[6][3] = {
+  {255, 50, 50},
+  {50, 255, 50},
+  {50, 50, 255},
+  {255, 250, 50},
+  {50, 255, 250},
+  {250, 50, 255}};
 
 template<typename T>
 inline double DIS2(const T &p1, const T &p2){

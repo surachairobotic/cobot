@@ -169,13 +169,13 @@ private:
   }
 
 public:
-  pcl::PointXYZ point, normal, x_axis, y_axis;
+  pcl::PointXYZ point, normal, x_axis, y_axis, center;
   tRegInfo *p_reg;
   //  double corners_2d[4][2];
   pcl::PointXYZ corners[4];
   cv::Mat img_plane;
 
-  cPlane() {}
+  cPlane(tRegInfo *r):p_reg(r) {}
 
   void set_plane(const pcl::PointXYZRGB &_p, const pcl::PointXYZ &_normal, const pcl::PointXYZ &_x_axis)
   {
@@ -318,6 +318,41 @@ public:
       cc++;
     }*/
   }
+
+  void find_center(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud
+    , const cv::Mat &img_label){
+
+    double min_x, min_y, max_x, max_y;
+    min_x = min_y = 9999999.0;
+    max_x = max_y = -min_x;
+    for(int i=p_reg->y1;i<=p_reg->y2;i++){
+      const unsigned short *pl = (unsigned short*)(img_label.data + img_label.step*i);
+      const pcl::PointXYZRGB *pc = &cloud->points[i*img_label.cols];
+      for(int j=p_reg->x1;j<=p_reg->x2;j++){
+        if( pl[j]==p_reg->n_label ){
+          pcl::PointXYZ p1, p2;
+          // project pc to the plane
+          MINUS_3D(p1, pc[j], point);
+          double d = INNER_3D(normal, p1);
+          p1.x-=normal.x*d;
+          p1.y-=normal.y*d;
+          p1.z-=normal.z*d;
+
+          // find x,y
+          double new_x = INNER_3D( p1, x_axis ), new_y = INNER_3D(p1, y_axis);
+          if( new_x>max_x ) max_x = new_x;
+          if( new_x<min_x ) min_x = new_x;
+          if( new_y>max_y ) max_y = new_y;
+          if( new_y<min_y ) min_y = new_y;
+        }
+      }
+    }
+    assert(min_x < 999999.0);
+    double cx = 0.5*(min_x+max_x), cy = 0.5*(min_y+max_y);
+    center.x = point.x + x_axis.x*cx + y_axis.x*cy;
+    center.y = point.y + x_axis.y*cx + y_axis.y*cy;
+    center.z = point.z + x_axis.z*cx + y_axis.z*cy;
+  }
 };
 
 class cSelectObject
@@ -389,7 +424,7 @@ private:
       //double best_cen[3], best_normal[3];
       //pcl::PointXYZ best_cen, best_normal[2];
       int best_cnt = 0;
-      cPlane best_plane;
+      cPlane best_plane(&r);
       for (int k1 = config.ransac_repeat_time - 1; k1 >= 0; k1--)
       {
         const tPoint2i *ps[3];
@@ -489,7 +524,7 @@ private:
           }
         }
       }
-      best_plane.p_reg = &r;
+//      best_plane.p_reg = &r;
       best_plane.warp(*p_img_col, p_seg);
       planes.push_back(best_plane);
 
@@ -515,6 +550,15 @@ private:
 
   void find_text(){
     cLabeling label;
+    visualization_msgs::Marker marker;
+    geometry_msgs::Point marker_point;
+    marker.header.frame_id = "my_frame";
+    marker.ns = "pick_markers";
+    marker.type = visualization_msgs::Marker::ARROW;
+    marker.scale.x = 0.005;
+    marker.scale.y = 0.01;
+    marker.scale.z = 0.02;
+    marker.color.a = 1.0;
     for (int i_plane = planes.size() - 1; i_plane >= 0; i_plane--){
       printf("** find_text %d **\n", i_plane);
       cPlane &plane = planes[i_plane];
@@ -762,6 +806,7 @@ private:
           cv::flip( img_text, img_flip, -1);
           cv::Mat *pi[2] = {&img_text, &img_flip};
           cv::Mat img_gray = cv::Mat( img_text.size(), CV_8UC1);
+          int n_label = -1;
           for(int k=1;k>=0;k--){
             cv::cvtColor( *pi[k], img_gray, cv::COLOR_BGR2GRAY);
             const int MEAN = 140;
@@ -773,15 +818,53 @@ private:
               }
             }
             ocr.get_text(img_gray);
+
             for(int i=0;i<ocr.confs.size();i++){
-              printf("text flip [%d]: %s, %.3f\n", k, ocr.texts[i].c_str(), ocr.confs[i]);
+              const char *str = ocr.texts[i].c_str();
+              printf("text flip [%d]: %s, %.3f\n", k, str, ocr.confs[i]);
+              if( str && str[0]=='M' && i<ocr.confs.size()-1 ){
+                const char *str2 = ocr.texts[i+1].c_str();
+                if( !str2 )
+                  continue;
+                switch(str2[0]){
+                  case '1':
+                    n_label = 1;
+                    break;
+                  case 'a':
+                  case '2':
+                    n_label = 2;
+                    break;
+                  case '3':
+                    n_label = 3;
+                    break;
+                  default:
+                    printf("Unknown M : %c\n", str2[0]);
+                }
+              }
             }
             char str[20];
             sprintf(str, "text_gray%d-%d.tif", i_plane, k);
             cv::imshow(str, img_gray);
             cv::imwrite(save_path + str, img_gray);
+            if( n_label>=0 ){
+              double d = 1.0/255.0;
+              marker.color.r = cols[n_label][0] * d;
+              marker.color.g = cols[n_label][1] * d;
+              marker.color.b = cols[n_label][2] * d;
+              marker.points.clear();
+              plane.find_center(p_seg->cloud, p_seg->img_label);
+              marker_point.x = plane.center.x;
+              marker_point.y = plane.center.y;
+              marker_point.z = plane.center.z;
+              marker.points.push_back(marker_point);
+              marker_point.x+= plane.normal.x * 0.1;
+              marker_point.y+= plane.normal.y * 0.1;
+              marker_point.z+= plane.normal.z * 0.1;
+              marker.points.push_back(marker_point);
+              pick_markers.push_back(marker);
+              break;
+            }
           }
-
         }
         {
           char str[32];
@@ -857,14 +940,6 @@ private:
   {
     const cv::Mat &img_label = p_seg->img_label;
     constexpr float bad_point = std::numeric_limits<float>::quiet_NaN();
-
-    const int cols[6][3] = {
-        {255, 50, 50},
-        {50, 255, 50},
-        {50, 50, 255},
-        {255, 250, 50},
-        {50, 255, 250},
-        {250, 50, 255}};
 
 /*    plane_pc.width = img_label.cols;
     plane_pc.height = img_label.rows;
@@ -950,6 +1025,7 @@ public:
   std::vector<cPlane> planes;
   pcl::PointCloud<pcl::PointXYZRGB> plane_pc;
   std::vector<visualization_msgs::Marker> plane_frames;
+  std::vector<visualization_msgs::Marker> pick_markers;
 
   cSelectObject() : p_seg(NULL), p_img_col(NULL)
   {
