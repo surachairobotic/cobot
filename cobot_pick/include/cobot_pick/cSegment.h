@@ -21,7 +21,7 @@
 class cSegment{
 
 private:
-
+/*
   bool cal_normal(){
 
     // Create a search tree, use KDTreee for non-organized data.
@@ -44,10 +44,7 @@ private:
     ne.setInputCloud (cloud);
     ne.setSearchMethod (tree);
 
-    /**
-     * NOTE: setting viewpoint is very important, so that we can ensure
-     * normals are all pointed in the same direction!
-     */
+
     ne.setViewPoint (std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
 
     // calculate normals with the small scale
@@ -71,10 +68,10 @@ private:
     ne.compute (*normals_large_scale);
 
     return true;
-  }
+  }*/
 
   bool cal_normal_my(){
-    CalNormal3_with_TBB( cloud, normal_my, config.norm_k_search_my, config.norm_thread);
+    CalNormal3_with_TBB( cloud, normal_my, config.normal_win_size, config.normal_thread_num);
     return true;
   }
 
@@ -84,7 +81,7 @@ private:
     //const pcl::PointNormal *n1 = &normals_small_scale->points[0]
     //  , *n2 = &normals_large_scale->points[0]
     //  , **ns[2] = {&n1, &n2};
-    const double th_cos = cos(config.norm_th_rad);
+    const double th_cos = cos(config.normal_th_ang);
     img_bin = cv::Mat(cloud->height,cloud->width,CV_8UC1);
     img_label = cv::Mat(cloud->height,cloud->width,CV_16UC1);
     img_col = cv::Mat(cloud->height,cloud->width,CV_8UC3);
@@ -100,7 +97,7 @@ private:
       , *p_n1 = (uint8_t*)img_norm1.data
       , *p_n2 = (uint8_t*)img_norm2.data;
 
-    const double TH_DIS2 = POW2(config.threshold_pointcloud_distance);
+    const double TH_DIS2 = POW2(config.th_pointcloud_distance);
     memset( p, 0, img_bin.rows*img_bin.cols);
     memset( p_a, 0, img_bin.rows*img_bin.cols);
     memset( p_n1, 0, img_bin.rows*img_bin.cols);
@@ -185,7 +182,7 @@ private:
                 }*/
 //                int v = (1.0 - a/(M_PI/36))*255;
 //                p_n1[j2] = v>0 ? 255 : 0;//v>255 ? 255 : (v<0 ? 0 : v);
-                p_n1[j2] = a > config.norm_th_rad ? 0 : 255;
+                p_n1[j2] = a > config.normal_th_ang ? 0 : 255;
               }
             }
           }

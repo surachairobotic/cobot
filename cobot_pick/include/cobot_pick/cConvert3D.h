@@ -104,5 +104,6 @@ public:
   }
 };
 
+float cConvert3D::center_x, cConvert3D::center_y, cConvert3D::constant_x, cConvert3D::constant_y;
 
 #endif

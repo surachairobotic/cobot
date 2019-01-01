@@ -1,21 +1,13 @@
 <launch>
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
          output="screen" launch-prefix="gdb -ex run --args">
-    <param name="load_mode" value="true"/>
+    <param name="mode" value="action"/>
     <param name="save_file_prefix" 
       value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/white_box_label4"/>
     <param name="result_save_path" 
       value="/home/tong/catkin_ws/src/cobot/cobot_pick/results/"/>
     <param name="show_result" value="true"/>
-<!--    <param name="norm_scale1" value="0.007"/>
-    <param name="norm_scale2" value="0.015"/> 
-    <param name="norm_k_search1" value="10"/>
-    <param name="norm_k_search2" value="20"/> 
-    <param name="norm_th_curvature" value="1.2"/>
-    <param name="segment_radius" value="0.01"/>
-    <param name="min_cluster_size" value="10"/>
-    <param name="max_cluster_size" value="9999999"/>
-    -->
+
     <param name="normal_th_ang" value="0.05"/>
     <param name="th_pointcloud_distance" value="0.01"/>
     <param name="normal_win_size" value="6"/>

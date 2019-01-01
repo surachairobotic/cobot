@@ -11,338 +11,79 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-
-#include <pcl/io/pcd_io.h>
-#include <pcl/search/organized.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/features/normal_3d_omp.h>
-#include <pcl/filters/conditional_removal.h>
-#include <pcl/segmentation/extract_clusters.h>
-
-#include <pcl/features/don.h>
-
 #include "cobot_pick/cROSData.h"
 #include "cobot_pick/cConvert3D.h"
 #include "cobot_pick/cSegment.h"
 #include "cobot_pick/cSelectObject.h"
+#include <cobot_pick/CobotFindObjectAction.h>
+#include <actionlib/server/simple_action_server.h>
+
+/*sensor_msgs::CameraInfo msg_cam_info;
+sensor_msgs::Image msg_depth, msg_col;
+sensor_msgs::PointCloud2 msg_pc_org*/
+
+sensor_msgs::PointCloud2 msg_pc_seg, msg_pc_plane;
+cv_bridge::CvImagePtr p_img_col;
+bool b_pub = false;
+cSegment seg;
+cSelectObject select_obj;
 
 
-using namespace pcl;
-using namespace std;
+void process_data(){
+  b_pub = false;
+  ROS_INFO("start process");
+  pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
 
-cv::Mat img;
-image_geometry::PinholeCameraModel model;
+  p_img_col = cv_bridge::toCvCopy(ros_col.msg, sensor_msgs::image_encodings::BGR8);
+  cConvert3D::convert_pc(ros_depth.msg, ros_cam_info.msg, ros_col.msg, cloud_rgb);
+  pcl::toROSMsg(cloud_rgb, ros_pc.msg);
+  seg.seg(cloud_rgb, msg_pc_seg);
+  select_obj.run(seg, p_img_col->image);
+  pcl::toROSMsg(select_obj.plane_pc, msg_pc_plane);
 
-float cConvert3D::center_x, cConvert3D::center_y, cConvert3D::constant_x, cConvert3D::constant_y;
+  ros_pc.msg.header.frame_id = "my_frame";
+  msg_pc_seg.header.frame_id = "my_frame";
+  msg_pc_plane.header.frame_id = "my_frame";
+  b_pub = true;
+}
 
 
-//void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg);
-
-
-/*
-
-void cam_info_callback(const sensor_msgs::CameraInfo& msg)
+void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal
+  , actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction> *as)
 {
-  if( b_save && !b_end_info ){
-    cROSCameraInfo::save( (save_prefix+"_cam_info.bin").c_str(), msg);
-    b_end_info = true;
-  }
-}
-
-void cam_info_callback(const sensor_msgs::CameraInfo& msg)
-{
-  if( b_save && !b_end_info ){
-    cROSCameraInfo::save( (save_prefix+"_cam_info.bin").c_str(), msg);
-    b_end_info = true;
-  }
-}
-*/
-void pc_callback(const sensor_msgs::PointCloud2& msg)
-{
-  pcl::PointCloud<pcl::PointXYZRGB> cloud;
-  pcl::fromROSMsg( msg, cloud );
-/*  if( b_save ){
-    if( !b_end_pc ){
-      pcl::io::savePCDFileASCII (save_prefix + "_pc.pcd", cloud);
-      b_end_pc = true;
-    }
-    return;
-  }*/
-
-  sensor_msgs::PointCloud2 msg2;
-//  seg(cloud, msg2);
-//  pc_pub.publish(msg2);
-}
-
-/*
-void load(pcl::PointCloud<pcl::PointXYZRGB> &cloud){
-  pcl::io::loadPCDFile(save_prefix+"_pc.pcd", cloud);
-}*/
-
-
-void convert_rgb2xyz(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb
-    , pcl::PointCloud<pcl::PointXYZ> &cloud){
-  
-  cloud.width = 640;
-  cloud.height = int(cloud_rgb.width / cloud.width);
-  cloud.resize(cloud.width*cloud.height);
-  for(int i=cloud.size()-1;i>=0;i--){
-    cloud.points[i].x = cloud_rgb.points[i].x;
-    cloud.points[i].y = cloud_rgb.points[i].y;
-    cloud.points[i].z = cloud_rgb.points[i].z;
-  }
-}
-
-template<typename PointT>
-void reorganize(pcl::PointCloud<PointT> &cloud){
-  const int shift = 213, width = 640;
-  const float e = 0.00001;
-  int cnt = 0;
-  double min_z = 9999999, max_z = -9999999;
-  std::vector<PointT, Eigen::aligned_allocator<PointT> > ps(cloud.points);
-  cloud.width = width;
-  cloud.height = cloud.points.size() / width;
-  ROS_INFO("point size : %d / %d, same = %d", (int)cloud.points.size()
-    , (int)(cloud.width * cloud.height)
-    , int(cloud.points.size()==(cloud.width * cloud.height)));
-  for(int i=cloud.height-1;i>=0;i--){
-    const int i2 = i*cloud.width;
-    for(int j=cloud.width-1;j>=0;j--){
-      const PointT &p1 = ps[i2+j];
-      PointT &p2 = cloud.points[i2+(j+width-shift)%shift];
-      if(fabs(p1.x)<e && fabs(p1.y)<e && fabs(p1.z)<e ){
-        p2.x = p2.y = p2.z = std::numeric_limits<float>::quiet_NaN(); 
+  cobot_pick::CobotFindObjectFeedback feedback;
+  cobot_pick::CobotFindObjectResult result;
+  cROSData::start_sub();
+  ros::Rate loop_rate(20);
+  bool b_ok = false;
+  ros::Time t = ros::Time::now();
+  for(;;){
+    loop_rate.sleep();
+    if( cROSData::is_all_saved() ){
+      feedback.percent_complete = 0.1;
+      as->publishFeedback(feedback);
+      process_data();
+      for(int i=0;i<select_obj.pick_poses.size();i++){
+        result.poses.push_back(select_obj.pick_poses[i].pose);
+        result.labels.push_back(select_obj.pick_poses[i].label);
       }
-      else{
-        p2 = p1;
-        if( p1.z>max_z)
-          max_z = p1.z;
-        if( p1.z<min_z)
-          min_z = p1.z;
-        cnt++;
-      }
+      as->setSucceeded(result);
+      return;
+    }
+    if( !ros::ok() ){
+      ROS_WARN("ROS was shutdowned while action is running");
+      return;
+    }
+    if((ros::Time::now()-t).toSec()>10.0){
+      ROS_ERROR("Action does not finished within 5 sec.");
+      printf("saved : %d, %d, %d\n", (int)ros_cam_info.is_saved()
+        , (int)ros_depth.is_saved() 
+        , (int)ros_col.is_saved() );
+      break;
     }
   }
-  ROS_INFO("cnt valid : %d", cnt);
-  ROS_INFO("min max z : %.3lf, %.3lf", min_z, max_z);
-  cloud.is_dense = false;
-}
-
-#if 0
-void seg(pcl::PointCloud<pcl::PointXYZRGB> &cloud_rgb, sensor_msgs::PointCloud2 &msg){
-//  pcl::PointCloud<pcl::PointXYZ> cloud;
-//  reorganize(cloud_rgb);
-//  pcl::toROSMsg(cloud_rgb, msg);
-//  return;
-
-//  convert_rgb2xyz(cloud_rgb, cloud);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZRGB>());
-/*  if( cloud_rgb.points.size()>20000){
-    cloud_rgb.points.resize(20000);
-    cloud_rgb.width = cloud_rgb.points.size();
-  }*/
-  cloud = cloud_rgb.makeShared();
-  ROS_INFO("width : %d, height : %d", cloud->width, cloud->height);
-
-  // Create a search tree, use KDTreee for non-organized data.
-  // double scale1 = 0.007, scale2 = 0.015, threshold = 0.9, segradius = 0.01;
-  pcl::search::Search<PointXYZRGB>::Ptr tree;
-  ROS_INFO("cloud organized : %d", (int)cloud->isOrganized ());
-  if (cloud->isOrganized ())
-  {
-    tree.reset (new pcl::search::OrganizedNeighbor<PointXYZRGB> ());
-  }
-  else
-  {
-    tree.reset (new pcl::search::KdTree<PointXYZRGB> (false));
-  }
-  // Set the input pointcloud for the search tree
-  tree->setInputCloud (cloud);
-  if (norm_scale1 >= norm_scale2)
-  {
-    ROS_ERROR("Error: Large scale must be > small scale!");
-    return;
-  }
-
-  // Compute normals using both small and large scales at each point
-//  pcl::NormalEstimation<PointXYZRGB, PointNormal> ne;
-  pcl::NormalEstimationOMP<PointXYZRGB, PointNormal> ne;
-  ne.setInputCloud (cloud);
-  ne.setSearchMethod (tree);
-
-  /**
-   * NOTE: setting viewpoint is very important, so that we can ensure
-   * normals are all pointed in the same direction!
-   */
-  ne.setViewPoint (std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
-
-  // calculate normals with the small scale
-  cout << "Calculating normals for scale..." << norm_scale1 << endl;
-  pcl::PointCloud<PointNormal>::Ptr normals_small_scale (new pcl::PointCloud<PointNormal>);
-
-  ne.setRadiusSearch (norm_scale1);
-  cout << "Compute ..." << endl;
-  ne.compute (*normals_small_scale);
-
-  // calculate normals with the large scale
-  cout << "Calculating normals for scale..." << norm_scale2 << endl;
-  pcl::PointCloud<PointNormal>::Ptr normals_large_scale (new pcl::PointCloud<PointNormal>);
-
-  ne.setRadiusSearch (norm_scale2);
-  ne.compute (*normals_large_scale);
-
-  // Create output cloud for DoN results
-  PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
-  copyPointCloud<PointXYZRGB, PointNormal>(*cloud, *doncloud);
-
-  cout << "Calculating DoN... " << endl;
-  // Create DoN operator
-  pcl::DifferenceOfNormalsEstimation<PointXYZRGB, PointNormal, PointNormal> don;
-  don.setInputCloud (cloud);
-  don.setNormalScaleLarge (normals_large_scale);
-  don.setNormalScaleSmall (normals_small_scale);
-
-  if (!don.initCompute ())
-  {
-    std::cerr << "Error: Could not initialize DoN feature operator" << std::endl;
-    return;
-  }
-
-  // Compute DoN
-  don.computeFeature (*doncloud);
-  ROS_INFO("don size : %d, %d", doncloud->width, doncloud->height);
-
-  // Save DoN features
-/*  if( f_don.size()>0 ){
-    pcl::PCDWriter writer;
-    writer.write<pcl::PointNormal> (f_don, *doncloud, false);
-  }*/
-
-  // Filter by magnitude
-  cout << "Filtering out DoN mag <= " << norm_threshold << "..." << endl;
-
-  // Build the condition for filtering
-  pcl::ConditionOr<PointNormal>::Ptr range_cond (
-    new pcl::ConditionOr<PointNormal> ()
-    );
-  range_cond->addComparison (pcl::FieldComparison<PointNormal>::ConstPtr (
-    new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::LT, norm_threshold))
-  );
-
-  // Build the filter
-  pcl::ConditionalRemoval<PointNormal> condrem (range_cond);
-  condrem.setInputCloud (doncloud);
-
-  pcl::PointCloud<PointNormal>::Ptr doncloud_filtered (new pcl::PointCloud<PointNormal>);
-
-  // Apply filter
-  condrem.filter (*doncloud_filtered);
-  doncloud = doncloud_filtered;
-  ROS_INFO("don filtered size : %d, %d", doncloud->width, doncloud->height);
-
-  // Save filtered output
-  std::cout << "Filtered Pointcloud: " << doncloud->points.size () << " data points." << std::endl;
-//  writer.write<pcl::PointNormal> ("don_filtered.pcd", *doncloud, false); 
-
-  // Filter by magnitude
-  cout << "Clustering using EuclideanClusterExtraction with tolerance <= " << segment_radius << "..." << endl;
-
-  pcl::search::KdTree<PointNormal>::Ptr segtree (new pcl::search::KdTree<PointNormal>);
-  segtree->setInputCloud (doncloud);
-
-  std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<PointNormal> ec;
-
-  ec.setClusterTolerance (segment_radius);
-  ec.setMinClusterSize (min_cluster_size);
-  ec.setMaxClusterSize (max_cluster_size);
-  ec.setSearchMethod (segtree);
-  ec.setInputCloud (doncloud);
-  ec.extract (cluster_indices);
-
-  ROS_INFO("cluster num : %d", (int)cluster_indices.size());
-  uint8_t col[][3] = {{255,0,0},{0,255,0},{0,0,255},
-    {255,255,0},{255,0,255},{0,255,255},
-    {150,0,0},{0,150,0},{0,0,150},
-    {150,150,0},{150,0,150},{0,150,150}
-  };
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc2( new pcl::PointCloud<pcl::PointXYZRGB>());
-  PointXYZRGB pnt;
-  int j = 0;
-  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it, j++)
-  {
-    //pcl::PointCloud<PointNormal>::Ptr cloud_cluster_don (new pcl::PointCloud<PointNormal>);
-    const uint8_t *c = &col[j%12][0];
-    pnt.r = c[0];
-    pnt.g = c[1];
-    pnt.b = c[2];
-    for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-    {
-    //  cloud_cluster_don->points.push_back (doncloud->points[*pit]);
-      const PointNormal &p = doncloud->points[*pit];
-      pnt.x = p.x;
-      pnt.y = p.y;
-      pnt.z = p.z;
-      pc2->points.push_back(pnt);
-    }
-    /*
-    cloud_cluster_don->width = int (cloud_cluster_don->points.size ());
-    cloud_cluster_don->height = 1;
-    cloud_cluster_don->is_dense = true;
-    */
-  }
-  pc2->width = pc2->points.size();
-  pc2->height = 1;
-  pc2->is_dense = true;
-
-  pcl::toROSMsg(*pc2, msg);
-
-
-/*  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-  // Create the segmentation object
-  pcl::SACSegmentation<pcl::PointXYZ> seg;
-  // Optional
-  seg.setOptimizeCoefficients (true);
-  // Mandatory
-  seg.setModelType (pcl::SACMODEL_PLANE);
-  seg.setMethodType (pcl::SAC_RANSAC);
-  seg.setDistanceThreshold (0.01);
-
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPtr( new pcl::PointCloud<pcl::PointXYZ>());
   
-  cloudPtr = cloud.makeShared(); 
-  seg.setInputCloud (cloudPtr);
-  seg.segment (*inliers, *coefficients);
-
-  if (inliers->indices.size () == 0)
-  {
-    PCL_ERROR ("Could not estimate a planar model for the given dataset.");
-    return;
-  }
-  
-  ROS_INFO("inliers indices : %d\n", inliers->indices.size ());
-
-  std::cerr << "Model coefficients: " << coefficients->values[0] << " " 
-                                      << coefficients->values[1] << " "
-                                      << coefficients->values[2] << " " 
-                                      << coefficients->values[3] << std::endl;
-
-  std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-  for (size_t i = 0; i < inliers->indices.size (); ++i)
-    std::cerr << inliers->indices[i] << "    " << cloud.points[inliers->indices[i]].x << " "
-                                               << cloud.points[inliers->indices[i]].y << " "
-                                               << cloud.points[inliers->indices[i]].z << std::endl;
-  */
 }
-
-#endif
-
 
 int main(int argc, char **argv)
 {
@@ -350,10 +91,7 @@ int main(int argc, char **argv)
   ROS_INFO("start");
   ros::init(argc, argv, "cobot_find_object");
   ros::NodeHandle n;
-  pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
-  bool b_save = false, b_load = false;
-  cSegment seg;
-  cSelectObject select_obj;
+  cROSData::set_nh(n);
 
   {
     ros::NodeHandle nh("~");
@@ -361,226 +99,225 @@ int main(int argc, char **argv)
     bool b;
     double d;
     int i;
-    if( nh.getParam("save", b) ){
-      nh.deleteParam("save");
-      b_save = b;
+    if (nh.getParam("mode", str))
+    {
+      nh.deleteParam("mode");
+      if (str == "save")
+        config.save_mode = true;
+      else if (str == "load")
+        config.load_mode = true;
+      else if (str == "action")
+        config.action_server_mode = true;
+      else
+      {
+        ROS_ERROR("Invalid mode : %s", str.c_str());
+        return 0;
+      }
     }
-    if( nh.getParam("load", b) ){
-      nh.deleteParam("load");
-      b_load = b;
+    if (nh.getParam("save_file_prefix", str))
+    {
+      nh.deleteParam("save_file_prefix");
+      config.save_file_prefix = str;
     }
-    if( nh.getParam("file_prefix", str) ){
-      nh.deleteParam("file_prefix");
-      cROSData::file_prefix = str;
+    if (nh.getParam("result_save_path", str))
+    {
+      nh.deleteParam("result_save_path");
+      config.result_save_path = str;
     }
-    
-    if( nh.getParam("norm_scale1", d) ){
-      nh.deleteParam("norm_scale1");
-      config.norm_scale1 = d;
+    if (nh.getParam("show_result", b))
+    {
+      nh.deleteParam("show_result");
+      config.show_result = b;
     }
-    if( nh.getParam("norm_scale2", d) ){
-      nh.deleteParam("norm_scale2");
-      config.norm_scale2 = d;
+
+    if (nh.getParam("normal_th_ang", d))
+    {
+      nh.deleteParam("normal_th_ang");
+      config.normal_th_ang = d;
     }
-    if( nh.getParam("norm_k_search1", i) ){
-      nh.deleteParam("norm_k_search1");
-      config.norm_k_search1 = i;
+    if (nh.getParam("th_pointcloud_distance", d))
+    {
+      nh.deleteParam("th_pointcloud_distance");
+      config.th_pointcloud_distance = d;
     }
-    if( nh.getParam("norm_k_search2", i) ){
-      nh.deleteParam("norm_k_search2");
-      config.norm_k_search2 = i;
+
+    if (nh.getParam("normal_win_size", i))
+    {
+      nh.deleteParam("normal_win_size");
+      config.normal_win_size = i;
     }
-    if( nh.getParam("norm_th_rad", d) ){
-      nh.deleteParam("norm_th_rad");
-      config.norm_th_rad = d;
-    }/*
-    if( nh.getParam("norm_th_curvature", d) ){
-      nh.deleteParam("norm_th_curvature");
-      config.norm_th_curvature = d;
-    }
-    if( nh.getParam("segment_radius", d) ){
-      nh.deleteParam("segment_radius");
-      config.segment_radius = d;
-    }
-    if( nh.getParam("min_cluster_size", i) ){
-      nh.deleteParam("min_cluster_size");
-      config.min_cluster_size = i;
-    }
-    if( nh.getParam("max_cluster_size", i) ){
-      nh.deleteParam("max_cluster_size");
-      config.max_cluster_size = i;
-    }*/
-    if( nh.getParam("norm_k_search_my", i) ){
-      nh.deleteParam("norm_k_search_my");
-      config.norm_k_search_my = i;
-    }
-    if( nh.getParam("norm_thread", i) ){
-      nh.deleteParam("norm_thread");
-      config.norm_thread = i;
+    if (nh.getParam("normal_thread_num", i))
+    {
+      nh.deleteParam("normal_thread_num");
+      config.normal_thread_num = i;
     }
 
     // select
-    if( nh.getParam("reg_min_pix", i) ){
-      nh.deleteParam("reg_min_pix");
-      config.reg_min_pix = i;
+    if (nh.getParam("plane_reg_min", i))
+    {
+      nh.deleteParam("plane_reg_min");
+      config.plane_reg_min = i;
     }
-    if( nh.getParam("reg_max_pix", i) ){
-      nh.deleteParam("reg_max_pix");
-      config.reg_max_pix = i;
+    if (nh.getParam("plane_reg_max", i))
+    {
+      nh.deleteParam("plane_reg_max");
+      config.plane_reg_max = i;
     }
-    if( nh.getParam("reg_min_ratio", d) ){
-      nh.deleteParam("reg_min_ratio");
-      config.reg_min_ratio = d;
+    if (nh.getParam("plane_reg_ratio_min", d))
+    {
+      nh.deleteParam("plane_reg_ratio_min");
+      config.plane_reg_ratio_min = d;
     }
-    if( nh.getParam("reg_max_ratio", d) ){
-      nh.deleteParam("reg_max_ratio");
-      config.reg_max_ratio = d;
+    if (nh.getParam("plane_reg_ratio_max", d))
+    {
+      nh.deleteParam("plane_reg_ratio_max");
+      config.plane_reg_ratio_max = d;
     }
-    if( nh.getParam("warp_meter2pixel", d) ){
+    if (nh.getParam("warp_meter2pixel", d))
+    {
       nh.deleteParam("warp_meter2pixel");
       config.warp_meter2pixel = d;
     }
 
-    if( nh.getParam("threshold_pointcloud_distance", d) ){
-      nh.deleteParam("threshold_pointcloud_distance");
-      config.threshold_pointcloud_distance = d;
+    if (nh.getParam("plane_ransac_repeat_time", i))
+    {
+      nh.deleteParam("plane_ransac_repeat_time");
+      config.plane_ransac_repeat_time = i;
     }
-    if( nh.getParam("th_text_binary_neighbour", i) ){
-      nh.deleteParam("th_text_binary_neighbour");
-      config.th_text_binary_neighbour = i;
+    if (nh.getParam("plane_ransac_th_error", d))
+    {
+      nh.deleteParam("plane_ransac_th_error");
+      config.plane_ransac_th_error = d;
     }
-    if( nh.getParam("th_text_binary_adapt_mean", i) ){
-      nh.deleteParam("th_text_binary_adapt_mean");
-      config.th_text_binary_adapt_mean = i;
+
+    if (nh.getParam("text_binarize_win_size", i))
+    {
+      nh.deleteParam("text_binarize_win_size");
+      config.text_binarize_win_size = i;
     }
-    if( nh.getParam("text_ransac_repeat_time", i) ){
+    if (nh.getParam("text_binarize_subtract", d))
+    {
+      nh.deleteParam("text_binarize_subtract");
+      config.text_binarize_subtract = d;
+    }
+    if (nh.getParam("text_ransac_repeat_time", i))
+    {
       nh.deleteParam("text_ransac_repeat_time");
       config.text_ransac_repeat_time = i;
     }
-    if( nh.getParam("text_ransac_th_error", d) ){
+    if (nh.getParam("text_ransac_th_error", d))
+    {
       nh.deleteParam("text_ransac_th_error");
       config.text_ransac_th_error = d;
     }
-    
   }
 
-  ROS_INFO("save : %d", (int)b_save);
-  ROS_INFO("load : %d", (int)b_load);
-  ROS_INFO("file_prefix : %s", cROSData::file_prefix.c_str());
+  ROS_INFO("save : %d", (int)config.save_mode);
+  ROS_INFO("load : %d", (int)config.load_mode);
+  ROS_INFO("action_server : %d", (int)config.action_server_mode);
+
+  ROS_INFO("show_result : %d", (int)config.show_result);
+  ROS_INFO("save_file_prefix : %s", config.save_file_prefix.c_str());
+  ROS_INFO("result_save_path : %s", config.result_save_path.c_str());
+
   ROS_INFO("-- param --");
-  ROS_INFO("norm_scale1 : %.3lf", config.norm_scale1);
-  ROS_INFO("norm_scale2 : %.3lf", config.norm_scale2);
-  ROS_INFO("norm_k_search1 : %d", config.norm_k_search1);
-  ROS_INFO("norm_k_search2 : %d", config.norm_k_search2);
-  ROS_INFO("norm_k_search_my : %d", config.norm_k_search_my);
-  ROS_INFO("norm_thread : %d", config.norm_thread);  
-  ROS_INFO("norm_th_rad : %.3lf", config.norm_th_rad);
-  ROS_INFO("threshold_pointcloud_distance : %.3lf", config.threshold_pointcloud_distance);
-  ROS_INFO("th_text_binary_neighbour : %d", config.th_text_binary_neighbour);
-  ROS_INFO("th_text_binary_adapt_mean : %d", config.th_text_binary_adapt_mean);
+  ROS_INFO("normal_th_ang : %.3lf", config.normal_th_ang);
+  ROS_INFO("th_pointcloud_distance : %.3lf", config.th_pointcloud_distance);
+  ROS_INFO("normal_win_size : %d", config.normal_win_size);
+  ROS_INFO("normal_thread_num : %d", config.normal_thread_num);
+
+  ROS_INFO("plane_reg_min : %d", config.plane_reg_min);
+  ROS_INFO("plane_reg_max : %d", config.plane_reg_max);
+  ROS_INFO("plane_reg_ratio_min : %.3lf", config.plane_reg_ratio_min);
+  ROS_INFO("plane_reg_ratio_max : %.3lf", config.plane_reg_ratio_max);
+  ROS_INFO("warp_meter2pixel : %.3lf", config.warp_meter2pixel);
+  ROS_INFO("plane_ransac_repeat_time : %d", config.plane_ransac_repeat_time);
+  ROS_INFO("plane_ransac_th_error : %.3lf", config.plane_ransac_th_error);
+  ROS_INFO("text_binarize_win_size : %d", config.text_binarize_win_size);
+  ROS_INFO("text_binarize_subtract : %.3lf", config.text_binarize_subtract);
   ROS_INFO("text_ransac_repeat_time : %d", config.text_ransac_repeat_time);
   ROS_INFO("text_ransac_th_error : %.3lf", config.text_ransac_th_error);
 
-  
-/*
+  /*
   ROS_INFO("norm_th_curvature : %.3lf", config.norm_th_curvature);
   ROS_INFO("segment_radius : %.3lf", config.segment_radius);
   ROS_INFO("min_cluster_size : %d", config.min_cluster_size);
   ROS_INFO("max_cluster_size : %d", config.max_cluster_size);
   */
-
+  /*
   ROS_INFO("reg_min_pix : %d", config.reg_min_pix);
   ROS_INFO("reg_max_pix : %d", config.reg_max_pix);
   ROS_INFO("reg_min_ratio : %.3lf", config.reg_min_ratio);
   ROS_INFO("reg_max_ratio : %.3lf", config.reg_max_ratio);
   ROS_INFO("warp_meter2pixel : %.3lf", config.warp_meter2pixel);
-
+*/
   ros::Rate r(10);
-  if( b_save ){
-    cROSData::save_mode(n);
+  if (config.save_mode)
+  {
+    cROSData::save_mode();
 
-    while (ros::ok()){
+    while (ros::ok())
+    {
       ros::spinOnce();
-      if( cROSData::is_all_saved() ){
-        cROSData::stop();
+      if (cROSData::is_all_saved())
+      {
+        cROSData::stop_sub();
         ros::shutdown();
         break;
       }
       r.sleep();
     }
   }
-  else if( b_load ){
-    sensor_msgs::CameraInfo msg_cam_info;
-    sensor_msgs::Image msg_depth, msg_col;
-    sensor_msgs::PointCloud2 msg_pc_org, msg_pc_seg, msg_pc_plane;
-    cv_bridge::CvImagePtr p_img_col;
+  else
+  {
+    actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction>
+        action_server(n, "/cobot/find_object", boost::bind(&execute_find_object, _1, &action_server), false);
 
-    cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
-    p_img_col = cv_bridge::toCvCopy(msg_col, sensor_msgs::image_encodings::BGR8);
+    if (config.load_mode)
+    {
+      cROSData::load_mode();
+      //cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
+    }
+    else if (config.action_server_mode)
+    {
+      action_server.start();
+      printf("start action server\n");
+    }
 
-    /// add frames to image labels ///
-//    cv::imwrite(save_path + "img_col.bmp", p_img_col->image);
-//    p_img_col->image = cv::imread(save_path + "img_col_frame.bmp");
-    //////////////////////////////////
-
-    cConvert3D::convert_pc(msg_depth, msg_cam_info, msg_col, cloud_rgb);
-    pcl::toROSMsg(cloud_rgb, msg_pc_org);
-    //seg(cloud_rgb, msg_pc_seg);
-    seg.seg(cloud_rgb, msg_pc_seg);
-    select_obj.run(seg, p_img_col->image);
-    pcl::toROSMsg(select_obj.plane_pc, msg_pc_plane);
-
-    msg_pc_org.header.frame_id = "my_frame";
-    msg_pc_seg.header.frame_id = "my_frame";
-    msg_pc_plane.header.frame_id = "my_frame";
-
-    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20)
-      , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20)
-      , pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20)
-      , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20)
-      , pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20)
-      , pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
-    while (ros::ok()){
+    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20), pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20), pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20), pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20), pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20), pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
+    while (ros::ok())
+    {
       ros::spinOnce();
-      msg_pc_org.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
-      pc_pub_org.publish(msg_pc_org);
-      pc_pub_seg.publish(msg_pc_seg);
-      pc_pub_plane.publish(msg_pc_plane);
-      for(int i=select_obj.plane_frames.size()-1;i>=0;i--)
-        pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
-      for(int i=seg.normal_markers.size()-1;i>=0;i--)
-        pc_pub_normal.publish(seg.normal_markers[i]);
-      for(int i=select_obj.pick_markers.size()-1;i>=0;i--)
-        pc_pub_pick.publish(select_obj.pick_markers[i]);
-      cv::imshow("label", seg.img_col);
-      cv::imshow("norm_ang", seg.img_norm_ang);
-      cv::imshow("norm1", seg.img_norm1);
+      if( b_pub ){
+        ros_pc.msg.header.stamp = msg_pc_seg.header.stamp = ros::Time::now();
+        pc_pub_org.publish(ros_pc.msg);
+        pc_pub_seg.publish(msg_pc_seg);
+        pc_pub_plane.publish(msg_pc_plane);
+        for (int i = select_obj.plane_frames.size() - 1; i >= 0; i--)
+          pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
+        for (int i = seg.normal_markers.size() - 1; i >= 0; i--)
+          pc_pub_normal.publish(seg.normal_markers[i]);
+        for (int i = select_obj.pick_markers.size() - 1; i >= 0; i--)
+          pc_pub_pick.publish(select_obj.pick_markers[i]);
+        if (config.show_result)
+        {
+          cv::imshow("label", seg.img_col);
+          cv::imshow("norm_ang", seg.img_norm_ang);
+          cv::imshow("norm1", seg.img_norm1);
+        }
+      }
       char k = (char)cv::waitKey(30);
-      if( k==27 || k=='q' ){
+      if (k == 27 || k == 'q')
+      {
         break;
       }
       r.sleep();
     }
   }
-  return 0;
-
-
-//  img = cv::Mat(640,480,CV_8UC3);
-//  ros::Subscriber pc_sub;
-  /*
-  if( b_save || !b_load ){
-    pc_sub = n.subscribe("/camera/depth/color/points", 10, pc_callback);
-    cam_info_sub = n.subscribe("/camera/aligned_depth_to_color/camera_info", 10, cam_info_callback);
-    depth_sub = n.subscribe("/camera/aligned_depth_to_color/image_raw", 10, depth_callback);
-  }*/
-  
-  
-  
-  
-  while( false == ros::isShuttingDown() ){
-    ros::spinOnce();
+  cROSData::stop_sub();
+  ROS_INFO("stop");
+/*  while(!ros::isShuttingDown()){
     r.sleep();
-  }
-
+  }*/
   return 0;
 }

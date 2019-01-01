@@ -20,8 +20,9 @@ protected:
   bool b_saved;
   ros::Subscriber sub;
   std::string name_ext;
+  static ros::NodeHandle *p_nh;
 
-  const std::string get_file_name(){ return (file_prefix+name_ext); }
+  const std::string get_file_name(){ return (config.save_file_prefix+name_ext); }
 
   // write
   template<typename T>
@@ -84,26 +85,30 @@ protected:
 
 
 public:
-  static std::string file_prefix;
-  static bool b_save_mode, b_load_mode;
+  sensor_msgs::CameraInfo msg_cam_info;
+  sensor_msgs::Image msg_depth, msg_col;
+  sensor_msgs::PointCloud2 msg_pc_org;
   
 
   cROSData():b_saved(false){}
   cROSData(const std::string &_name):b_saved(false), name_ext(_name){}
 
-  bool is_saved(){ return b_saved; }
+  inline bool is_saved(){ return b_saved; }
+  inline void reset_saved(){ b_saved = false; }
 
-  static void save_mode(ros::NodeHandle &n);
-  static void load_mode(sensor_msgs::CameraInfo& msg_cam_info
-    , sensor_msgs::Image& msg_depth
-    , sensor_msgs::Image& msg_col
-    , pcl::PointCloud<pcl::PointXYZRGB> &cloud );
+  static inline void set_nh(ros::NodeHandle &nh){ p_nh = &nh; }
+  static void save_mode();
+  static void load_mode();
   static bool is_all_saved();
-  static void stop();
+  static void start_sub();
+  static void stop_sub();
 };
 
 class cROSCameraInfo : public cROSData{
 public:
+  sensor_msgs::CameraInfo msg;
+
+
   cROSCameraInfo():cROSData("_cam_info.bin"){}
 
   bool save(const sensor_msgs::CameraInfo& msg){
@@ -121,7 +126,6 @@ public:
       write(fp, msg.binning_y);
       write(fp, msg.roi);
       fclose(fp);
-      b_saved = true;
       ROS_INFO("cam info saved");
       return true;
     }
@@ -131,7 +135,7 @@ public:
     }
   }
 
-  bool load(sensor_msgs::CameraInfo& msg){
+  bool load(){
     FILE *fp;
     fp = fopen( get_file_name().c_str(), "rb" );
     if(fp){
@@ -157,8 +161,16 @@ public:
   }
 
   void cb(const sensor_msgs::CameraInfo &msg){
-    if( b_save_mode && !b_saved )
-      save(msg);
+    sub.shutdown();
+    if( !b_saved ){
+      if( config.save_mode ){
+          save(msg);
+      }
+      if( config.action_server_mode ){
+        this->msg = msg;
+      }
+      b_saved = true;
+    }
   }
 };
 
@@ -166,6 +178,9 @@ public:
 
 class cROSImage : public cROSData{
 public:
+  sensor_msgs::Image msg;
+
+
   cROSImage():cROSData("_img.bin"){}
   cROSImage(const std::string &_name):cROSData(_name){}
 
@@ -180,7 +195,6 @@ public:
       write(fp, msg.step);
       write_vector(fp, msg.data);
       fclose(fp);
-      b_saved = true;
       ROS_INFO("depth saved");
       return true;
     }
@@ -190,7 +204,7 @@ public:
     }
   }
 
-  bool load(sensor_msgs::Image& msg){
+  bool load(){
     FILE *fp;
     fp = fopen( get_file_name().c_str(), "rb" );
     if(fp){
@@ -212,8 +226,16 @@ public:
   }
 
   void cb(const sensor_msgs::Image &msg){
-    if( b_save_mode && !b_saved )
-      save(msg);
+    sub.shutdown();
+    if( !b_saved ){
+      if( config.save_mode ){
+          save(msg);
+      }
+      if( config.action_server_mode ){
+        this->msg = msg;
+      }
+      b_saved = true;
+    }
   }
 
 };
@@ -222,6 +244,9 @@ public:
 
 class cROSPointCloud : public cROSData{
 public:
+  sensor_msgs::PointCloud2 msg;
+
+
   cROSPointCloud():cROSData("_pc.pcd"){}
 
   bool save(const sensor_msgs::PointCloud2& msg){
@@ -229,29 +254,34 @@ public:
     pcl::fromROSMsg( msg, cloud );
     ROS_INFO("pc : %s", get_file_name().c_str());
     pcl::io::savePCDFileASCII (get_file_name().c_str(), cloud);
-    b_saved = true;
     ROS_INFO("pc saved");
     return true;
   }
 
-  bool load(pcl::PointCloud<pcl::PointXYZRGB> &cloud){
-    pcl::io::loadPCDFile(get_file_name().c_str(), cloud);
+  bool load(){
+    pcl::io::loadPCDFile(get_file_name().c_str(), msg);
     ROS_INFO("pc loaded");
     return true;
   }
 
   void cb(const sensor_msgs::PointCloud2 &msg){
-    if( b_save_mode && !b_saved )
-      save(msg);
+    sub.shutdown();
+    if( !b_saved ){
+      if( config.save_mode ){
+          save(msg);
+      }
+      if( config.action_server_mode ){
+        this->msg = msg;
+      }
+      b_saved = true;
+    }
   }
 };
-
-std::string cROSData::file_prefix;
-bool cROSData::b_save_mode = false, cROSData::b_load_mode = false;
 
 cROSCameraInfo ros_cam_info;
 cROSImage ros_depth("_depth.bin"), ros_col("_col.bin");
 cROSPointCloud ros_pc;
+ros::NodeHandle *cROSData::p_nh = NULL;
 
 void cb_cam_info(const sensor_msgs::CameraInfo& msg){ ros_cam_info.cb(msg); }
 void cb_depth(const sensor_msgs::Image& msg){ ros_depth.cb(msg); }
@@ -259,16 +289,32 @@ void cb_col(const sensor_msgs::Image& msg){ ros_col.cb(msg); }
 void cb_pc(const sensor_msgs::PointCloud2& msg){ ros_pc.cb(msg); }
 
 
-void cROSData::save_mode(ros::NodeHandle &n){
-  ros_cam_info.sub = n.subscribe("/camera/aligned_depth_to_color/camera_info", 10, cb_cam_info);
-  ros_depth.sub = n.subscribe("/camera/aligned_depth_to_color/image_raw", 10, cb_depth);
-  ros_col.sub = n.subscribe("/camera/color/image_raw", 10, cb_col);
-  ros_pc.sub = n.subscribe("/camera/depth/color/points", 10, cb_pc);
+void cROSData::start_sub(){
+  ros_cam_info.reset_saved();
+  ros_depth.reset_saved();
+  ros_col.reset_saved();
+  ros_pc.reset_saved();
+
+  ros_cam_info.sub = p_nh->subscribe("/camera/aligned_depth_to_color/camera_info", 10, cb_cam_info);
+  ros_depth.sub = p_nh->subscribe("/camera/aligned_depth_to_color/image_raw", 10, cb_depth);
+  ros_col.sub = p_nh->subscribe("/camera/color/image_raw", 10, cb_col);
+//  ros_pc.sub = p_nh->subscribe("/camera/depth/color/points", 10, cb_pc);
+}
+
+void cROSData::stop_sub(){
+  ros_pc.sub.shutdown();
+  ros_cam_info.sub.shutdown();
+  ros_col.sub.shutdown();
+  ros_depth.sub.shutdown();
+}
+
+void cROSData::save_mode(){
   ROS_INFO("save mode ...");
-  b_save_mode = true;
+  start_sub();
 }
 
 
+/*
 void cROSData::load_mode(sensor_msgs::CameraInfo& msg_cam_info
     , sensor_msgs::Image& msg_depth
     , sensor_msgs::Image& msg_col
@@ -277,20 +323,58 @@ void cROSData::load_mode(sensor_msgs::CameraInfo& msg_cam_info
   ros_cam_info.load( msg_cam_info );
   ros_depth.load( msg_depth );
   ros_col.load( msg_col );
-  ros_pc.load( cloud );
+//  ros_pc.load( cloud );
   ROS_INFO("load OK");
-  b_load_mode = true;
+}  */
+void cROSData::load_mode(){
+  ROS_INFO("load mode ...");
+  ros_cam_info.load();
+  ros_depth.load();
+  ros_col.load();
+//  ros_pc.load();
+  ROS_INFO("load OK");
 }
 
 bool cROSData::is_all_saved(){
   return ros_cam_info.is_saved() && ros_depth.is_saved() 
-    && ros_pc.is_saved() && ros_col.is_saved();
+    && ros_col.is_saved(); //&& ros_pc.is_saved() ;
 }
 
-void cROSData::stop(){
-  ros_pc.sub.shutdown();
-  ros_cam_info.sub.shutdown();
-  ros_col.sub.shutdown();
-  ros_depth.sub.shutdown();
-}
+/*
+template<typename PointT>
+void reorganize(pcl::PointCloud<PointT> &cloud){
+  const int shift = 213, width = 640;
+  const float e = 0.00001;
+  int cnt = 0;
+  double min_z = 9999999, max_z = -9999999;
+  std::vector<PointT, Eigen::aligned_allocator<PointT> > ps(cloud.points);
+  cloud.width = width;
+  cloud.height = cloud.points.size() / width;
+  ROS_INFO("point size : %d / %d, same = %d", (int)cloud.points.size()
+    , (int)(cloud.width * cloud.height)
+    , int(cloud.points.size()==(cloud.width * cloud.height)));
+  for(int i=cloud.height-1;i>=0;i--){
+    const int i2 = i*cloud.width;
+    for(int j=cloud.width-1;j>=0;j--){
+      const PointT &p1 = ps[i2+j];
+      PointT &p2 = cloud.points[i2+(j+width-shift)%shift];
+      if(fabs(p1.x)<e && fabs(p1.y)<e && fabs(p1.z)<e ){
+        p2.x = p2.y = p2.z = std::numeric_limits<float>::quiet_NaN(); 
+      }
+      else{
+        p2 = p1;
+        if( p1.z>max_z)
+          max_z = p1.z;
+        if( p1.z<min_z)
+          min_z = p1.z;
+        cnt++;
+      }
+    }
+  }
+  ROS_INFO("cnt valid : %d", cnt);
+  ROS_INFO("min max z : %.3lf, %.3lf", min_z, max_z);
+  cloud.is_dense = false;
+}*/
+
+
 #endif

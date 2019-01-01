@@ -15,7 +15,14 @@
 #include "cobot_pick/cPCA_2D.h"
 #include "cobot_pick/cOCR.h"
 #include <visualization_msgs/Marker.h>
+#include <tf/tf.h>
+#include <geometry_msgs/Pose.h>
+#include <time.h>
 
+struct tPickPose{
+  geometry_msgs::Pose pose;
+  std::string label;
+};
 
 void fill_region(const tRegInfo *p_reg, const cv::Mat &img_label, cv::Mat &img){
   img = cv::Mat( p_reg->y2-p_reg->y1+1
@@ -140,14 +147,6 @@ void binarize(const cv::Mat &src, cv::Mat &dst, const int block_size
       p2[w*i+j] = ( n>0 && p[w*i+j] + mean_bias >= sum/n ) ? 255 : 0;
     }
   }
-
-  /*{
-    static int cnt = 0;
-    char str[16];
-    sprintf(str, "gray%d", cnt++);
-    cv::imshow(str, dst);
-  }*/
-
   delete [] sum_row;
 }
 
@@ -228,19 +227,6 @@ public:
           }
         }
       }
-
-      
-      static int cnt = 0;
-      char str[16];
-      sprintf(str, "fil%d", cnt++);
-//      cv::imshow(str, img_filter);
-      cv::bitwise_not(img_filter, img_filter);
-      img = cv::Mat( img_filter.size(), CV_8UC3, cv::Scalar(0));
-      cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1
-        , p_reg->y2 - p_reg->y1 + 1))
-        .copyTo(img, img_filter);
-      sprintf(str, "img_fil%d", cnt++);
-//      cv::imshow(str, img);
     }*/
     {
       cv::Mat img_filter;
@@ -310,13 +296,6 @@ public:
     img_plane = cv::Mat(config.warp_meter2pixel * (max_v - min_v), config.warp_meter2pixel * (max_u - min_u), CV_8UC3);
     cv::Mat trans = cv::getPerspectiveTransform(warp_src, warp_dst);
     cv::warpPerspective(img, img_plane, trans, img_plane.size());
-/*    {
-      static int cc = 0;
-      char str[16];
-      sprintf(str, "img%d", cc);
-      cv::imshow(str, img);
-      cc++;
-    }*/
   }
 
   void find_center(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud
@@ -367,12 +346,12 @@ private:
     for (int i = p_seg->label.reg_info.size() - 1; i >= 0; i--)
     {
       const tRegInfo &r = p_seg->label.reg_info[i];
-      if (r.pix_num < config.reg_min_pix || r.pix_num > config.reg_max_pix)
+      if (r.pix_num < config.plane_reg_min || r.pix_num > config.plane_reg_max)
         continue;
 
       const int dx = r.x2 - r.x1 + 1, dy = r.y2 - r.y1 + 1;
       double ratio = dx > dy ? dx / double(dy) : dy / double(dx);
-      if (ratio < config.reg_min_ratio || ratio > config.reg_max_ratio)
+      if (ratio < config.plane_reg_ratio_min || ratio > config.plane_reg_ratio_max)
         continue;
       reg_index.push_back(i);
     }
@@ -425,7 +404,7 @@ private:
       //pcl::PointXYZ best_cen, best_normal[2];
       int best_cnt = 0;
       cPlane best_plane(&r);
-      for (int k1 = config.ransac_repeat_time - 1; k1 >= 0; k1--)
+      for (int k1 = config.plane_ransac_repeat_time - 1; k1 >= 0; k1--)
       {
         const tPoint2i *ps[3];
         // randomize 3 points to create plane
@@ -512,7 +491,7 @@ private:
           {
             MINUS_3D(vtmp, *vec_pix[i].p, *ps[0]->p);
             double dis = fabs(INNER_3D(vtmp, cross));
-            if (dis < config.ransac_th_error)
+            if (dis < config.plane_ransac_th_error)
             {
               cnt++;
             }
@@ -528,30 +507,34 @@ private:
       best_plane.warp(*p_img_col, p_seg);
       planes.push_back(best_plane);
 
-      char str[16];
-      sprintf(str, "warp%d.bmp", int(planes.size() - 1));
-      cv::imshow(save_path + str, best_plane.img_plane);
-//      cv::imwrite(save_path + str, best_plane.img_plane);
+      if( config.show_result ){
+        char str[16];
+        sprintf(str, "warp%d.bmp", int(planes.size() - 1));
+        cv::imshow(config.result_save_path + str, best_plane.img_plane);
+      }
     }
   }
 
   void draw_reg()
   {
-    cv::Mat img = p_img_col->clone();
-    const cv::Scalar col(100, 100, 250);
-    for (int i = planes.size() - 1; i >= 0; i--)
-    {
-      const tRegInfo *r = planes[i].p_reg;
-      cv::rectangle(img, cv::Point(r->x1, r->y1), cv::Point(r->x2, r->y2), col);
+    if( config.show_result ){
+      cv::Mat img = p_img_col->clone();
+      const cv::Scalar col(100, 100, 250);
+      for (int i = planes.size() - 1; i >= 0; i--)
+      {
+        const tRegInfo *r = planes[i].p_reg;
+        cv::rectangle(img, cv::Point(r->x1, r->y1), cv::Point(r->x2, r->y2), col);
+      }
+      cv::imshow("reg", img);
+      cv::imwrite(config.result_save_path + "reg.bmp", img);
     }
-    cv::imshow("reg", img);
-    cv::imwrite(save_path + "reg.bmp", img);
   }
 
   void find_text(){
     cLabeling label;
     visualization_msgs::Marker marker;
     geometry_msgs::Point marker_point;
+    tPickPose pick_pose;
     marker.header.frame_id = "my_frame";
     marker.ns = "pick_markers";
     marker.type = visualization_msgs::Marker::ARROW;
@@ -559,6 +542,7 @@ private:
     marker.scale.y = 0.01;
     marker.scale.z = 0.02;
     marker.color.a = 1.0;
+    pick_poses.clear();
     for (int i_plane = planes.size() - 1; i_plane >= 0; i_plane--){
       printf("** find_text %d **\n", i_plane);
       cPlane &plane = planes[i_plane];
@@ -571,20 +555,20 @@ private:
         , CV_ADAPTIVE_THRESH_MEAN_C,CV_THRESH_BINARY
         , config.th_text_binary_neighbour, config.th_text_binary_adapt_mean);
       */
-      binarize( plane.img_plane, img_bin, config.th_text_binary_neighbour
-        , config.th_text_binary_adapt_mean );
-//      cv::threshold(img_gray,img_bin, config.th_text_binary_neighbour, 255, CV_THRESH_BINARY);// | CV_THRESH_OTSU);
+      binarize( plane.img_plane, img_bin, config.text_binarize_win_size
+        , config.text_binarize_subtract );
+//      cv::threshold(img_gray,img_bin, config.text_binarize_win_size, 255, CV_THRESH_BINARY);// | CV_THRESH_OTSU);
       label.ExecBin( img_bin, img_label);
-      label.CreateImageResult( img_label, img_result, true);
-      {
+      if( config.show_result ){
+        label.CreateImageResult( img_label, img_result, true);
         char str[20];
         sprintf(str, "text_region%d.bmp", i_plane);
         cv::imshow(str, img_result);
-        cv::imwrite(save_path + str, img_result);
+        cv::imwrite(config.result_save_path + str, img_result);
 
         sprintf(str, "plane%d.bmp", i_plane);
         cv::imshow(str, plane.img_plane);
-        cv::imwrite(save_path + str, plane.img_plane);
+        cv::imwrite(config.result_save_path + str, plane.img_plane);
       }
 
 
@@ -828,13 +812,20 @@ private:
                   continue;
                 switch(str2[0]){
                   case '1':
+                  case 'i':
+                  case 'I':
+                  case 'l':
+                  case 'L':
                     n_label = 1;
                     break;
                   case 'a':
+                  case 'e':
                   case '2':
                     n_label = 2;
                     break;
                   case '3':
+                  case 's':
+                  case 'S':
                     n_label = 3;
                     break;
                   default:
@@ -842,35 +833,58 @@ private:
                 }
               }
             }
-            char str[20];
-            sprintf(str, "text_gray%d-%d.tif", i_plane, k);
-            cv::imshow(str, img_gray);
-            cv::imwrite(save_path + str, img_gray);
+            if( config.show_result ){
+              char str[20];
+              sprintf(str, "text_gray%d-%d.tif", i_plane, k);
+              cv::imshow(str, img_gray);
+              cv::imwrite(config.result_save_path + str, img_gray);
+            }
             if( n_label>=0 ){
               double d = 1.0/255.0;
-              marker.color.r = cols[n_label][0] * d;
-              marker.color.g = cols[n_label][1] * d;
-              marker.color.b = cols[n_label][2] * d;
+              marker.id = n_label;
+              marker.color.r = cols[n_label-1][0] * d;
+              marker.color.g = cols[n_label-1][1] * d;
+              marker.color.b = cols[n_label-1][2] * d;
               marker.points.clear();
               plane.find_center(p_seg->cloud, p_seg->img_label);
               marker_point.x = plane.center.x;
               marker_point.y = plane.center.y;
               marker_point.z = plane.center.z;
               marker.points.push_back(marker_point);
-              marker_point.x+= plane.normal.x * 0.1;
-              marker_point.y+= plane.normal.y * 0.1;
-              marker_point.z+= plane.normal.z * 0.1;
+              marker_point.x+= plane.normal.x * -0.1;
+              marker_point.y+= plane.normal.y * -0.1;
+              marker_point.z+= plane.normal.z * -0.1;
               marker.points.push_back(marker_point);
               pick_markers.push_back(marker);
+
+              {
+                tf::Vector3 v(plane.normal.x,plane.normal.y,plane.normal.z)
+                  , vx( 1.0, 0.0, 0.0)
+                  , vn = vx.cross(v);
+                vn.normalize();
+                tf::Quaternion q(vn, acos(v.dot(vx)));
+                pick_pose.pose.position.x = plane.center.x;
+                pick_pose.pose.position.y = plane.center.y;
+                pick_pose.pose.position.z = plane.center.z;
+                pick_pose.pose.orientation.x = q.x();
+                pick_pose.pose.orientation.y = q.y();
+                pick_pose.pose.orientation.z = q.z();
+                pick_pose.pose.orientation.w = q.w();
+
+                char str[8];
+                sprintf(str, "M%d", n_label);
+                pick_pose.label = str;
+                pick_poses.push_back(pick_pose);
+              }
               break;
             }
           }
         }
-        {
+        if( config.show_result ){
           char str[32];
           sprintf(str, "text%d.bmp", i_plane);
           cv::imshow(str, img_text);
-          cv::imwrite(save_path + str, img_text);
+          cv::imwrite(config.result_save_path + str, img_text);
 
           sprintf(str, "filter%d.bmp", i_plane);
           cv::line( img_filter
@@ -882,7 +896,7 @@ private:
             , cv::Point(CAL_CORENER( 0, max_y, 0 )-r_xy[0], CAL_CORENER( 0, max_y, 1)-r_xy[1] )
             , cv::Scalar(150), 1);
           cv::imshow(str, img_filter);
-          cv::imwrite(save_path + str, img_filter);
+          cv::imwrite(config.result_save_path + str, img_filter);
 
           sprintf(str, "filter_edge%d.bmp", i_plane);
           cv::imshow(str, img_edge);
@@ -1026,12 +1040,17 @@ public:
   pcl::PointCloud<pcl::PointXYZRGB> plane_pc;
   std::vector<visualization_msgs::Marker> plane_frames;
   std::vector<visualization_msgs::Marker> pick_markers;
+  std::vector<tPickPose> pick_poses;
 
   cSelectObject() : p_seg(NULL), p_img_col(NULL)
   {
 
     unsigned int aa[128];
-    srand((int)ros::Time::now().toNSec());
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    
+    srand(spec.tv_nsec);
+//    srand((int)ros::Time::now().toNSec());
     for (int i = 0; i < 128; i++)
     {
       aa[i] = (unsigned int)rand();

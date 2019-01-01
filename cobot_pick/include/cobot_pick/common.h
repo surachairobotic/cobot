@@ -8,7 +8,7 @@ const double INVALID_POINT = 0.0;
 #define SET_INVALID_POINT(p)  ((p).z = INVALID_POINT)
 //#define DIS2(p,q) (POW2((p).x-(q).x)+POW2((p).y-(q).y)+POW2((p).z-(q).z))
 
-const std::string save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/");
+//const std::string config.result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/");
 const int cols[6][3] = {
   {255, 50, 50},
   {50, 255, 50},
@@ -64,36 +64,48 @@ inline void NORMALIZE_3D(T &p_ans, const T &p){
 
 struct tConfig{
 
+  bool save_mode, load_mode, action_server_mode, show_result;
+  std::string save_file_prefix, result_save_path;
+
   // segment
-  double norm_scale1, norm_scale2, norm_th_rad, threshold_pointcloud_distance;
+  double normal_th_ang, th_pointcloud_distance;
+    //, norm_scale1, norm_scale2
     //, norm_th_curvature, segment_radius
     
-  int min_cluster_size, max_cluster_size, norm_k_search1, norm_k_search2
-    , norm_k_search_my, norm_thread;
+  int normal_win_size, normal_thread_num;
 
   // select object
-  int reg_min_pix, reg_max_pix, ransac_repeat_time, th_text_binary_neighbour
-    , th_text_binary_adapt_mean, text_ransac_repeat_time;
-  double reg_min_ratio, reg_max_ratio, ransac_th_error, text_ransac_th_error;
-  double warp_meter2pixel;
+  int plane_reg_min, plane_reg_max, plane_ransac_repeat_time, text_binarize_win_size
+    , text_ransac_repeat_time;
+  double plane_reg_ratio_min, plane_reg_ratio_max, warp_meter2pixel
+    , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error;
+
 
   tConfig():
+    save_mode(false), load_mode(false), show_result(false), action_server_mode(false)
+    , save_file_prefix("/home/tong/catkin_ws/src/cobot/cobot_pick/src/data/box")
+    , result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/results")
+
     // segment
-      norm_scale1(0.007), norm_scale2(0.015)
-    , norm_k_search1(0), norm_k_search2(0)
-    , norm_th_rad(0.1), threshold_pointcloud_distance(0.01)
-//    , norm_th_curvature(0.9),segment_radius(0.01), min_cluster_size(10), max_cluster_size(50000)
-    , norm_k_search_my(4), norm_thread(1)
-    
+    , normal_th_ang(0.1)
+    , th_pointcloud_distance(0.01)
+    , normal_win_size(4)
+    , normal_thread_num(1)
 
     // select object
-    ,reg_min_pix(0),reg_max_pix(99999999)
-    ,reg_min_ratio(1.0), reg_max_ratio(1000000.0), ransac_repeat_time(100)
-    , ransac_th_error(0.01), warp_meter2pixel(2000.0)
-    , th_text_binary_neighbour(120)
-    , th_text_binary_adapt_mean(20)
-    , text_ransac_repeat_time(200), text_ransac_th_error(2)
+    , plane_reg_min(0)
+    , plane_reg_max(99999999)
+    , plane_reg_ratio_min(1.0)
+    , plane_reg_ratio_max(1000000.0)
+    , warp_meter2pixel(2000.0)
+    , plane_ransac_repeat_time(100)
+    , plane_ransac_th_error(0.01)
+    , text_binarize_win_size(120)
+    , text_binarize_subtract(20.0)
+    , text_ransac_repeat_time(200)
+    , text_ransac_th_error(2)
     {}
 } config;
+
 
 #endif

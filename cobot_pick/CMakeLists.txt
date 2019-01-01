@@ -8,7 +8,12 @@ add_compile_options(-std=c++11 -g -O0)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
+find_package(catkin 
+REQUIRED
+  genmsg
+  actionlib_msgs
+  actionlib
+COMPONENTS
   pcl_conversions
   pcl_ros
   roscpp
@@ -17,6 +22,9 @@ find_package(catkin REQUIRED COMPONENTS
   image_geometry
   visualization_msgs
   geometry_msgs
+  actionlib
+  message_generation
+  tf
 
   sensor_msgs
   cv_bridge
@@ -36,12 +44,35 @@ include_directories( ${LEPTONICA_INCLUDE_DIRS} )
 link_directories( ${TESSERACT_LIBRARY_DIRS} )
 link_directories( ${LEPTONICA_LIBRARY_DIRS} )
 
+
+
+add_action_files(
+DIRECTORY
+  action
+FILES
+  CobotFindObject.action
+)
+
+generate_messages(
+DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  actionlib_msgs
+)
+
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES cobot_pick
-#  CATKIN_DEPENDS opencv2 roscpp rospy std_msgs
+CATKIN_DEPENDS
+  message_runtime
+  roscpp
+  rospy
+  std_msgs
+  geometry_msgs
 #  DEPENDS system_lib
 )
+
 
 ###########
 ## Build ##
@@ -71,4 +102,3 @@ target_link_libraries(
   ${TESSERACT_LIBRARIES}
   ${LEPTONICA_LIBRARIES}
 )
-
