@@ -20,16 +20,7 @@ bool b_return, b_lock;
 ros::Publisher pub_return;
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
-  ROS_WARN("void control_callback : position %lf", msg->position[0]);
-/*  b_return = false;
-  if(!b_lock) {
-    jntReturn.name = msg->name;
-    jntReturn.position = msg->position;
-    jntReturn.velocity = msg->velocity;
-    jntReturn.effort = msg->effort;
-  }
-  b_return = true;
-*/
+  ROS_WARN("control_callback : %lf", msg->position[0]);
   pub_return.publish(msg);
 }
 

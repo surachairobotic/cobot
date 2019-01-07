@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>5</number>
+    <number>2</number>
    </property>
    <property name="documentMode">
     <bool>false</bool>
@@ -695,31 +695,57 @@
      <string>Tab 2</string>
     </attribute>
    </widget>
-   <widget class="QWidget" name="tab_03">
+   <widget class="QWidget" name="tab_points">
     <attribute name="title">
-     <string>Tab 3</string>
+     <string>Points</string>
     </attribute>
-    <widget class="QPlainTextEdit" name="plainTextEdit_info">
+    <widget class="QListWidget" name="list_points">
      <property name="geometry">
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>591</width>
-       <height>371</height>
+       <width>631</width>
+       <height>531</height>
       </rect>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_step_01">
+    <widget class="QPushButton" name="btn_add_points">
      <property name="geometry">
       <rect>
-       <x>610</x>
+       <x>650</x>
        <y>10</y>
-       <width>61</width>
+       <width>80</width>
        <height>51</height>
       </rect>
      </property>
      <property name="text">
-      <string>Clear</string>
+      <string>Add</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_del_points">
+     <property name="geometry">
+      <rect>
+       <x>650</x>
+       <y>70</y>
+       <width>80</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Delete</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_save_points">
+     <property name="geometry">
+      <rect>
+       <x>650</x>
+       <y>490</y>
+       <width>80</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save to File</string>
      </property>
     </widget>
    </widget>

@@ -94,6 +94,7 @@ public:
 //  const std::vector<double> get_cartesian_velocity(const std::vector<double> &joint_pos
 //    , const std::vector<double> &joint_velo);
   inline const trajectory_msgs::JointTrajectory& get_trajectory(){ return trajectory.joint_trajectory; }
+  inline const moveit_msgs::RobotTrajectory& get_robot_trajectory(){ return trajectory; }
   bool is_valid_pose(const geometry_msgs::Pose &pose);
   
   void print_joints(robot_state::RobotStatePtr state);

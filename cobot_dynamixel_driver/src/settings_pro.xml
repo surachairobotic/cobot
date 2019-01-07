@@ -6,8 +6,8 @@
       <name value="H54_200_S500_R" />
       <model_number value="54024" />
       <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
+      <cw_angle_limit value="-105" />
+      <ccw_angle_limit value="105" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -29,8 +29,8 @@
       <name value="H54_200_S500_R" />
       <model_number value="54024" />
       <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
+      <cw_angle_limit value="-62.45" />
+      <ccw_angle_limit value="64" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -52,8 +52,8 @@
       <name value="H54_100_S500_R" />
       <model_number value="53768" />
       <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
+      <cw_angle_limit value="-195" />
+      <ccw_angle_limit value="73.155" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -75,8 +75,8 @@
       <name value="H54_100_S500_R" />
       <model_number value="53768" />
       <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
+      <cw_angle_limit value="-115" />
+      <ccw_angle_limit value="360" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -98,12 +98,12 @@
       <name value="H42_20_S300_R" />
       <model_number value="51200" />
       <!-- degree -->
-      <cw_angle_limit value="-180" />
-      <ccw_angle_limit value="180" />
+      <cw_angle_limit value="-209" />
+      <ccw_angle_limit value="25.7831" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
-      <velocity_limit value="90" />
+      <velocity_limit value="180" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
       <gear_ratio value="303.8" />
@@ -126,7 +126,7 @@
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
-      <velocity_limit value="90" />
+      <velocity_limit value="180" />
       <!-- degree/sec^2 -->
       <acceleration_limit value="360" />
       <gear_ratio value="303.8" />

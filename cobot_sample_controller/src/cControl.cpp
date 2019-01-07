@@ -38,7 +38,7 @@ void cControl::init() {
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
   
-  sub_joints = n.subscribe("joint_states", 10, &cControl::joint_states_callback, this);
+  sub_joints = n.subscribe("/joint_states", 10, &cControl::joint_states_callback, this);
   srv_set_acc = n.serviceClient<cobot_dynamixel_driver::set_acc>("cobot_dynamixel_driver/set_acc");
   srv_set_p_gain = n.serviceClient<cobot_dynamixel_driver::set_p_gain>("cobot_dynamixel_driver/set_p_gain");
   srv_set_i_gain = n.serviceClient<cobot_dynamixel_driver::set_i_gain>("cobot_dynamixel_driver/set_i_gain");

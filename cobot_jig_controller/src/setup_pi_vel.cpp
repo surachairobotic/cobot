@@ -44,9 +44,18 @@ int main(int argc, char **argv)
 			vel[j] = 0.0;
 		sensor_msgs::JointState joint_state;
 		bool exit = false;
-		int sel_jnt = 5, P = 830, I = 40;
-				control.set_p_gain("J6", P);
-				control.set_i_gain("J6", I);
+		int sel_jnt = 5, P = 1, I = 1;
+		control.set_p_gain("J6", P);
+		control.set_i_gain("J6", I);
+
+    while(1) {
+		  control.set_p_gain("J6", P);
+		  control.set_i_gain("J6", I);
+		  vel[sel_jnt] = 1.0;
+		  control.move_velo(vel);
+		  P+=1000;
+		  I+=1000;
+		}
 		//830
 ////////////////////////////////// velocity control to sin wave ::: V2
 
@@ -63,7 +72,7 @@ int main(int argc, char **argv)
 		if( !control.wait_new_joint_state(&joint_state, 1.0) ) return false;
 ////////////////
 		start_time = t_save = run_time = ros::Time::now();
-		while(count < 10) {
+		while(count < 100) {
 			run_time = ros::Time::now();
 			dt = (run_time-start_time).toSec();
 			if(dt > s) start_time = ros::Time::now();

@@ -79,7 +79,7 @@ namespace my_plugin {
 			int iSol = 0;
 //			std::string end_link;
 			void inPose(geometry_msgs::Pose pose);
-			geometry_msgs::Pose getEEFpose();
+			geometry_msgs::Pose getEEFpose(const robot_state::RobotStatePtr& robot);
 //			kinematic = joint_model_group->getSolverInstance();
 			std::vector<geometry_msgs::Pose> robot_start_pose;
 			geometry_msgs::Pose robot_goal_pose;
@@ -114,7 +114,9 @@ namespace my_plugin {
 		private:
 			// Planning tab
 			void computePlanButtonClicked();
+			void sendPoseGetPlan();
 			void configureForPlanning();
+			void sendExecuteCommand();
 		  void computeExecuteButtonClicked();
 		  void computeStopButtonClicked();
 
@@ -128,6 +130,8 @@ namespace my_plugin {
 
 			ros::NodeHandle nh_;
 		  ros::Publisher joint_state_pub;
+		  ros::Publisher pub_pose;
+		  ros::Publisher pub_execute;
 		  ros::Publisher joint_debug_publisher_;
 			//sensor_msgs::JointState msgJoint;
 
@@ -155,7 +159,6 @@ namespace my_plugin {
 		private Q_SLOTS:
 		  // General
 		  void tabChanged(int index);
-		  void step_01_Clicked();
 
 			// Joint
 			void upJ1Clicked();
@@ -195,6 +198,11 @@ namespace my_plugin {
 		  void executeButtonClicked();
 			void onFinishedExecution(bool success);
 		  void stopButtonClicked();
+		  
+		  // Points tab
+		  void btn_add_pointsClicked();
+		  void btn_del_pointsClicked();
+		  void btn_save_pointsClicked();
 	};
 }
 

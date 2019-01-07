@@ -26,7 +26,7 @@ dynamixel::GroupSyncWrite *cJoint::group_write_velo = NULL, *cJoint::group_write
 dynamixel::GroupSyncRead *cJoint::group_read_sync = NULL;
 dynamixel::GroupBulkRead *cJoint::group_read_bulk = NULL;
 std::vector<cJoint> cJoint::joints;
-int cJoint::ADDR[32][2] = {{0}};
+int cJoint::ADDR[44][2] = {{0}};
 //int cJoint::mode = -1;
 std::vector<std::string> cJoint::joint_names;
 std::string cJoint::setting_file;
@@ -81,6 +81,7 @@ cJoint::cJoint(int _id):cJoint(){ id = _id; }
 
 
 void cJoint::terminate(){
+  ROS_INFO("cJoint::terminate()");
 	if ( group_write_goal_torque ) {
 		delete group_write_goal_torque;
 		group_write_goal_torque = NULL;	
@@ -123,9 +124,9 @@ void cJoint::terminate(){
 
     for(int i=0;i<joints.size();i++){
       try{
-				ROS_INFO("JOINT[%d] 1: P_SHUTDOWN = %d", i, joints[i].read( P_SHUTDOWN ));
+				ROS_INFO("JOINT[%d]:P_SHUTDOWN = %d", i, joints[i].read( P_SHUTDOWN ));
+				ROS_INFO("JOINT[%d]:P_HARDWARE_ERROR_STATUS = %d", i, joints[i].read( P_HARDWARE_ERROR_STATUS ));
         joints[i].write( P_TORQUE_ENABLE, 0 );
-				ROS_INFO("JOINT[%d] 2: P_SHUTDOWN = %d", i, joints[i].read( P_SHUTDOWN ));
       }
       catch(const std::string &err){
 
@@ -150,8 +151,9 @@ bool cJoint::is_all_reaching_goal_pos() {
 }
 
 std::string cJoint::get_joint_name(int id){
-  if( joint_names.empty() )
+  if( joint_names.empty() ) {
     return std::string("joint_") + tostr(id);
+  }
   else{
     if( id<=0 || id>joint_names.size()){
       mythrow(std::string("Invalid joint number : ") + tostr(id));

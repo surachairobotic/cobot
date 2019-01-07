@@ -7,9 +7,9 @@
 
 using namespace my_plugin;
 
-geometry_msgs::Pose MyFrame::getEEFpose()
+geometry_msgs::Pose MyFrame::getEEFpose(const robot_state::RobotStatePtr& robot)
 {
-  Eigen::Affine3d aff_pose = planning_display_->robotCurrentState->getGlobalLinkTransform(planning_display_->end_link);
+  Eigen::Affine3d aff_pose = robot->getGlobalLinkTransform(planning_display_->end_link);
 	geometry_msgs::Pose pose;
 	tf::poseEigenToMsg(aff_pose, pose);
 

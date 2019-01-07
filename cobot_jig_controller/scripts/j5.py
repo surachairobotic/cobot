@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import subprocess
+import signal
+
 import sys
 import os
 import math
@@ -7,6 +10,12 @@ import rospy
 import copy
 import time
 from sensor_msgs.msg import JointState
+
+import numpy as np
+from scipy import signal
+
+from dynamic import *
+from rosbag_record import RosbagRecord
 
 # J1 = [-1.5   , +1.5 ] 0
 # J2 = [-1.2214, +2.25] 1
@@ -19,10 +28,11 @@ MAX = [ 1.5,  2.25,    1.25,  3.15,  0.0,  3.15] #math.pi/2
 numJnt = 4
 nameJnt = 'J5'
 
-file_path = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/pid/"
-file_name = ""
+file_path = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/"
+file_name = "tq_j0.txt"
 arm_state = JointState()
 jntReturn = JointState()
+old_state = JointState()
 b_return_start = b_lock = False
 t_fp = time.time()
 t_offset = time.time()
@@ -30,6 +40,20 @@ effort = 0.0
 t_fb = time.time()
 en_fb = False
 
+t_callback = time.time()
+old_vel = 0
+first = False
+dt = 0.0
+tq1 = []
+tq2 = []
+b2, a2 = signal.butter(2, 1.5/((1/0.017)/2.0), btype='lowpass', analog=False)
+stat = JointState()
+stat.name = []
+stat.position = []
+stat.velocity = []
+stat.effort = []
+pub_status = rospy.Publisher("/cobot/status", JointState, queue_size=10)
+tq_over = False
 
 def set_jnt(jnt, pub):
 #  print('set_jnt')
@@ -55,49 +79,57 @@ def set_jnt(jnt, pub):
     en_fb = False
   return True;
 
-#  if len(jnt.effort) != 0:
-##    save_file(jnt.effort[0], file_name)
-#    effort = jnt.effort[0]
-#    return True;
-#  else:
-#    effort = 0.0
-
-#  if len(jnt.position) == 0:
-#    return True;
-
-#  b_stop = False
-#  while not b_stop and not rospy.is_shutdown():
-#      b_stop = True
-#      rate.sleep()
-#      save_file(0.0, file_name)
-#      for v in arm_state.velocity:
-#          if v > 0.005:
-#              b_stop = False
-#              break
-  
-#  b_ok = True
-#  for i in range(0, len(jnt.name)-1):
-#    for j in range(0, len(arm_state.name)-1):
-#      if jnt.name[i] == arm_state.name[j]:
-#        if abs(arm_state.position[j]-jnt.position[i]) > 0.05:
-#          print("arm[", j, "]=", arm_state.position[j], " - jnt[", i, "]=", jnt.position[i])
-#          b_ok = False
-#          break
-  
-#  save_file(999)
-#  print('end set_jnt')
-#  return b_ok;
 ###################################
 
 def callback(data):
-  global arm_state
+  global arm_state, t_callback
   arm_state = data
-#  print(math.degrees(arm_state.velocity[numJnt]))
-#  save_file()
+#  rospy.loginfo("[%d.%d] seq : %d,  t_call : %lf" % (arm_state.header.stamp.secs, arm_state.header.stamp.nsecs, arm_state.header.seq, time.time()-t_callback))
+  t_callback = time.time()
+  check_tq()
+
+def check_tq():#(t_from_start):
+  global arm_state, first, dt, tq1, tq2, b2, a2, old_vel, pub_status, tq_over, old_state
+  if first:
+    pos = np.array(arm_state.position)
+    vel = np.array(arm_state.velocity)
+    eff = np.array(arm_state.effort)
+    dt = (arm_state.header.stamp-old_state.header.stamp).to_sec()
+    acc = np.zeros(vel.shape)
+    for n in range(len(vel)):
+      acc[n] = (vel.item(n)-old_vel.item(n))/dt
+#      TqCurrent = current2torque(arm_state.effort[4], arm_state.velocity[4])
+    vars = eq.get_vars(arm_state.position) # load equation parameters for calculating torque
+    torque_with_ddq, torque_no_ddq = cal_torque(pos, vel, acc, vars)
+
+    abc = [205.0, 20.0, 60.0]
+    current_cal = torque2current(torque_with_ddq[numJnt], arm_state.velocity[numJnt], abc)
+    if current_cal > 10000:
+      print("current_cal = %lf, dt = %lf" % (current_cal, dt))
+      print(acc)
+      print(arm_state)
+    tq1.append(current_cal)
+    tq2.append(eff[numJnt])
+
+    y1 = signal.lfilter(b2, a2, tq1)
+    y2 = signal.lfilter(b2, a2, tq2)
+    y3 = abs(y1-y2)
+    indx = len(y3)
+#    print("dt = %lf - [%d, %d, %d]" % (dt, len(y1), len(y2), len(y3)))
+    stat.position = [float(current_cal), float(eff[numJnt]), float(y1[indx-1]), float(y2[indx-1]), float(y3[indx-1])]
+    stat.header.stamp = rospy.Time.now()
+    pub_status.publish(stat)
+    save_file(stat)
+    if y3[indx-1] >= 50:# and time.time()-t_from_start > 0.5:
+      tq_over = True
+
+  old_vel = np.array(arm_state.velocity)
+  old_state = arm_state
+  first = True
 
 def callback_return(jnt_re):
   global jntReturn
-  rospy.loginfo("callback num : %s", jnt_re.header.frame_id)
+#  rospy.loginfo("callback num : %s", jnt_re.header.frame_id)
   if en_fb is True:
     rospy.loginfo("callback_return")
   if not b_lock:
@@ -144,33 +176,38 @@ def reset_torque(pub):
   chk = False
   while not chk and not rospy.is_shutdown():
     chk = set_jnt(jntTorque, pub);
-    #print("122:chk = ", chk)
-  
-#  save_file(jntTorque.effort[0], file_name)
 
-def move(state_1, state_move, state_2, mmin, mmax):
+def move(state_1, state_move, state_2, mmin, mmax, pub, pub_status):
 #  return val, effort_return;
 #  reset_torque(pub)
-  global en_fb, t_fb
+  global en_fb, t_fb, tq_over, tq1, tq2
+  rate = rospy.Rate(25)
   chk = False
   while not chk and not rospy.is_shutdown():
     chk = set_jnt(state_1, pub);
     if abs(arm_state.position[numJnt]-state_1.position[numJnt]) > 0.01:
       chk = False
-#    print("state_1 : chk = ", chk)
+    rate.sleep()
 
-  t_start = time.time()
   rospy.loginfo("delay time")
-  while (time.time()-t_start) < 0.05 and not rospy.is_shutdown(): a=0
-
+  t_start = time.time()
+  while (time.time()-t_start) < 0.05 and not rospy.is_shutdown():
+    a=0
+    rate.sleep()
+     
   chk = False
   while not chk and not rospy.is_shutdown():
     chk = set_jnt(state_move, pub)
-#  print(chk)
-#  exit()
+    rate.sleep() 
 
+  stat = JointState()
+  stat.name = []
+  stat.position = []
+  stat.velocity = []
+  stat.effort = []
+  tq_over = False
+  t_st = time.time()
   while not rospy.is_shutdown():
-#    print("state_move : pos = ", arm_state.position[numJnt])
     if (state_move.velocity[0] < 0 and arm_state.position[numJnt] <= mmin) or (state_move.velocity[0] > 0 and arm_state.position[numJnt] >= mmax):
       rospy.loginfo("arm_state.position[numJnt] = %s", arm_state.position[numJnt])
       t_fb = time.time()
@@ -179,50 +216,35 @@ def move(state_1, state_move, state_2, mmin, mmax):
 #    if abs(arm_state.velocity[numJnt]) > 0.7:
 #      print("if abs(arm_state.velocity[numJnt]) > 0.7")
 #      break
-    if arm_state.position[0] < -1.5 or arm_state.position[0] > +1.5:
-      rospy.loginfo("arm_state.position[0]")
+    if jnt_over_limit(arm_state):
+      print("jnt_over_limit(arm_state)")
       break
-    if arm_state.position[1] < -1.2214 or arm_state.position[1] > +2.25:
-      rospy.loginfo("arm_state.position[1]")
+    if tq_over:
+      print("tq_over")
       break
-    if arm_state.position[2] < -3.45 or arm_state.position[2] > +1.25:
-      rospy.loginfo("arm_state.position[2]")
-      break
-    if arm_state.position[3] < -3.15 or arm_state.position[3] > +3.15:
-      rospy.loginfo("arm_state.position[3]")
-      break
-    if arm_state.position[4] < -3.15 or arm_state.position[4] > +0.35:
-      rospy.loginfo("arm_state.position[4]")
-      break
-    if arm_state.position[5] < -3.15 or arm_state.position[5] > +3.15:
-      rospy.loginfo("arm_state.position[5]")
-      break
-
-#  jntGo.name = [nameJnt]
-#  jntGo.position = [math.radians(-180)]
-#  jntGo.velocity = [0.1]
-#  jntGo.effort = []
+    rate.sleep() 
+    
   state_move.velocity = [0.0]
   chk = False
   while not chk and not rospy.is_shutdown():
     chk = set_jnt(state_move, pub)
-
-#  print("state_move : pos = ", arm_state.position[numJnt])
+    rate.sleep()
+     
   chk = False
   while not chk and not rospy.is_shutdown():
     chk = set_jnt(state_2, pub);
     if abs(arm_state.position[numJnt]-state_2.position[numJnt]) > 0.01:
       chk = False
-#    print("state_2 : chk = ", chk)
-#  t_start = time.time()
-#  while (time.time()-t_start) < 0.05 and not rospy.is_shutdown():
-#    print("delay time")
+    rate.sleep() 
+    
+  tq1 = []
+  tq2 = []
 
-def save_file():
-  global t_fp, t_offset, numJnt, file_path, file_name, effort
+def save_file(stat):
+  global t_fp, t_offset, numJnt, file_path, file_name
   if time.time()-t_fp > 0.001:
     fp = open(file_path + file_name, "a")
-    fp.write("%lf %lf %lf %lf %lf\r\n" % (time.time()-t_offset, effort, math.degrees(arm_state.position[numJnt]), math.degrees(arm_state.velocity[numJnt]), arm_state.effort[numJnt]))
+    fp.write("%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\r\n" % (time.time()-t_offset, math.degrees(arm_state.position[numJnt]), math.degrees(arm_state.velocity[numJnt]), arm_state.effort[numJnt], stat.position[0], stat.position[2], stat.position[3], stat.position[4]))
     fp.close()
     t_fp = time.time()
 
@@ -233,13 +255,35 @@ if __name__ == '__main__':
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
 
+  mmin = math.radians(-165)
+  mmax = math.radians(-15)
+  speed = 30
+
   jntHome = JointState()
   jntHome.name = ['J1','J2','J3','J4','J5','J6']
   jntHome.position = [0.0,0.0,0.0,0.0,0.0,0.0]
+  jntHome.position[numJnt] = mmax
   jntHome.velocity = [0.5,0.5,0.5,0.5,0.5,0.5]
   jntHome.effort = []
 
-  speed = 30
+  set_jnt(jntHome, pub)
+  t_start = time.time()
+  while (time.time()-t_start) < 2.5 and not rospy.is_shutdown():
+    a=0
+
+#  jntHome.position[4] = math.radians(-90)
+#  jntHome.position[2] = math.radians(-90)
+  set_jnt(jntHome, pub)
+  t_start = time.time()
+  while (time.time()-t_start) < 2.5 and not rospy.is_shutdown():
+    a=0
+
+#  jntHome.position[1] = math.radians(90)
+  set_jnt(jntHome, pub)
+  t_start = time.time()
+  while (time.time()-t_start) < 4.0 and not rospy.is_shutdown():
+    a=0
+
   jntGo = JointState()
   jntGo.name = [nameJnt]
   jntGo.position = []
@@ -249,29 +293,45 @@ if __name__ == '__main__':
   jntEnd = JointState()
   jntEnd.name = ['J1','J2','J3','J4','J5','J6']
   jntEnd.position = [0.0,0.0,0.0,0.0,0.0,0.0]
-  jntEnd.position[numJnt] = math.radians(-180)
+  jntEnd.position[numJnt] = mmin
+#  jntEnd.position[4] = math.radians(-90)
+#  jntEnd.position[2] = math.radians(-90)
+#  jntEnd.position[1] = math.radians(90)
   jntEnd.velocity = [0.5,0.5,0.5,0.5,0.5,0.5]
   jntEnd.effort = []
 
+#  rec_folder = "/home/dell/catkin_ws/src/cobot/record/wave_moving_4/"
+#  rosbag_record = RosbagRecord(rec_folder)
+  t_start = time.time()
+  while (time.time()-t_start) < 2.5 and not rospy.is_shutdown():
+    a=0
+
+  while not rospy.is_shutdown():
+    jntGo.velocity = [math.radians(-speed)]
+    move(jntHome, jntGo, jntEnd, mmin, mmax, pub, pub_status)
+    jntGo.velocity = [math.radians(speed)]
+    move(jntEnd, jntGo, jntHome, mmin, mmax, pub, pub_status)
+
   #rate = rospy.Rate(10) # 10hz
-  move(jntHome, jntGo, jntEnd, math.radians(-180), 0.0)
-  jntGo.velocity = [math.radians(speed)]
-  move(jntEnd, jntGo, jntHome, math.radians(-180), 0.0)
+#  move(jntHome, jntGo, jntEnd, mmin, mmax)
+#  jntGo.velocity = [math.radians(speed)]
+#  move(jntEnd, jntGo, jntHome, mmin, mmax)
 
-  jntGo.velocity = [math.radians(-speed)]
-  move(jntHome, jntGo, jntEnd, math.radians(-180), 0.0)
-  jntGo.velocity = [math.radians(speed)]
-  move(jntEnd, jntGo, jntHome, math.radians(-180), 0.0)
+#  jntGo.velocity = [math.radians(-speed)]
+#  move(jntHome, jntGo, jntEnd, mmin, mmax)
+#  jntGo.velocity = [math.radians(speed)]
+#  move(jntEnd, jntGo, jntHome, mmin, mmax)
 
-  jntGo.velocity = [math.radians(-speed)]
-  move(jntHome, jntGo, jntEnd, math.radians(-180), 0.0)
-  jntGo.velocity = [math.radians(speed)]
-  move(jntEnd, jntGo, jntHome, math.radians(-180), 0.0)
+#  jntGo.velocity = [math.radians(-speed)]
+#  move(jntHome, jntGo, jntEnd, mmin, mmax)
+#  jntGo.velocity = [math.radians(speed)]
+#  move(jntEnd, jntGo, jntHome, mmin, mmax)
 
   sub.unregister()
   sub_return.unregister()
   pub.unregister()
-
+  pub_status.unregister()
+  
   print("OK !!!")
   # spin() simply keeps python from exiting until this node is stopped
   rospy.spin()

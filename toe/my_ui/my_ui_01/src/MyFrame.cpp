@@ -2,6 +2,8 @@
 #include <MyDisplay.h>
 #include <QtMath>
 
+#include "geometry_msgs/PoseArray.h"
+#include "std_msgs/Bool.h"
 #include "ui_multimovedisplay.h"
 
 using namespace my_plugin;
@@ -18,6 +20,8 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
   , ui_(new Ui::MultiMoveDisplayUI)
 	, move_group_(new moveit::planning_interface::MoveGroupInterface("arm"))
 	, joint_state_pub(nh_.advertise<sensor_msgs::JointState>("/cobot/goal", 1))
+	, pub_pose(nh_.advertise<geometry_msgs::PoseArray>("/cobot/pose", 1))
+	, pub_execute(nh_.advertise<std_msgs::Bool>("/cobot/execute", 1))
 
 /*	, joint_state_pub(nh_.advertise<sensor_msgs::JointState>("/move_group/fake_controller_joint_states", 1))
 */
@@ -28,8 +32,6 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
 
   connect(ui_->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   ui_->tabWidget->setCurrentIndex(0);
-
-  connect(ui_->pushButton_step_01, SIGNAL(clicked()), this, SLOT(step_01_Clicked()));
 
   connect(ui_->plan_button, SIGNAL(clicked()), this, SLOT(planButtonClicked()));
   connect(ui_->execute_button, SIGNAL(clicked()), this, SLOT(executeButtonClicked()));
@@ -67,6 +69,10 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
   connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));	
   connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));
   connect(ui_->btn_input, SIGNAL(clicked()), this, SLOT(btn_inputClicked()));
+  
+  connect(ui_->btn_add_points, SIGNAL(clicked()), this, SLOT(btn_add_pointsClicked()));
+  connect(ui_->btn_del_points, SIGNAL(clicked()), this, SLOT(btn_del_pointsClicked()));
+  connect(ui_->btn_save_points, SIGNAL(clicked()), this, SLOT(btn_save_pointsClicked()));
 
 	pub_plan_1 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_1", 1, true);
 	pub_plan_2 = nh_.advertise<moveit_msgs::DisplayTrajectory>("/my_ui/display_planned_path_2", 1, true);
@@ -185,12 +191,6 @@ void MyFrame::tabChanged(int index)
 {
 	QString currentTabText = ui_->tabWidget->tabText(index);
 	ROS_INFO("tabChanged : index = %s", currentTabText.toStdString().c_str());
-}
-
-void MyFrame::step_01_Clicked()
-{
-	ROS_INFO("step_01_Clicked !!!");
-	ui_->plainTextEdit_info->setPlainText("");
 }
 
 void MyFrame::changePlanningGroupHelper()
@@ -487,34 +487,27 @@ void MyFrame::pubCurrentRobotState(std::vector<double>& vPosition)
 	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.7);
 	msgJoint.velocity = velocity;
   joint_state_pub.publish(msgJoint);
-	ROS_INFO("MyFrame::pubCurrentRobotState-END !!!");
 }
 
 void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 {
-	ROS_INFO("MyFrame::pubUiSeed !!!");
 //	for(int i=0; i<vPosition.size(); i++)
 //		ui_textbox[i]->setText(QString::number(qRadiansToDegrees(vPosition[i]), 'f', 4));
 	for(int i=0; i<vPosition.size(); i++)
 		ui_textbox[i]->setText(QString::number(vPosition[i], 'f', 4));
-	ROS_INFO("MyFrame::pubUiSeed-A !!!");
 
 	std::vector<geometry_msgs::Pose> pose_fk;
 	std::vector<std::string> link_names;
 	link_names.push_back(planning_display_->end_link);
-	ROS_INFO("MyFrame::pubUiSeed-B !!!");
 	planning_display_->solver->getPositionFK(link_names, vPosition, pose_fk);
-	ROS_INFO("MyFrame::pubUiSeed-C !!!");
 	geometry_msgs::Pose pose = pose_fk[0];
 
 	ui_->lineEdit_eef_x->setText(QString::number(pose.position.x, 'f', 4));
 	ui_->lineEdit_eef_y->setText(QString::number(pose.position.y, 'f', 4));
 	ui_->lineEdit_eef_z->setText(QString::number(pose.position.z, 'f', 4));
-	ROS_INFO("ui_->lineEdit");
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
-	ROS_INFO("orientation : %lf, %lf, %lf, %lf", pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -524,5 +517,4 @@ void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 	ui_->lineEdit_eef_ry->setText(QString::number(pitch, 'f', 4));
 //	angle = qRadiansToDegrees(pose.orientation.z);
 	ui_->lineEdit_eef_rz->setText(QString::number(yaw, 'f', 4));
-	ROS_INFO("MyFrame::pubUiSeed-END !!!");
 }

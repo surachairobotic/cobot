@@ -1,7 +1,7 @@
 clear all;
-close all;
+#close all;
 
-s = load('../results/move_cartesian.txt');
+s = load('../results/move_cartesian_indv.txt');
 
 t_wp = s(:,1);
 t_mv = s(:,2);
@@ -10,7 +10,7 @@ p_mv = s(:,6:8);
 v_wp = s(:,9:11);
 v_mv = s(:,12:14);
 
-figure(1);
+figure(10);
 subplot(3,1,1);
 plot(t_mv, p_wp(:,1), t_mv, p_mv(:,1), t_mv, p_wp(:,1), '*', t_mv, p_mv(:,1), '*');
 grid on;
@@ -37,7 +37,7 @@ legend("waypoint","move");
 
 ###########################################
 
-figure(2);
+figure(11);
 subplot(3,1,1);
 plot(t_wp, v_wp(:,1), t_mv, v_mv(:,1), t_wp, v_wp(:,1), '*', t_mv, v_mv(:,1), '*');
 grid on;

@@ -3,7 +3,8 @@ project(cobot_dynamixel_driver)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
-add_compile_options(-std=c++11 -g -O0)
+#add_compile_options(-std=c++11 -g -O0)
+add_compile_options(-g3 -O0 -pg -std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -28,7 +29,7 @@ find_package(TinyXML REQUIRED)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -94,6 +95,7 @@ add_service_files(
 	set_p_gain.srv
 	set_i_gain.srv
 	set_torque.srv
+	up_one.srv
 )
 
 generate_messages(

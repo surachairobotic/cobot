@@ -1,7 +1,7 @@
 clear all;
 close all;
 
-s = load('../results/move_joint.txt');
+s = load('../results/move_joint_indv.txt');
 
 t = s(:,1);
 p_wp = s(:,2:7);

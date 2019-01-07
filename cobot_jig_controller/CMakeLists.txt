@@ -26,9 +26,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   cobot_sample_controller
+  cobot_dynamixel_driver
 )
 
 find_package(Boost REQUIRED system filesystem date_time thread)
+
+catkin_python_setup()
 
 catkin_package(
   INCLUDE_DIRS include
@@ -76,4 +79,12 @@ target_link_libraries(cobot_pi_vel
   ${Boost_LIBRARIES}
   cobot_controller_class
 )
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+ install(FILES
+   # myfile1
+   # myfile2
+   up_one.srv
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+ )
 

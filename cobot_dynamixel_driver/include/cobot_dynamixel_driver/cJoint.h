@@ -13,31 +13,50 @@
 
 enum eADDR{
   P_MODEL_NUMBER,
+  P_MODEL_INFORMATION,
+  P_FIRMWARE_VERSION,
   P_ID,
+  P_BAUD_RATE,
+  P_RETURN_DELAY_TIME,
   P_OPERATING_MODE,
   P_HOMING_OFFSET,
-  P_RETURN_DELAY_TIME,
-  P_CW_ANGLE_LIMIT,
-  P_CCW_ANGLE_LIMIT,
-  P_VELOCITY_LIMIT,
+  P_MOVING_THRESHOLD,
+  P_TEMPERATURE_LIMIT,
+  P_MAX_VOLTAGE_LIMIT,
+  P_MIN_VOLTAGE_LIMIT,
   P_ACCELERATION_LIMIT,
-  P_MAX_TORQUE,
+  P_TORQUE_LIMIT,
+  P_VELOCITY_LIMIT,
+  P_MAX_POSITION_LIMIT,
+  P_MIN_POSITION_LIMIT,
+  P_EXTERNAL_PORT_MODE_1,
+  P_EXTERNAL_PORT_MODE_2,
+  P_EXTERNAL_PORT_MODE_3,
+  P_EXTERNAL_PORT_MODE_4,
+	P_SHUTDOWN,
+	
   P_TORQUE_ENABLE,
+  P_LED_RED,
+  P_LED_GREEN,
+  P_LED_BLUE,
+	P_VELOCITY_I_GAIN,
+	P_VELOCITY_P_GAIN,
+	P_POSITION_P_GAIN,
   P_GOAL_POSITION,
   P_GOAL_VELOCITY,
-  P_GOAL_ACCELERATION,
   P_GOAL_TORQUE,
-  P_TORQUE_LIMIT,
+  P_GOAL_ACCELERATION,
+  P_CW_ANGLE_LIMIT,
+  P_CCW_ANGLE_LIMIT,
+  P_MAX_TORQUE,
   P_PRESENT_POSITION,
   P_PRESENT_VELOCITY,
   P_PRESENT_CURRENT,
-  P_PRESENT_LOAD,
   P_PRESENT_INPUT_VOLTAGE,
   P_PRESENT_TEMPERATURE,
+  P_PRESENT_LOAD,
   P_TORQUE_CONTROL_MODE,
-	P_VELOCITY_P_GAIN,
-	P_VELOCITY_I_GAIN,
-	P_SHUTDOWN
+	P_HARDWARE_ERROR_STATUS
 };
 
 
@@ -62,7 +81,7 @@ private:
   static dynamixel::GroupSyncRead *group_read_sync;
   static dynamixel::GroupBulkRead *group_read_bulk;
   static std::vector<cJoint> joints;
-  static int ADDR[32][2];
+  static int ADDR[44][2];
   static std::vector<std::string> joint_names;
   static std::string setting_file;
   static bool b_set_home;
@@ -101,7 +120,7 @@ public:
   double get_velo() const;
   double get_current() const; // mA
   double get_load() const;    // current / max_current
-  
+  double get_info();
   
   static std::vector<cJoint> &init();
 	static void sync_torque();

@@ -28,7 +28,7 @@ int main(int argc, char **argv)
   sensor_msgs::JointState jnt;
   ROS_INFO("send : cobot_dynamixel_driver/goal");
 
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
   jnt.position.resize(1);
   int i=0;
   while(1) {
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
       ros::spinOnce();
       loop_rate.sleep();
     }
-    if(i>=100) break;
+    if(i>=20) break;
   }
   
   ros::spinOnce();

@@ -6,6 +6,7 @@ import math
 import rospy
 import copy
 import time
+import std_msgs.msg
 from sensor_msgs.msg import JointState
 
 # J1 = [-1.5   , +1.5 ] 0
@@ -62,7 +63,7 @@ def callback(data):
 
 def callback_return(jnt_re):
   global jntReturn
-  rospy.loginfo("callback num : %s", jnt_re.header.frame_id)
+#  rospy.loginfo("callback num : %s", jnt_re.header.frame_id)
   if en_fb is True:
     rospy.loginfo("callback_return")
   if not b_lock:
@@ -127,45 +128,85 @@ if __name__ == '__main__':
   sub = rospy.Subscriber("/joint_states", JointState, callback)
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
+  pub_target = rospy.Publisher("/cobot/target", JointState, queue_size=10)
 
+  rate = rospy.Rate(100) # 100hz
   mmin = math.radians(-60)
   mmax = math.radians(60)
   speed = 10
 
+  amp = 1.0
   jntHome = JointState()
   jntHome.name = ['J1','J2','J3','J4','J5','J6']
   jntHome.position = [0.0,0.0,0.0,0.0,0.0,0.0]
-  jntHome.position[numJnt] = math.radians(-90)
+  jntHome.position[numJnt] = -((math.radians(180)-(2*amp))/2.0) #math.radians(-90)
   jntHome.velocity = [0.5,0.5,0.5,0.5,0.5,0.5]
   jntHome.effort = []
   set_jnt(jntHome, pub)
-
+  t_start = time.time()
+  while (time.time()-t_start) < 5.0 and not rospy.is_shutdown(): a=0
+  
   jntGo = JointState()
   jntGo.name = [nameJnt]
   jntGo.position = []
   jntGo.velocity = [math.radians(-speed)]
   jntGo.effort = []
+  
+  jntTarget = JointState()
+  jntTarget.name = []
+  jntTarget.position = [0.0]
+  jntTarget.velocity = [0.0]
+  jntTarget.effort = []
 
 ### velocity control to sin wave ::: V2
-  amp = 0.5
-  f = 1.0
+  f = 0.25
   s = 1/f
   m = (math.pi-(-math.pi))/(s-0)
-  c = (-math.pi)-(m*0);
+  c = 0.0 #(-math.pi)-(m*0);
+  
+  h = std_msgs.msg.Header()
+  old_err = 0.0
+  vec_err_v = [0.0, 0.0]
+  rms_v = []
+  rms_p = []
+  kp = 0.0
+  ki = 0.0
+  kd = 0.0
+  jntGo.velocity = [0.0]
+  set_jnt(jntGo, pub)
   t_start = t_a = t_now = time.time()
   
   while (time.time()-t_start) < 15:
     dt = (time.time()-t_a)
     if dt > s:
       t_a = time.time()
-    target = cos(m*dt+c)*amp
-    jntGo.velocity = target
+    target = -2*math.pi*f*amp*math.sin(m*dt+c)
+    p_target = amp*math.cos(m*dt+c)
+    p_target -= (math.pi/2.0)
+    err_v = target - arm_state.velocity[numJnt]
+    err_p = p_target-arm_state.position[numJnt]
+    rms_v.append(err_v*err_v)
+    rms_p.append(err_p*err_p)
+    vec_err_v.append( (old_err+err_v)*dt/2.0 )
+    while len(vec_err_v) > 10:
+      vec_err_v.pop()
+#    print("tar=%s, m*dt=%s", target, m*dt+c)
+    jntGo.velocity = [ target + (kp*err_v) + (ki*sum(vec_err_v)) + (kd*(old_err+err_v)/dt) ]
+    jntTarget.position = [p_target, err_p]
+    jntTarget.velocity = [ target + (kp*err_v) + (ki*sum(vec_err_v)) + (kd*(old_err+err_v)/dt), err_v ]
+    jntTarget.effort = [ sum(rms_p)/len(rms_p), sum(rms_v)/len(rms_v) ]
+    jntTarget.header.stamp = rospy.Time.now()
+    pub_target.publish(jntTarget)
+    rate.sleep()
     set_jnt(jntGo, pub)
 ###
+  jntGo.velocity = [0.0]
+  set_jnt(jntGo, pub)
 
   sub.unregister()
   sub_return.unregister()
   pub.unregister()
+  pub_target.unregister()
 
   print("OK !!!")
   # spin() simply keeps python from exiting until this node is stopped

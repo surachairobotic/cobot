@@ -3,14 +3,30 @@
 #include <eigen_conversions/eigen_msg.h>
 #include "cobot_kinematic.h"
 
+#include "geometry_msgs/PoseArray.h"
+#include "std_msgs/Bool.h"
 #include "ui_multimovedisplay.h"
 
 using namespace my_plugin;
 
 void MyFrame::planButtonClicked()
 {
-  planning_display_->addBackgroundJob(boost::bind(&MyFrame::computePlanButtonClicked, this), "compute "
+  planning_display_->addBackgroundJob(boost::bind(&MyFrame::sendPoseGetPlan, this), "compute "
                                                                                                          "plan");
+}
+
+void MyFrame::sendPoseGetPlan()
+{
+  geometry_msgs::PoseArray poses;
+  geometry_msgs::Pose current_pose = getEEFpose(planning_display_->robotCurrentState);
+  geometry_msgs::Pose start_pose = getEEFpose(start_state);
+  poses.poses.push_back(current_pose);
+  poses.poses.push_back(start_pose);
+  pub_pose.publish(poses);
+
+	ui_->execute_button->setEnabled(true);
+
+  return;
 }
 
 void MyFrame::computePlanButtonClicked()
@@ -120,7 +136,14 @@ void MyFrame::executeButtonClicked()
 	ROS_INFO("executeButtonClicked() !!!");
   ui_->execute_button->setEnabled(false);
   // execution is done in a separate thread, to not block other background jobs by blocking for synchronous execution
-  planning_display_->spawnBackgroundJob(boost::bind(&MyFrame::computeExecuteButtonClicked, this));
+  planning_display_->spawnBackgroundJob(boost::bind(&MyFrame::sendExecuteCommand, this));
+}
+
+void MyFrame::sendExecuteCommand()
+{
+  std_msgs::Bool command;
+  command.data = true;
+  pub_execute.publish(command);
 }
 
 void MyFrame::computeExecuteButtonClicked()
@@ -292,7 +315,7 @@ void MyFrame::downXClicked()
 {
 	ROS_INFO("downXClicked !!!");
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.x -= ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -302,7 +325,7 @@ void MyFrame::downYClicked()
 {
 	ROS_INFO("downYClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.y -= ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -312,7 +335,7 @@ void MyFrame::downZClicked()
 {
 	ROS_INFO("downZClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.z -= ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -322,7 +345,7 @@ void MyFrame::downRXClicked()
 {
 	ROS_INFO("downRXClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -340,7 +363,7 @@ void MyFrame::downRYClicked()
 {
 	ROS_INFO("downRYClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -358,7 +381,7 @@ void MyFrame::downRZClicked()
 {
 	ROS_INFO("downRZClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -376,7 +399,7 @@ void MyFrame::upXClicked()
 {
 	ROS_INFO("upXClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.x += ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -386,7 +409,7 @@ void MyFrame::upYClicked()
 {
 	ROS_INFO("upYClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.y += ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -396,7 +419,7 @@ void MyFrame::upZClicked()
 {
 	ROS_INFO("upZClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 	pose.position.z += ui_->lineEdit_res->text().toDouble();
 
 	inPose(pose);
@@ -406,7 +429,7 @@ void MyFrame::upRXClicked()
 {
 	ROS_INFO("upRXClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -424,7 +447,7 @@ void MyFrame::upRYClicked()
 {
 	ROS_INFO("upRYClicked !!!");	
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);
@@ -442,7 +465,7 @@ void MyFrame::upRZClicked()
 {
 	ROS_INFO("upRZClicked !!!");
 
-	geometry_msgs::Pose pose = getEEFpose();
+	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(pose.orientation , q_ori);

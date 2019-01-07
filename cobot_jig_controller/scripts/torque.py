@@ -15,15 +15,18 @@ from sensor_msgs.msg import JointState
 # J5 = [-3.15  , +0.35]
 # J6 = [-3.15  , +3.15]
 
-file_path = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/torque_j5/set_3/"
-name = "torque_j5_s3_"
-numJnt = 4
+file_path = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/torque_j4/set_1/"
+file_name = ""
+name = "torque_j4_s1_"
+numJnt = 3
+nameJnt = 'J4'
 arm_state = JointState()
 jntReturn = JointState()
 b_return_start = False
 t_fp = time.time()
 t_offset = time.time()
 effort = 0.0
+b_save = False
 
 def set_jnt(jnt, pub):
   print('set_jnt')
@@ -69,9 +72,10 @@ def set_jnt(jnt, pub):
 ###################################
 
 def callback(data):
-  global arm_state
+  global arm_state, b_save
   arm_state = data
-  save_file()
+  if b_save:
+    save_file()
 
 def callback_return(jnt_re):
   global jntReturn
@@ -119,7 +123,7 @@ def chk_return(jntPush):
 
 def reset_torque(pub):
   jntTorque = JointState()
-  jntTorque.name = ['J5']
+  jntTorque.name = [nameJnt]
   jntTorque.position = []
   jntTorque.velocity = []
   jntTorque.effort = [0.0]
@@ -144,7 +148,7 @@ def torque_finding(theta, direction):
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
 
-  global t_fp, numJnt, file_path, file_name
+  global t_fp, numJnt, file_path, file_name, b_save
   t_fp = time.time()
 
   set_pos = [0.0]*6
@@ -152,8 +156,9 @@ def torque_finding(theta, direction):
   set_pos[1] = 0.0
   set_pos[2] = 0.0
   set_pos[3] = 0.0
-  set_pos[4] = math.radians(theta)
+  set_pos[4] = 0.0
   set_pos[5] = 0.0
+  set_pos[numJnt] = math.radians(theta)
 
   if direction:
     file_name = name + str(theta) + "_up.txt"
@@ -186,9 +191,11 @@ def torque_finding(theta, direction):
 
   val = 0.0
   out = False
+  b_save = True
   while not rospy.is_shutdown():
     print(val)
-#    effort = val
+    effort = val
+    print(arm_state)
     if arm_state.velocity[numJnt] != 0:
       print("if arm_state.velocity[numJnt] != 0")
       t_start = time.time()
@@ -244,7 +251,7 @@ def torque_finding(theta, direction):
       val -= 10
     else:
       val += 10
-    jntGo.name = ['J5']
+    jntGo.name = [nameJnt]
     jntGo.position = []
     jntGo.velocity = []
     jntGo.effort = [val]
@@ -254,6 +261,7 @@ def torque_finding(theta, direction):
       print("194:chk = ", chk)
     time.sleep(0.5)
 
+  b_save = False
   effort_return = arm_state.effort[numJnt]
   reset_torque(pub)
   chk = False
@@ -270,11 +278,11 @@ def torque_finding(theta, direction):
 if __name__ == '__main__':
   rospy.init_node('init_torque', anonymous=True)
   
-  file_all = "torque_j5_all.txt"
-  fp = open(file_path + file_all, "w")  
+  file_all = "torque_j4_all.txt"
+  fp = open(file_path + file_all, "w")
   fp.close()
   
-  for i in range(0, -181, -15):
+  for i in range(90, -91, -15):
     print(i)
     t_fp = time.time()
     t_offset = time.time()
@@ -287,7 +295,7 @@ if __name__ == '__main__':
     while (time.time()-t_start) < 1.0 and not rospy.is_shutdown():
       print("delay time : b")
 
-    file_all = "torque_j5_all.txt"
+    file_all = "torque_j4_all.txt"
     fp = open(file_path + file_all, "a")
     fp.write("%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\r\n" % (time.time()-t_offset, push_a, state_a, push_b, state_b, 0.0, 0.0, 0.0, 0.0, i, 0.0))
     fp.close()

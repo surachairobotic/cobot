@@ -8,6 +8,7 @@
 #include <conio.h>
 #endif
 
+#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "ros/ros.h"
@@ -19,12 +20,173 @@
 #include "cobot_dynamixel_driver/set_p_gain.h"
 #include "cobot_dynamixel_driver/set_i_gain.h"
 #include "cobot_dynamixel_driver/set_torque.h"
+#include "cobot_dynamixel_driver/up_one.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
+#include "boost/date_time/posix_time/posix_time.hpp"
 
-std::string result_dir = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/src/";
+std::string result_dir = "/home/dell/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";
+std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
+FILE *fp;
+
+void control_callback(const sensor_msgs::JointState::ConstPtr& msg);
+bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res);
+bool set_home(cobot_dynamixel_driver::set_home::Request  &req, cobot_dynamixel_driver::set_home::Response &res);
+bool set_acc(cobot_dynamixel_driver::set_acc::Request &req, cobot_dynamixel_driver::set_acc::Response &res);
+bool set_p_gain(cobot_dynamixel_driver::set_p_gain::Request &req, cobot_dynamixel_driver::set_p_gain::Response &res);
+bool set_i_gain(cobot_dynamixel_driver::set_i_gain::Request &req, cobot_dynamixel_driver::set_i_gain::Response &res);
+bool set_torque(cobot_dynamixel_driver::set_torque::Request &req, cobot_dynamixel_driver::set_torque::Response &res);
+
+bool up_one(cobot_dynamixel_driver::up_one::Request &req, cobot_dynamixel_driver::up_one::Response &res) {
+  res.out = req.in + 1;
+  return true;
+}
+
+void new_control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
+  ROS_INFO("new_control_callback : %s", msg->header.frame_id.c_str());
+  return;
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "driver");
+  ros::NodeHandle n;
+  boost::posix_time::ptime my_posix_time = ros::Time::now().toBoost();
+  iso_time_str = boost::posix_time::to_iso_extended_string(my_posix_time);
+  FILE *_fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "w");
+  fp = _fp;
+
+  pub_return = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states_return", 1000);
+  ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
+//  ros::Publisher pub_gain = n.advertise<int>("cobot_dynamixel_driver/p_gain_velo", 1000);
+  ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
+
+
+  ros::Rate loop_rate(50);
+/*
+  while (ros::ok()){
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+  return 0;
+*/
+  ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
+  ros::ServiceServer service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home);
+  ros::ServiceServer service_set_acc = n.advertiseService("cobot_dynamixel_driver/set_acc", set_acc);
+  ros::ServiceServer service_set_p_gain = n.advertiseService("cobot_dynamixel_driver/set_p_gain", set_p_gain);
+  ros::ServiceServer service_set_i_gain = n.advertiseService("cobot_dynamixel_driver/set_i_gain", set_i_gain);
+  ros::ServiceServer service_set_torque = n.advertiseService("cobot_dynamixel_driver/set_torque", set_torque);
+  ros::ServiceServer service_up_one = n.advertiseService("cobot_dynamixel_driver/up_one", up_one);
+  
+  int fake_joints = 0;
+  try{
+    ros::NodeHandle nh("~");
+    int f = 0;
+    nh.getParam("fake_joints", f);
+    nh.deleteParam("fake_joints");
+    if( f < 0 || f > 6 ){
+      ROS_ERROR("invalid fake joints param : %d\n", f);
+//      FILE *fp1 = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+      fprintf(fp, "invalid fake joints param : %d\n", f);
+      return 0;
+    }
+    fake_joints = f;
+    ROS_INFO("fake joints : %d\n", fake_joints);
+    bool b = false;
+    nh.getParam("load_joint_name", b);
+    nh.deleteParam("load_joint_name");
+    if( b )
+      cJoint::load_joint_name();
+      
+    std::string setting_file;
+    nh.getParam("setting_file", setting_file);
+    nh.deleteParam("setting_file");
+    if( setting_file.size()==0 ){
+      ROS_ERROR("No setting_file name found\n");
+//      FILE *fp1 = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+      fprintf(fp, "No setting_file name found\n");
+      return 0;
+    }
+    cJoint::set_setting_file(setting_file);
+  }
+  catch(const std::string &err){
+    printf("error\n");
+    ROS_ERROR("%s", err.c_str());
+//    FILE *fp1 = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+    fprintf(fp, "%s\n", err.c_str());
+    return 0;
+  }
+
+  try{
+    std::vector<cJoint> &joints = cJoint::init();
+    ROS_INFO("running ...\n");
+    int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
+    ros::Time t_prev = ros::Time::now();
+    ros::Time t_push = ros::Time::now();
+
+    sensor_msgs::JointState joint_state;
+    ros::Time t;
+		double dt;
+		int i;
+    joint_state.name.resize(joint_num);
+    joint_state.position.resize(joint_num);
+    joint_state.velocity.resize(joint_num);
+    joint_state.effort.resize(joint_num);
+
+    int seq = 1;
+    while (ros::ok()){
+      t = ros::Time::now();
+      if( cJoint::sync_read() ){
+        dt = (t-t_prev).toSec();
+/*
+        if( dt > 0.05 )
+          ROS_WARN("Low update rate : %lf sec", dt);
+        else if( dt < 0.005 )
+          ROS_WARN("High update rate : %lf sec", dt);
+        else
+          ;//ROS_INFO("Main rate : %lf sec", dt);
+*/
+        t_prev = t;
+        joint_state.header.stamp = t;
+        joint_state.header.seq = seq;
+        for(int i=joints.size()-1;i>=0;i--){
+          const cJoint &j = joints[i];
+          joint_state.name[i] = j.get_name();
+          joint_state.position[i] = j.get_pos();
+          joint_state.velocity[i] = j.get_velo();
+          joint_state.effort[i] = j.get_load();
+//					if( i == joints.size()-1 ) pub_gain.publish(j.get_p_gain());
+					//ROS_INFO("Current J%d : %lf", i, j.get_current());
+        }
+        for(i=joints.size();i<joint_num;i++){
+          joint_state.name[i] = cJoint::get_joint_name(i+1);
+          joint_state.position[i] = 0;
+          joint_state.velocity[i] = 0;
+          joint_state.effort[i] = 0;
+        }
+        pub.publish(joint_state);
+        fprintf(fp, "cobot_dynamixel_driver/joint_states|name|%s,%s,%s,%s,%s,%s|pos|%f,%f,%f,%f,%f,%f|vel|%f,%f,%f,%f,%f,%f|eff|%f,%f,%f,%f,%f,%f\n", joint_state.name[0].c_str(), joint_state.name[1].c_str(), joint_state.name[2].c_str(), joint_state.name[3].c_str(), joint_state.name[4].c_str(), joint_state.name[5].c_str(), joint_state.position[0], joint_state.position[1], joint_state.position[2], joint_state.position[3], joint_state.position[4], joint_state.position[5], joint_state.velocity[0], joint_state.velocity[1], joint_state.velocity[2], joint_state.velocity[3], joint_state.velocity[4], joint_state.velocity[5], joint_state.effort[0], joint_state.effort[1], joint_state.effort[2], joint_state.effort[3], joint_state.effort[4], joint_state.effort[5]);
+      }
+      ros::spinOnce();
+      usleep(10000);
+//      loop_rate.sleep();
+    }
+  }
+  catch(int err){
+//    FILE *fp1 = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+    fprintf(fp, "catch(int err) is %d\n", err);
+  }
+  catch(const std::string &err){
+    printf("error\n");
+    ROS_ERROR("%s", err.c_str());
+//    FILE *fp1 = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+    fprintf(fp, "%s\n", err.c_str());
+  }
+  cJoint::terminate();
+  return 0;
+}
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   ROS_INFO("void control_callback frame_id : %s", msg->header.frame_id.c_str());
@@ -57,11 +219,12 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   try {
     if( msg->position.size() ) {
       // pos & velo control
-//      s_info += "pos_";
+      s_info += "pos_";
       if( msg->velocity.size() ) {
-//        s_info += "vel_";
+        s_info += "vel_";
         if( msg->effort.size() ) {
-//          s_info += "eff";
+          s_info += "eff";
+          fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //          ROS_INFO("%s", s_info.c_str());
           if( msg->name.size() != msg->velocity.size() || 
               msg->name.size() != msg->position.size() ||
@@ -86,6 +249,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
             cJoint::reset_goal();
         }
 	      else {
+          fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //          ROS_INFO("%s", s_info.c_str());
           if( msg->name.size()!=msg->velocity.size() || msg->name.size()!=msg->position.size() ) {
             ROS_ERROR("size not math . . .");
@@ -113,7 +277,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
       }
       // pos control
       else {
-//        s_info += ": else ???";
+        s_info += ": else ???";
+        fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size()!=msg->position.size() ) {
 //          ROS_ERROR("%s", s_info);
@@ -123,9 +288,10 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
     }
     // velo control
     else if( msg->velocity.size() ) {
-//      s_info += "vel_";
+      s_info += "vel_";
       if( msg->effort.size() ) {
-//        s_info += "eff";
+        s_info += "eff";
+        fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size() != msg->velocity.size() ||
 			      msg->name.size() != msg->effort.size())
@@ -152,6 +318,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
 	      }
       }
       else {
+        fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size()!=msg->velocity.size() ) {
           throw -1;
@@ -175,7 +342,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
       }
     }
     else if( msg->effort.size() ) {
-//     s_info += "eff_";
+      s_info += "eff_";
+      fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //      ROS_INFO("%s", s_info.c_str());
       if( msg->name.size() != msg->effort.size() )
         throw -1;
@@ -198,26 +366,23 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   } // try
   catch(int err) {
 //    ROS_ERROR("%s", s_info.c_str());
+    fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
     if( err==-1 ) {
       ROS_ERROR("invalid data size : %d, %d, %d, %d / %d\n", (int)msg->name.size()
         , (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size()
         , (int)cJoint::get_joints().size());
     }
-    FILE *fp = fopen( (result_dir + "driver_log.txt").c_str() , "a");
-//    fprintf(fp, "%d\n%s\ninvalid data size : %d, %d, %d, %d / %d\n", num_log++, s_info.c_str(), (int)msg->name.size(), (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size(), (int)cJoint::get_joints().size());
-    if( fp )
-      fclose(fp);
+//    FILE *fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+    fprintf(fp, "%d\n%s\ninvalid data size : %d, %d, %d, %d / %d\n", num_log++, s_info.c_str(), (int)msg->name.size(), (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size(), (int)cJoint::get_joints().size());
   }
   catch(const std::string &err) {
     ROS_ERROR("%s", err.c_str());
+    fprintf(fp, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //    ROS_ERROR("%s", s_info.c_str());
 
-    FILE *fp = fopen( (result_dir + "driver_log.txt").c_str() , "a");
-//    fprintf(fp, "%d\n%s\n%s\n", num_log++, s_info.c_str(), err.c_str());
-    if( fp )
-      fclose(fp);
+//    FILE *fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+    fprintf(fp, "%d\n%s\n%s\n", num_log++, s_info.c_str(), err.c_str());
   }
-
 
   pub_return.publish(msg);
   ROS_INFO("end - control_callback");
@@ -271,111 +436,3 @@ bool set_torque(cobot_dynamixel_driver::set_torque::Request &req, cobot_dynamixe
 	return true;
 }
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "driver");
-  ros::NodeHandle n;
-  pub_return = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states_return", 1000);
-  ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
-//  ros::Publisher pub_gain = n.advertise<int>("cobot_dynamixel_driver/p_gain_velo", 1000);
-  ros::Subscriber sub = n.subscribe("cobot_dynamixel_driver/goal", 1000, control_callback);
-  ros::ServiceServer service = n.advertiseService("cobot_dynamixel_driver/get_motor_number", get_motor_number);
-  ros::ServiceServer service_set_home = n.advertiseService("cobot_dynamixel_driver/set_home", set_home);
-  ros::ServiceServer service_set_acc = n.advertiseService("cobot_dynamixel_driver/set_acc", set_acc);
-  ros::ServiceServer service_set_p_gain = n.advertiseService("cobot_dynamixel_driver/set_p_gain", set_p_gain);
-  ros::ServiceServer service_set_i_gain = n.advertiseService("cobot_dynamixel_driver/set_i_gain", set_i_gain);
-  ros::ServiceServer service_set_torque = n.advertiseService("cobot_dynamixel_driver/set_torque", set_torque);
-  ros::Rate loop_rate(100);
-  int fake_joints = 0;
-  try{
-    ros::NodeHandle nh("~");
-    int f = 0;
-    nh.getParam("fake_joints", f);
-    nh.deleteParam("fake_joints");
-    if( f <0 || f > 6 ){
-      ROS_ERROR("invalid fake joints param : %d\n", f);
-      return 0;
-    }
-    fake_joints = f;
-    ROS_INFO("fake joints : %d\n", fake_joints);
-    bool b = false;
-    nh.getParam("load_joint_name", b);
-    nh.deleteParam("load_joint_name");
-    if( b )
-      cJoint::load_joint_name();
-      
-    std::string setting_file;
-    nh.getParam("setting_file", setting_file);
-    nh.deleteParam("setting_file");
-    if( setting_file.size()==0 ){
-      ROS_ERROR("No setting_file name found\n");
-      return 0;
-    }
-    cJoint::set_setting_file(setting_file);
-  }
-  catch(const std::string &err){
-    printf("error\n");
-    ROS_ERROR("%s", err.c_str());
-    return 0;
-  }
-
-  try{
-    std::vector<cJoint> &joints = cJoint::init();
-    ROS_INFO("running ...\n");
-    int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
-    ros::Time t_prev = ros::Time::now();
-    ros::Time t_push = ros::Time::now();
-
-        sensor_msgs::JointState joint_state;
-        ros::Time t;
-				double dt;
-				int i;
-        joint_state.name.resize(joint_num);
-        joint_state.position.resize(joint_num);
-        joint_state.velocity.resize(joint_num);
-        joint_state.effort.resize(joint_num);
-
-    while (ros::ok()){
-      if( cJoint::sync_read() ){
-        t = ros::Time::now();
-        dt = (t-t_prev).toSec();
-        if( dt > 0.05 )
-          ROS_WARN("Low update rate : %lf sec", dt);
-        else
-          ;//ROS_INFO("Main rate : %lf sec", dt);
-        t_prev = t;
-        joint_state.header.stamp = t;
-//        joint_state.name.resize(joint_num);
-//        joint_state.position.resize(joint_num);
-//        joint_state.velocity.resize(joint_num);
-//        joint_state.effort.resize(joint_num);
-        for(int i=joints.size()-1;i>=0;i--){
-          const cJoint &j = joints[i];
-          joint_state.name[i] = j.get_name();
-          joint_state.position[i] = j.get_pos();
-          joint_state.velocity[i] = j.get_velo();
-          joint_state.effort[i] = j.get_load();
-//					if( i == joints.size()-1 ) pub_gain.publish(j.get_p_gain());
-					//ROS_INFO("Current J%d : %lf", i, j.get_current());
-        }
-        for(i=joints.size();i<joint_num;i++){
-          joint_state.name[i] = cJoint::get_joint_name(i+1);
-          joint_state.position[i] = 0;
-          joint_state.velocity[i] = 0;
-          joint_state.effort[i] = 0;
-        }
-        pub.publish(joint_state);
-      }
-      ros::spinOnce();
-      loop_rate.sleep();
-    }
-  }
-  catch(int err){
-  }
-  catch(const std::string &err){
-    printf("error\n");
-    ROS_ERROR("%s", err.c_str());
-  }
-  cJoint::terminate();
-  return 0;
-}
