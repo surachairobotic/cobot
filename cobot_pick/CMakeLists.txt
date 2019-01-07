@@ -25,6 +25,8 @@ COMPONENTS
   actionlib
   message_generation
   tf
+  tf2
+  tf2_ros
 
   sensor_msgs
   cv_bridge
@@ -101,4 +103,16 @@ target_link_libraries(
   tbb
   ${TESSERACT_LIBRARIES}
   ${LEPTONICA_LIBRARIES}
+)
+
+add_executable(cobot_pick_calibrate src/calibrate.cpp src/zdsfmt.cpp)
+target_link_libraries(
+  cobot_pick_calibrate
+  ${catkin_LIBRARIES}
+  opencv_core
+  opencv_imgcodecs
+  opencv_highgui
+  ${PCL_COMMON_LIBRARIES}
+  ${PCL_IO_LIBRARIES}
+  tbb
 )

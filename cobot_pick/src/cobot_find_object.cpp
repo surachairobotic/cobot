@@ -11,6 +11,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include "cobot_pick/common.h"
+#include "cobot_pick/config_find_object.h"
 #include "cobot_pick/cROSData.h"
 #include "cobot_pick/cConvert3D.h"
 #include "cobot_pick/cSegment.h"
@@ -210,6 +212,9 @@ int main(int argc, char **argv)
       nh.deleteParam("text_ransac_th_error");
       config.text_ransac_th_error = d;
     }
+  }
+  if( config.action_server_mode ){
+    config.show_result = false;
   }
 
   ROS_INFO("save : %d", (int)config.save_mode);

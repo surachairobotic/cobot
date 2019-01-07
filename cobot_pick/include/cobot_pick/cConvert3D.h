@@ -42,8 +42,8 @@ private:
 
 public:
 
-  static void get_vector(const int u, const int v, pcl::PointXYZ &p){
-    const float depth = 100;
+  static void get_vector(const double u, const double v, pcl::PointXYZ &p){
+    const float depth = 1.0;
     p.x = (u - center_x) * depth * constant_x;
     p.y = (v - center_y) * depth * constant_y;
     p.z = DepthTraits<uint16_t>::toMeters(depth);
