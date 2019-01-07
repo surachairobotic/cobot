@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
+  dynamixel_sdk
 )
 
 find_package(TinyXML REQUIRED)
@@ -142,7 +143,7 @@ catkin_package(
     std_msgs
 #  DEPENDS system_lib
   DEPENDS
-      TinyXML
+    TinyXML
 )
 
 ###########
@@ -154,7 +155,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-	/opt/DynamixelSDK/c++/include/dynamixel_sdk
+#	/opt/DynamixelSDK/c++/include/dynamixel_sdk
 #	/home/dell/catkin_ws/src/DynamixelSDK/c++/include/dynamixel_sdk
 #  /opt/DynamixelSDK/c++/include/dynamixel_sdk
 #  /opt/DynamixelSDK-3.4.7/c++/include
@@ -203,16 +204,17 @@ include_directories(
 #  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk/group_sync_write.cpp 
 #  /opt/DynamixelSDK-3.4.7/c++/src/dynamixel_sdk_linux/port_handler_linux.cpp
 #)
-add_library(cobot_dynamixel_sdk
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
+
+#add_library(cobot_dynamixel_sdk
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
 
 #  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
 #  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
@@ -223,7 +225,7 @@ add_library(cobot_dynamixel_sdk
 #  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
 #  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
 #  /home/dell/catkin_ws/src/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
-)
+#)
 
 add_library(cobot_joint_pro
   src/cJoint_common.cpp
@@ -233,7 +235,7 @@ add_library(cobot_joint_pro
 target_link_libraries(cobot_joint_pro
   ${catkin_LIBRARIES}
   ${TinyXML_LIBRARIES}
-  cobot_dynamixel_sdk
+  dynamixel_sdk
 )
 
 #add_library(cobot_joint_mx64

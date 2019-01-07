@@ -2,7 +2,7 @@
 #define __CJOINT_H__
 
 #include "cobot_dynamixel_driver/common.h"
-#include "dynamixel_sdk.h"                                  // Uses Dynamixel SDK library
+#include "dynamixel_sdk/dynamixel_sdk.h"                                  // Uses Dynamixel SDK library
 #include <vector>
 
 
