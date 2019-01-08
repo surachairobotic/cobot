@@ -1,0 +1,12 @@
+<launch>
+  <param name="/use_sim_time" value="false"/>
+  <node pkg="rosbag" type="record" name="record_lidar_rs"
+       args="record -o /home/tong/catkin_ws/bag/cobot/cobot_pick/pick
+        /camera/aligned_depth_to_color/camera_info
+        /camera/aligned_depth_to_color/image_raw
+        /camera/color/image_raw
+        /tf
+        /tf_static
+       " />
+</launch>
+

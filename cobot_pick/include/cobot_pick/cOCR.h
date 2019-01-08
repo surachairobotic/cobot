@@ -19,10 +19,12 @@ public:
 
   cOCR(){
     ocr = new tesseract::TessBaseAPI();
+    //ocr->SetVariable("tessedit_char_whitelist", "M123");
     // Initialize tesseract to use English (eng) and the LSTM OCR engine.
     ocr->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
     // Set Page segmentation mode to PSM_AUTO (3)
     ocr->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+    
   }
 
   ~cOCR(){

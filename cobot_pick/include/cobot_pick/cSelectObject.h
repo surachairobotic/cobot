@@ -17,11 +17,19 @@
 #include <visualization_msgs/Marker.h>
 #include <tf/tf.h>
 #include <geometry_msgs/Pose.h>
-#include <time.h>
+
 
 struct tPickPose{
   geometry_msgs::Pose pose;
   std::string label;
+};
+
+struct tPoint2i
+{
+  int i, j, u, v;
+  const pcl::PointXYZRGB *p;
+  tPoint2i() {}
+  tPoint2i(int _i, int _j, pcl::PointXYZRGB *_p) : i(_i), j(_j), p(_p) {}
 };
 
 void fill_region(const tRegInfo *p_reg, const cv::Mat &img_label, cv::Mat &img){
@@ -168,13 +176,14 @@ private:
   }
 
 public:
-  pcl::PointXYZ point, normal, x_axis, y_axis, center;
-  tRegInfo *p_reg;
+  pcl::PointXYZ point, normal, x_axis, y_axis, center, frames[4];
+  const tRegInfo *p_reg;
   //  double corners_2d[4][2];
   pcl::PointXYZ corners[4];
   cv::Mat img_plane;
 
-  cPlane(tRegInfo *r):p_reg(r) {}
+  cPlane():p_reg(NULL) {}
+  cPlane(const tRegInfo *r):p_reg(r) {}
 
   void set_plane(const pcl::PointXYZRGB &_p, const pcl::PointXYZ &_normal, const pcl::PointXYZ &_x_axis)
   {
@@ -184,6 +193,9 @@ public:
     normal = _normal;
     NORMALIZE_3D(x_axis, _x_axis);
     CROSS_3D(y_axis, normal, x_axis);
+    NORMALIZE_3D(y_axis);
+    assert( fabs(INNER_3D(normal, x_axis)) < 0.00001
+      && fabs(INNER_3D(y_axis, x_axis)) < 0.00001 );
   }
 
   void warp(const cv::Mat &img_col, const cSegment *p_seg)
@@ -191,43 +203,7 @@ public:
     // create image
     const cv::Mat &img_label = p_seg->img_label;
     cv::Mat img;
-//    cv::Mat img = cv::Mat(img_col, cv::Rect(p_reg->x1, p_reg->y1, p_reg->x2 - p_reg->x1 + 1, p_reg->y2 - p_reg->y1 + 1)).clone();
-    /*
-    cv::Mat img_filter = cv::Mat( p_reg->y2-p_reg->y1+1
-      , p_reg->x2-p_reg->x1+1, CV_8UC1);
-    for (int i = img_filter.rows - 1; i >= 0; i--)
-    {
-      unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * (i + p_reg->y1)) + p_reg->x1;
-      unsigned char *p = (unsigned char *)(img_filter.data + img_filter.step * i);
-//      unsigned char *p = (unsigned char *)(img.data + img.step * i);
-      for (int j = img_filter.cols - 1; j >= 0; j--)
-      {
-        p[j] = (p_label[j] == p_reg->n_label) ? 0 : 255;
-      }
-    }
 
-    // fill
-    {
-      cLabeling label;
-      cv::Mat img_label;
-      label.ExecBin(img_filter, img_label);
-      for(int k=label.reg_info.size()-1;k>=0;k--){
-        const tRegInfo &r = label.reg_info[k];
-        if( r.x1==0 || r.x2==img_filter.cols-1 || 
-          r.y1==0 || r.y2==img_filter.rows-1 ){
-          continue;
-        }
-        for(int i=r.y1;i<=r.y2;i++){
-          unsigned short *p_label = (unsigned short *)(img_label.data + img_label.step * i);
-          unsigned char *p = (unsigned char *)(img_filter.data + img_filter.step * i);
-          for(int j=r.x1;j<=r.x2;j++){
-            if( p_label[j]==r.n_label ){
-              p[j] = 0;
-            }
-          }
-        }
-      }
-    }*/
     {
       cv::Mat img_filter;
       fill_region( p_reg, img_label, img_filter);
@@ -298,7 +274,7 @@ public:
     cv::warpPerspective(img, img_plane, trans, img_plane.size());
   }
 
-  void find_center(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud
+  void find_center(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
     , const cv::Mat &img_label){
 
     double min_x, min_y, max_x, max_y;
@@ -306,9 +282,9 @@ public:
     max_x = max_y = -min_x;
     for(int i=p_reg->y1;i<=p_reg->y2;i++){
       const unsigned short *pl = (unsigned short*)(img_label.data + img_label.step*i);
-      const pcl::PointXYZRGB *pc = &cloud->points[i*img_label.cols];
+      const pcl::PointXYZRGB *pc = &cloud.points[i*img_label.cols];
       for(int j=p_reg->x1;j<=p_reg->x2;j++){
-        if( pl[j]==p_reg->n_label ){
+        if( pl[j]==p_reg->n_label && IS_VALID_POINT(pc[j]) ){
           pcl::PointXYZ p1, p2;
           // project pc to the plane
           MINUS_3D(p1, pc[j], point);
@@ -323,6 +299,7 @@ public:
           if( new_x<min_x ) min_x = new_x;
           if( new_y>max_y ) max_y = new_y;
           if( new_y<min_y ) min_y = new_y;
+
         }
       }
     }
@@ -331,6 +308,17 @@ public:
     center.x = point.x + x_axis.x*cx + y_axis.x*cy;
     center.y = point.y + x_axis.y*cx + y_axis.y*cy;
     center.z = point.z + x_axis.z*cx + y_axis.z*cy;
+
+    const double xy[4][2] = {{ max_x, max_y }
+      , { max_x, min_y }
+      , { min_x, min_y }
+      , { min_x, max_y }};
+    
+    for(int i=0;i<4;i++){
+      frames[i].x = point.x + x_axis.x*xy[i][0] + y_axis.x*xy[i][1];
+      frames[i].y = point.y + x_axis.y*xy[i][0] + y_axis.y*xy[i][1];
+      frames[i].z = point.z + x_axis.z*xy[i][0] + y_axis.z*xy[i][1];
+    }
   }
 };
 
@@ -358,13 +346,6 @@ private:
     ROS_INFO("filter reg : %d / %d", (int)reg_index.size(), (int)p_seg->label.reg_info.size());
   }
 
-  struct tPoint2i
-  {
-    int i, j, u, v;
-    pcl::PointXYZRGB *p;
-    tPoint2i() {}
-    tPoint2i(int _i, int _j, pcl::PointXYZRGB *_p) : i(_i), j(_j), p(_p) {}
-  };
   void find_planes()
   {
 
@@ -535,7 +516,7 @@ private:
     visualization_msgs::Marker marker;
     geometry_msgs::Point marker_point;
     tPickPose pick_pose;
-    marker.header.frame_id = "my_frame";
+    marker.header.frame_id = FRAME_CAMERA;
     marker.ns = "pick_markers";
     marker.type = visualization_msgs::Marker::ARROW;
     marker.scale.x = 0.005;
@@ -577,8 +558,9 @@ private:
         const tRegInfo &r = label.reg_info[k];
         /* pix = 789, ratio = 1.739
            pix = 722, ratio = 1.400 */
-        if( r.pix_num<300 || r.pix_num>1000 ){
-          printf("invalid text reg : pix_num = %d\n", r.pix_num);
+        if( r.pix_num<1200 || r.pix_num>5000 ){
+          if( r.pix_num>100 )
+            printf("invalid text reg : pix_num = %d\n", r.pix_num);
           continue;
         }
         double ratio = double(r.x2-r.x1+1)/(r.y2-r.y1+1);
@@ -846,7 +828,7 @@ private:
               marker.color.g = cols[n_label-1][1] * d;
               marker.color.b = cols[n_label-1][2] * d;
               marker.points.clear();
-              plane.find_center(p_seg->cloud, p_seg->img_label);
+              plane.find_center(*p_seg->cloud, p_seg->img_label);
               marker_point.x = plane.center.x;
               marker_point.y = plane.center.y;
               marker_point.z = plane.center.z;
@@ -1004,7 +986,7 @@ private:
     {
       visualization_msgs::Marker marker;
       geometry_msgs::Point p;
-      marker.header.frame_id = "my_frame";
+      marker.header.frame_id = FRAME_CAMERA;
       marker.ns = "plane_frames";
       marker.type = visualization_msgs::Marker::LINE_STRIP;
       marker.scale.x = 0.005;
@@ -1045,19 +1027,6 @@ public:
   cSelectObject() : p_seg(NULL), p_img_col(NULL)
   {
 
-    unsigned int aa[128];
-    struct timespec spec;
-    clock_gettime(CLOCK_REALTIME, &spec);
-    
-    srand(spec.tv_nsec);
-//    srand((int)ros::Time::now().toNSec());
-    for (int i = 0; i < 128; i++)
-    {
-      aa[i] = (unsigned int)rand();
-    }
-    InitMtEx(aa, 128);
-
-    
   }
 
   void run(cSegment &seg, cv::Mat &img_col)

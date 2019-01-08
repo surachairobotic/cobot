@@ -6,6 +6,7 @@
 #include "image_transport/image_transport.h"
 #include "cv_bridge/cv_bridge.h"
 #include "sensor_msgs/image_encodings.h"
+#include <time.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -17,6 +18,7 @@
 #include "cobot_pick/cConvert3D.h"
 #include "cobot_pick/cSegment.h"
 #include "cobot_pick/cSelectObject.h"
+#include "cobot_pick/cFindLabel.h"
 #include <cobot_pick/CobotFindObjectAction.h>
 #include <actionlib/server/simple_action_server.h>
 
@@ -29,7 +31,7 @@ cv_bridge::CvImagePtr p_img_col;
 bool b_pub = false;
 cSegment seg;
 cSelectObject select_obj;
-
+cFindLabel find_label;
 
 void process_data(){
   b_pub = false;
@@ -39,13 +41,16 @@ void process_data(){
   p_img_col = cv_bridge::toCvCopy(ros_col.msg, sensor_msgs::image_encodings::BGR8);
   cConvert3D::convert_pc(ros_depth.msg, ros_cam_info.msg, ros_col.msg, cloud_rgb);
   pcl::toROSMsg(cloud_rgb, ros_pc.msg);
-  seg.seg(cloud_rgb, msg_pc_seg);
-  select_obj.run(seg, p_img_col->image);
+
+
+  find_label.run(p_img_col->image, cloud_rgb);
+//  seg.seg(cloud_rgb, msg_pc_seg);
+//  select_obj.run(seg, p_img_col->image);
   pcl::toROSMsg(select_obj.plane_pc, msg_pc_plane);
 
-  ros_pc.msg.header.frame_id = "my_frame";
-  msg_pc_seg.header.frame_id = "my_frame";
-  msg_pc_plane.header.frame_id = "my_frame";
+  ros_pc.msg.header.frame_id = FRAME_CAMERA;
+  msg_pc_seg.header.frame_id = FRAME_CAMERA;
+  msg_pc_plane.header.frame_id = FRAME_CAMERA;
   b_pub = true;
 }
 
@@ -94,6 +99,20 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cobot_find_object");
   ros::NodeHandle n;
   cROSData::set_nh(n);
+
+  {
+    unsigned int aa[128];
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    
+    srand(spec.tv_nsec);
+//    srand((int)ros::Time::now().toNSec());
+    for (int i = 0; i < 128; i++)
+    {
+      aa[i] = (unsigned int)rand();
+    }
+    InitMtEx(aa, 128);
+  }
 
   {
     ros::NodeHandle nh("~");
@@ -281,6 +300,7 @@ int main(int argc, char **argv)
     if (config.load_mode)
     {
       cROSData::load_mode();
+      process_data();
       //cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
     }
     else if (config.action_server_mode)
@@ -289,7 +309,12 @@ int main(int argc, char **argv)
       printf("start action server\n");
     }
 
-    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20), pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20), pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20), pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20), pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20), pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
+    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20)
+      , pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20)
+      , pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20)
+      , pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20)
+      , pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20)
+      , pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
     while (ros::ok())
     {
       ros::spinOnce();
@@ -298,20 +323,26 @@ int main(int argc, char **argv)
         pc_pub_org.publish(ros_pc.msg);
         pc_pub_seg.publish(msg_pc_seg);
         pc_pub_plane.publish(msg_pc_plane);
+        /*
         for (int i = select_obj.plane_frames.size() - 1; i >= 0; i--)
           pc_pub_plane_frames.publish(select_obj.plane_frames[i]);
         for (int i = seg.normal_markers.size() - 1; i >= 0; i--)
           pc_pub_normal.publish(seg.normal_markers[i]);
         for (int i = select_obj.pick_markers.size() - 1; i >= 0; i--)
           pc_pub_pick.publish(select_obj.pick_markers[i]);
+        */
+        for (int i = find_label.pick_markers.size() - 1; i >= 0; i--)
+          pc_pub_pick.publish(find_label.pick_markers[i]);
+
+
         if (config.show_result)
         {
-          cv::imshow("label", seg.img_col);
+/*          cv::imshow("label", seg.img_col);
           cv::imshow("norm_ang", seg.img_norm_ang);
-          cv::imshow("norm1", seg.img_norm1);
+          cv::imshow("norm1", seg.img_norm1);*/
         }
       }
-      char k = (char)cv::waitKey(30);
+      char k = (char)cv::waitKey(500);
       if (k == 27 || k == 'q')
       {
         break;

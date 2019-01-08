@@ -1,6 +1,8 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+const char FRAME_CAMERA[] = "camera"
+  , FRAME_WORLD[] = "world";
 const double INVALID_POINT = 0.0;
 
 #define POW2(x) ((x)*(x))

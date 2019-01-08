@@ -3,7 +3,7 @@
          output="screen"  launch-prefix="gdb -ex run --args">
     <param name="load_mode" value="true"/>
     <param name="save_file_prefix" 
-      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib"/>
+      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib_01"/>
     <param name="show_result" value="true"/>
 
     <param name="chess_num_x" value="10"/>
@@ -30,9 +30,8 @@
 
     <param name="plane_ransac_repeat_time" value="1000"/>
     <param name="plane_ransac_th_error" value="0.0005"/>
+
+    <param name="bruteforce_range" value="0.1"/>
+    <param name="bruteforce_num" value="100"/>
   </node>
-  <!--
-  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
-    args="0.349052 0.314813 0.504964 0.560965 0.793735 -0.226977 -0.061516 world my_frame 100" respawn="false" output="screen" />
-  -->
 </launch>

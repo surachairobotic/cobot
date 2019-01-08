@@ -1,36 +1,39 @@
 <launch>
   <param name="/use_sim_time" value="false"/>
+  <arg name="reso_x"              default="1280"/>
+  <arg name="reso_y"              default="720"/>
+  <arg name="fps"              default="6"/>
   
   <arg name="serial_no"           default=""/>
   <arg name="json_file_path"      default=""/>
   <arg name="camera"              default="camera"/>
   <arg name="tf_prefix"           default="$(arg camera)"/>
 
-  <arg name="fisheye_width"       default="640"/>
-  <arg name="fisheye_height"      default="480"/>
+  <arg name="fisheye_width"       default="$(arg reso_x)"/>
+  <arg name="fisheye_height"      default="$(arg reso_y)"/>
   <arg name="enable_fisheye"      default="true"/>
 
-  <arg name="depth_width"         default="640"/>
-  <arg name="depth_height"        default="480"/>
+  <arg name="depth_width"         default="$(arg reso_x)"/>
+  <arg name="depth_height"        default="$(arg reso_y)"/>
   <arg name="enable_depth"        default="true"/>
 
-  <arg name="infra1_width"        default="640"/>
-  <arg name="infra1_height"       default="480"/>
+  <arg name="infra1_width"        default="$(arg reso_x)"/>
+  <arg name="infra1_height"       default="$(arg reso_y)"/>
   <arg name="enable_infra1"       default="true"/>
 
-  <arg name="infra2_width"        default="640"/>
-  <arg name="infra2_height"       default="480"/>
+  <arg name="infra2_width"        default="$(arg reso_x)"/>
+  <arg name="infra2_height"       default="$(arg reso_y)"/>
   <arg name="enable_infra2"       default="true"/>
 
-  <arg name="color_width"         default="640"/>
-  <arg name="color_height"        default="480"/>
+  <arg name="color_width"         default="$(arg reso_x)"/>
+  <arg name="color_height"        default="$(arg reso_y)"/>
   <arg name="enable_color"        default="true"/>
 
-  <arg name="fisheye_fps"         default="15"/>
-  <arg name="depth_fps"           default="15"/>
-  <arg name="infra1_fps"          default="15"/>
-  <arg name="infra2_fps"          default="15"/>
-  <arg name="color_fps"           default="15"/>
+  <arg name="fisheye_fps"         default="$(arg fps)"/>
+  <arg name="depth_fps"           default="$(arg fps)"/>
+  <arg name="infra1_fps"          default="$(arg fps)"/>
+  <arg name="infra2_fps"          default="$(arg fps)"/>
+  <arg name="color_fps"           default="$(arg fps)"/>
   <arg name="gyro_fps"            default="1000"/>
   <arg name="accel_fps"           default="1000"/>
   <arg name="enable_imu"          default="true"/>

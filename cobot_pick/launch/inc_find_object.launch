@@ -1,0 +1,40 @@
+<launch>
+  <arg name="tf_world2camera" default="0 0 0 0 0 0 1" />
+  <arg name="mode" default="action" />
+  <arg name="save_file_prefix" default="/home/tong/catkin_ws/src/cobot/cobot_pick/data/tmp" />
+  <arg name="show_result" default="true" />
+  
+  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
+         output="screen" launch-prefix="gdb -ex run --args">
+    <param name="mode" value="$(arg mode)"/>
+    <param name="save_file_prefix"
+      value="$(arg save_file_prefix)"/>
+    <param name="result_save_path" 
+      value="/home/tong/catkin_ws/src/cobot/cobot_pick/results/"/>
+    <param name="show_result" value="$(arg show_result)"/>
+
+    <param name="normal_th_ang" value="0.05"/>
+    <param name="th_pointcloud_distance" value="0.01"/>
+    <param name="normal_win_size" value="6"/>
+    <param name="normal_thread_num" value="2"/>
+
+    <param name="plane_reg_min" value="6000"/>
+    <param name="plane_reg_max" value="50000"/>
+    <param name="plane_reg_ratio_min" value="1.0"/>
+    <param name="plane_reg_ratio_max" value="5.0"/>
+    <param name="warp_meter2pixel" value="4000.0"/>
+
+    <param name="plane_ransac_repeat_time" value="300"/>
+    <param name="plane_ransac_th_error" value="0.001"/>
+
+    <param name="text_binarize_win_size" value="4"/>
+    <param name="text_binarize_subtract" value="3.0"/>
+
+    <param name="text_ransac_repeat_time" value="200"/>
+    <param name="text_ransac_th_error" value="0.5"/>
+
+    <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
+  </node>
+  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
+    args="$(arg tf_world2camera) world camera 100" respawn="false" output="screen" />
+</launch>

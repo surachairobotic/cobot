@@ -220,7 +220,7 @@ void add_normal_marker(std::vector<visualization_msgs::Marker> &markers
 
 	geometry_msgs::Point p1;
 	visualization_msgs::Marker marker;
-	marker.header.frame_id = "my_frame";
+	marker.header.frame_id = FRAME_CAMERA;
 	marker.ns = "normal";
 	marker.type = visualization_msgs::Marker::POINTS;
 	marker.color.r = col[0];

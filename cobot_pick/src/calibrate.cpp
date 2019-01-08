@@ -23,6 +23,7 @@
 #include "cobot_pick/zdsfmt.h"
 #include "cobot_pick/cROSData.h"
 #include "cobot_pick/cConvert3D.h"
+#include "cobot_pick/cRotation.h"
 
 std::vector<visualization_msgs::Marker> markers;
 
@@ -282,7 +283,7 @@ void find_plane(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
   corners_3d.resize(corners.size());
   visualization_msgs::Marker marker;
   geometry_msgs::Point marker_p;
-  marker.header.frame_id = "my_frame";
+  marker.header.frame_id = FRAME_CAMERA;
   marker.ns = "corners";
   marker.type = visualization_msgs::Marker::POINTS;
   marker.scale.x = marker.scale.y = marker.scale.z = 0.01;
@@ -317,6 +318,32 @@ void find_plane(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
       marker.points.push_back(marker_p);
     }
   }
+  // draw plane
+  if( config.show_result ){
+    visualization_msgs::Marker marker;
+    geometry_msgs::Point marker_p;
+    marker.header.frame_id = FRAME_CAMERA;
+    marker.ns = "plane";
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
+    marker.color.r = 0.2;
+    marker.color.g = 1.0;
+    marker.color.b = 0.2;
+    marker.color.a = 1.0;
+    marker.id = 0;
+    marker.points.clear();
+
+    const int n[] = { 0, config.chess_num[0]-1, (int)corners.size()-1
+      , (int)corners.size()-config.chess_num[0], 0};
+    for(int i=0;i<5;i++){
+      const pcl::PointXYZ &c = corners_3d[n[i]];
+      marker_p.x = c.x;
+      marker_p.y = c.y;
+      marker_p.z = c.z;
+      marker.points.push_back(marker_p);
+    }
+    markers.push_back(marker);
+  }
   // check size
   {
     for(int i=0;i<config.chess_num[1]-1;i++){
@@ -334,6 +361,7 @@ void find_plane(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
     markers.push_back(marker);
   }
 }
+
 
 
 void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
@@ -398,8 +426,8 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
           svd_dst.at<double>(j2+config.chess_num[0],2)
         );
         const double d1 = sqrt(DIS2(p0, p1)), d2 = sqrt(DIS2(p0, p2));
-        assert( fabs(d1 - config.chess_size[0])<0.005 );
-        assert( fabs(d2 - config.chess_size[0])<0.005 );
+        assert( fabs(d1 - config.chess_size[0])<0.002 );
+        assert( fabs(d2 - config.chess_size[0])<0.002 );
       }
     }
   }
@@ -419,6 +447,7 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
       svd_dst_norm.at<double>(i,j)-= mean_dst.at<double>(j,0);
     }
   }
+
   cv::Mat H = svd_src_norm.t() * svd_dst_norm;
   cv::SVD svd( H, cv::SVD::Flags::MODIFY_A);
   cv::Mat R = svd.vt.t() * svd.u.t();
@@ -428,6 +457,56 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
     svd.vt.at<double>(2,2) *= -1.0;
     R = svd.vt.t() * svd.u.t();
   }
+  // brute force
+  if(1){
+    const double dr = config.bruteforce_range/config.bruteforce_num;
+    const cv::Mat src = svd_src_norm.t()
+      , dst = svd_dst_norm.t();
+    cv::Vec3d rpy, rpy_start, rpy_tmp;
+    cv::Mat R_tmp, err, best_R = cv::Mat( 3,3, CV_64F );
+
+    Matrix2Euler( R, rpy );
+    double min_err = 999999999.0;
+    for(int i=0;i<3;i++){
+      rpy_start[i] = rpy[i] - 0.5*config.bruteforce_range;
+    }
+    for(int i=config.bruteforce_num-1;i>=0;i--){
+      rpy_tmp[0] = rpy_start[0] + i*dr;
+      for(int j=config.bruteforce_num-1;j>=0;j--){
+        rpy_tmp[1] = rpy_start[1] + j*dr;
+        for(int k=config.bruteforce_num-1;k>=0;k--){
+          rpy_tmp[2] = rpy_start[2] + k*dr;
+          Euler2Matrix( rpy_tmp, R_tmp );
+          err = dst - R_tmp * src;
+          const double *d = (double*)err.data;
+          double sum = 0.0;
+          for(int l=corners_3d.size()*3-1;l>=0;l--){
+            sum+= d[l]*d[l];
+          }
+          if( min_err>sum ){
+            min_err = sum;
+            R_tmp.copyTo(best_R);
+
+            printf("rpy : %lf, %lf, %lf, err: %lf\n"
+              , rpy_tmp[0], rpy_tmp[1], rpy_tmp[2], sum);
+          }
+        }
+      }
+    }
+    err = dst - R * src;
+    const double *d = (double*)err.data;
+    double sum = 0.0;
+    for(int l=corners_3d.size()*3-1;l>=0;l--){
+      sum+= d[l]*d[l];
+    }
+    printf("old rpy : %lf, %lf, %lf, err: %lf\n"
+      , rpy[0], rpy[1], rpy[2], sum);
+    std::cout << "R : " << R << std::endl;
+    std::cout << "best dR : " << best_R - R << std::endl;
+
+    R = best_R;
+  }
+
 
   cv::Mat T = -R*mean_src + mean_dst;
   
@@ -442,9 +521,9 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
     f.open ("/home/tong/catkin_ws/src/cobot/cobot_pick/calib.txt");
     f << "R : " << R << std::endl;
     f << "T : " << T << std::endl;
-    f << "H : " << H << std::endl;
+/*    f << "H : " << H << std::endl;
     f << "svd.u : " << svd.u << std::endl;
-    f << "svd.vt : " << svd.vt << std::endl;
+    f << "svd.vt : " << svd.vt << std::endl;*/
     f << "src : " << svd_src << std::endl;
     f << "dst : " << svd_dst << std::endl;
     f << "dst2: " << dst2.t() << std::endl;
@@ -456,7 +535,7 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
       double sum = 0.0, max = 0.0;
       for(int i=corners_3d.size()-1;i>=0;i--){
         for(int j=2;j>=0;j--){
-          double d = err.at<double>(i,j);
+          double d = fabs(err.at<double>(i,j));
           sum+= d;
           if( d>max )
             max = d;
@@ -523,7 +602,7 @@ void find_translation_matrix(const std::vector<pcl::PointXYZ> &corners_3d
 
 
 void create_chess_pos(){
-  const double org[3] = {0.1, 0.1, 0.1}; //{1.2, 2.3, 0.2};
+  const double org[3] = {0.28, -0.105, 0.01};
   const int N[4][2] = { { 0, 0}, { config.chess_num[0] - 1, 0}
     , { config.chess_num[0] - 1, config.chess_num[1]-1 }
     , { 0, config.chess_num[1]-1 }};
@@ -625,7 +704,18 @@ int main(int argc, char **argv)
       nh.deleteParam("plane_ransac_th_error");
       config.plane_ransac_th_error = d;
     }
-    
+
+
+    if (nh.getParam("bruteforce_range", d))
+    {
+      nh.deleteParam("bruteforce_range");
+      config.bruteforce_range = d;
+    }
+    if (nh.getParam("bruteforce_num", i))
+    {
+      nh.deleteParam("bruteforce_num");
+      config.bruteforce_num = i;
+    }
   }
   create_chess_pos();
 
@@ -642,6 +732,8 @@ int main(int argc, char **argv)
   }
   ROS_INFO("plane_ransac_repeat_time : %d", config.plane_ransac_repeat_time);
   ROS_INFO("plane_ransac_th_error : %.3lf", config.plane_ransac_th_error);
+  ROS_INFO("bruteforce_range : %.3lf", config.bruteforce_range);
+  ROS_INFO("bruteforce_num : %d", config.bruteforce_num);
 
   ros::Rate r(10);
   if (config.load_mode)
@@ -675,7 +767,7 @@ int main(int argc, char **argv)
   cConvert3D::convert_pc(ros_depth.msg, ros_cam_info.msg, ros_col.msg, cloud_rgb);
   if( config.show_result ){
     pcl::toROSMsg(cloud_rgb, ros_pc.msg);
-    ros_pc.msg.header.frame_id = "my_frame";
+    ros_pc.msg.header.frame_id = FRAME_CAMERA;
   }
 
   std::vector<cv::Point2f> corners;
@@ -694,8 +786,8 @@ int main(int argc, char **argv)
   tf2_ros::StaticTransformBroadcaster br;
 
   transform.header.stamp = ros::Time::now();
-  transform.header.frame_id = "world";
-  transform.child_frame_id = "my_frame";
+  transform.header.frame_id = FRAME_CAMERA;
+  transform.child_frame_id = FRAME_CAMERA;
   br.sendTransform(transform);
   while (ros::ok())
   {
@@ -712,7 +804,7 @@ int main(int argc, char **argv)
       pub_pc.publish(ros_pc.msg);
 
       //br.sendTransform(tf::StampedTransform( transform, ros::Time::now()
-      //  , "world", "my_frame"));
+      //  , FRAME_CAMERA, FRAME_CAMERA));
     }
 
     char k = (char)cv::waitKey(10);
