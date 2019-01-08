@@ -2,6 +2,7 @@
 #include <MyDisplay.h>
 #include <eigen_conversions/eigen_msg.h>
 #include "cobot_kinematic.h"
+#include "tf/transform_datatypes.h"
 
 #include "geometry_msgs/PoseArray.h"
 #include "std_msgs/Bool.h"
@@ -348,7 +349,7 @@ void MyFrame::downRXClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -366,7 +367,7 @@ void MyFrame::downRYClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -384,7 +385,7 @@ void MyFrame::downRZClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -432,7 +433,7 @@ void MyFrame::upRXClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -450,7 +451,7 @@ void MyFrame::upRYClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);
@@ -468,7 +469,7 @@ void MyFrame::upRZClicked()
 	geometry_msgs::Pose pose = getEEFpose(planning_display_->robotCurrentState);
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);

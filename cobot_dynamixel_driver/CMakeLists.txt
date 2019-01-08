@@ -235,7 +235,7 @@ add_library(cobot_joint_pro
 target_link_libraries(cobot_joint_pro
   ${catkin_LIBRARIES}
   ${TinyXML_LIBRARIES}
-  dynamixel_sdk
+#  dynamixel_sdk
 )
 
 #add_library(cobot_joint_mx64

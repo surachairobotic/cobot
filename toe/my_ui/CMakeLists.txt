@@ -20,10 +20,7 @@ pkg_check_modules(OGRE OGRE)
 link_directories( ${OGRE_LIBRARY_DIRS} )
 
 find_package(catkin REQUIRED COMPONENTS
-#  moveit_ros_planning_interface
   moveit_ros_robot_interaction
-#  moveit_ros_warehouse
-#  moveit_ros_perception
   eigen_conversions
   geometric_shapes
   interactive_markers
@@ -32,14 +29,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   roscpp
   rosconsole
-#  object_recognition_msgs
   rostest
-
-    moveit_core
-#    moveit_ros_planning
-    pluginlib
-    moveit_visual_tools
-
+  moveit_core
+  pluginlib
+  moveit_visual_tools
 	cobot_planner
 )
 

@@ -5,6 +5,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "std_msgs/Bool.h"
 #include "ui_multimovedisplay.h"
+#include "tf/tf.h"
 
 using namespace my_plugin;
 
@@ -507,7 +508,7 @@ void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 	ui_->lineEdit_eef_z->setText(QString::number(pose.position.z, 'f', 4));
 
 	tf::Quaternion q_ori;
-	quaternionMsgToTF(pose.orientation , q_ori);
+	tf::quaternionMsgToTF(pose.orientation , q_ori);
 	tf::Matrix3x3 m(q_ori);
 	double roll, pitch, yaw;
 	m.getRPY(roll, pitch, yaw);

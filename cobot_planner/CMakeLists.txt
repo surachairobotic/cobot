@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
+	eigen_conversions
 )
 
 find_package(Boost REQUIRED system filesystem date_time thread)
