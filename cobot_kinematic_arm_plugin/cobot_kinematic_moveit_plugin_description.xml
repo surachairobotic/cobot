@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<library path="lib/libcobot_kinematic_moveit_plugin">
+  <class name="cobot_kinematics_plugin/CobotKinematic" type="cobot_kinematics_plugin::CobotKinematic" base_class_type="kinematics::KinematicsBase">
+    <description>CobotKinematic plugin for closed-form kinematics</description>
+  </class>
+</library>

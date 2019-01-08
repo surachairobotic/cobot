@@ -1,0 +1,132 @@
+#ifndef COBOT_KINEMATIC_H
+#define COBOT_KINEMATIC_H
+
+#include <vector>
+#include <eigen_conversions/eigen_msg.h>
+
+#include <ros/ros.h>
+#include <moveit/kinematics_base/kinematics_base.h>
+#include <urdf/model.h>
+#include <tf_conversions/tf_kdl.h>
+
+namespace cobot_kinematics_plugin
+{
+	namespace KinematicErrors
+	{
+	enum KinematicError
+	{
+		OK = 1,                              /**< No errors*/
+		UNSUPORTED_DISCRETIZATION_REQUESTED, /**< Discretization method isn't supported by this implementation */
+		DISCRETIZATION_NOT_INITIALIZED,      /**< Discretization values for the redundancy has not been set. See
+		                                          setSearchDiscretization(...) method*/
+		MULTIPLE_TIPS_NOT_SUPPORTED,         /**< Only single tip link support is allowed */
+		EMPTY_TIP_POSES,                     /**< Empty ik_poses array passed */
+		IK_SEED_OUTSIDE_LIMITS,              /**< Ik seed is out of bounds*/
+		SOLVER_NOT_ACTIVE,                   /**< Solver isn't active */
+		NO_SOLUTION                          /**< A valid joint solution that can reach this pose(s) could not be found */
+
+	};
+	}
+	typedef KinematicErrors::KinematicError KinematicError;
+
+	struct KinematicsResult
+	{
+		KinematicError kinematic_error; /**< Error code that indicates the type of failure */
+		double solution_percentage;     /**< The percentage of solutions achieved over the total number
+		                                     of solutions explored. */
+	};
+
+	class CobotKinematic : public kinematics::KinematicsBase
+	{
+		public:
+
+		std::vector<double> a, alpha, d, dh_theta, theta;
+		double H_PI;
+		std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.161};
+
+		CobotKinematic();
+		~CobotKinematic();
+		std::vector<geometry_msgs::Pose> computeFK(std::vector<double> theta);
+		std::vector<std::vector<double>> computeIK(geometry_msgs::Pose pose);
+
+///////////////////////////////////////////////////////////
+  virtual bool
+  getPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state,
+                std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
+                const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool getPositionIK(const std::vector<geometry_msgs::Pose>& ik_poses, const std::vector<double>& ik_seed_state,
+                             std::vector<std::vector<double> >& solutions, KinematicsResult& result,
+                             const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool
+  searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
+                   std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
+                   const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool
+  searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
+                   const std::vector<double>& consistency_limits, std::vector<double>& solution,
+                   moveit_msgs::MoveItErrorCodes& error_code,
+                   const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool searchPositionIK(
+      const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
+      std::vector<double>& solution, const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
+      const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool
+  searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
+                   const std::vector<double>& consistency_limits, std::vector<double>& solution,
+                   const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
+                   const kinematics::KinematicsQueryOptions& options) const;
+
+  virtual bool
+  searchPositionIK(const std::vector<geometry_msgs::Pose>& ik_poses, const std::vector<double>& ik_seed_state,
+                   double timeout, const std::vector<double>& consistency_limits, std::vector<double>& solution,
+                   const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
+                   const kinematics::KinematicsQueryOptions& options,
+                   const moveit::core::RobotState* context_state = NULL) const;
+
+  virtual bool getPositionFK(const std::vector<std::string>& link_names, const std::vector<double>& joint_angles,
+                             std::vector<geometry_msgs::Pose>& poses) const;
+
+  virtual void setValues(const std::string& robot_description, const std::string& group_name,
+                         const std::string& base_frame, const std::string& tip_frame, double search_discretization);
+
+  virtual void setValues(const std::string& robot_description, const std::string& group_name,
+                         const std::string& base_frame, const std::vector<std::string>& tip_frames,
+                         double search_discretization);
+
+  virtual bool initialize(const std::string& robot_description, const std::string& group_name,
+                          const std::string& base_frame, const std::string& tip_frame,
+                          double search_discretization) const;
+
+  virtual bool initialize(const std::string& robot_description, const std::string& group_name,
+                          const std::string& base_frame, const std::vector<std::string>& tip_frames,
+                          double search_discretization);
+
+  virtual const std::string& getGroupName() const;
+
+  virtual const std::string& getBaseFrame() const;
+
+  virtual const std::string& getTipFrame() const;
+
+  virtual const std::vector<std::string>& getTipFrames() const;
+
+  virtual bool setRedundantJoints(const std::vector<unsigned int>& redundant_joint_indices);
+
+  virtual void getRedundantJoints(std::vector<unsigned int>& redundant_joint_indices) const;
+
+  virtual const std::vector<std::string>& getJointNames() const;
+
+  virtual const std::vector<std::string>& getLinkNames() const;
+
+  virtual bool supportsGroup(const moveit::core::JointModelGroup* jmg, std::string* error_text_out = NULL) const;
+
+//  virtual ~KinematicsBase(){}
+///////////////////////////////////////////////////////////
+	};
+} // end namespace
+
+#endif // COBOT_KINEMATIC_H
