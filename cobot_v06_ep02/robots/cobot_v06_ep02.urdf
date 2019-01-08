@@ -1,0 +1,444 @@
+<robot
+  name="cobot_v06_ep02">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.00217738838473319 -6.7854373322016E-05 0.0243291787020343"
+        rpy="0 0 0" />
+      <mass
+        value="2.2848382748716" />
+      <inertia
+        ixx="0.00899559256658763"
+        ixy="-3.61745411749739E-07"
+        ixz="-0.000283960756993447"
+        iyy="0.00875905062897044"
+        iyz="-3.36799586752836E-06"
+        izz="0.0110635263026937" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="L1">
+    <inertial>
+      <origin
+        xyz="1.38517610736779E-14 -0.00124312830879313 -0.000879380511920019"
+        rpy="0 0 0" />
+      <mass
+        value="0.357343086221159" />
+      <inertia
+        ixx="0.000555345442771726"
+        ixy="-2.52905949900775E-16"
+        ixz="-2.32606240306612E-15"
+        iyy="0.000169318542742595"
+        iyz="3.93610551366405E-07"
+        izz="0.00055141550279176" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J1"
+    type="revolute">
+    <origin
+      xyz="0 0 0.184"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="L1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-1.5"
+      upper="1.5"
+      velocity="0" />
+  </joint>
+  <link
+    name="L2">
+    <inertial>
+      <origin
+        xyz="0.145633186707181 -0.0232158403755724 0.00231800057210573"
+        rpy="0 0 0" />
+      <mass
+        value="0.955443227629274" />
+      <inertia
+        ixx="0.00391892240770807"
+        ixy="0.000169189691329882"
+        ixz="-0.00064049606320988"
+        iyy="0.0112143070348405"
+        iyz="-0.000117879322063409"
+        izz="0.00911813085307199" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J2"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="-1.5708 -1.5708 0" />
+    <parent
+      link="L1" />
+    <child
+      link="L2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-1.2214"
+      upper="2.25"
+      velocity="0" />
+  </joint>
+  <link
+    name="L3">
+    <inertial>
+      <origin
+        xyz="-8.04911692853238E-15 0.0411551782234339 -0.00517102636671961"
+        rpy="0 0 0" />
+      <mass
+        value="0.592165788533033" />
+      <inertia
+        ixx="0.00174394383610596"
+        ixy="2.36501494420158E-15"
+        ixz="-2.06429318418401E-16"
+        iyy="0.000511438022845384"
+        iyz="-0.000126009191943962"
+        izz="0.00150101529958188" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J3"
+    type="revolute">
+    <origin
+      xyz="0.27203 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="L2" />
+    <child
+      link="L3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-3.45"
+      upper="1.25"
+      velocity="0" />
+  </joint>
+  <link
+    name="L4">
+    <inertial>
+      <origin
+        xyz="-8.79736283820876E-11 0.00431765216640698 0.047353200823643"
+        rpy="0 0 0" />
+      <mass
+        value="0.0738338184370654" />
+      <inertia
+        ixx="0.000110141415106392"
+        ixy="2.35457241799737E-13"
+        ixz="1.23653496888722E-13"
+        iyy="6.70589921720905E-05"
+        iyz="-9.0731265290884E-06"
+        izz="6.91908249212063E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J4"
+    type="revolute">
+    <origin
+      xyz="0 0.141 0"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="L3" />
+    <child
+      link="L4" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-3.15"
+      upper="3.15"
+      velocity="0" />
+  </joint>
+  <link
+    name="L5">
+    <inertial>
+      <origin
+        xyz="6.32827096280764E-09 0.0319609016503962 -0.00193412005150011"
+        rpy="0 0 0" />
+      <mass
+        value="0.278144093198247" />
+      <inertia
+        ixx="0.00048972658148637"
+        ixy="5.62426298534612E-11"
+        ixz="-7.16189121480448E-11"
+        iyy="0.000142232558041777"
+        iyz="-1.71872472866497E-05"
+        izz="0.000426208677337696" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J5"
+    type="revolute">
+    <origin
+      xyz="0 0 0.109"
+      rpy="1.5708 -1.5708 0" />
+    <parent
+      link="L4" />
+    <child
+      link="L5" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-3.15"
+      upper="0.35"
+      velocity="0" />
+  </joint>
+  <link
+    name="L6">
+    <inertial>
+      <origin
+        xyz="-2.77555756156289E-17 2.99688812578288E-17 0.0108682008368201"
+        rpy="0 0 0" />
+      <mass
+        value="0.0078212567104996" />
+      <inertia
+        ixx="1.64883007923566E-06"
+        ixy="-2.89628104197671E-37"
+        ixz="3.61876651126436E-23"
+        iyy="1.64883007923566E-06"
+        iyz="3.3142485646066E-22"
+        izz="7.72942239399818E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/L6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J6"
+    type="revolute">
+    <origin
+      xyz="0 0.111 0"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="L5" />
+    <child
+      link="L6" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      effort="0"
+      lower="-3.15"
+      upper="3.15"
+      velocity="0" />
+  </joint>
+  <link
+    name="tool0">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="9.9999999999978E-10" />
+      <inertia
+        ixx="1.66666666666612E-18"
+        ixy="2.44409116806342E-34"
+        ixz="-1.12991457713403E-34"
+        iyy="1.66666666666593E-18"
+        iyz="-1.6398557858842E-35"
+        izz="1.66666666666612E-18" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/tool0.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://cobot_v06_ep02/meshes/tool0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_tool"
+    type="fixed">
+    <origin
+      xyz="0 0 0.01036"
+      rpy="0 0 0" />
+    <parent
+      link="L6" />
+    <child
+      link="tool0" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
