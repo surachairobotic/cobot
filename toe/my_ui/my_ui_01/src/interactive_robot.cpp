@@ -266,15 +266,17 @@ void InteractiveRobot::updateAll()
   ros::Time t1 = ros::Time::now();
   publishWorldState();
 
-  if (robot_state_->setFromIK(group_, desired_group_end_link_pose_, 10, 0.1))
+  geometry_msgs::Pose pose;
+  tf::poseEigenToMsg(desired_group_end_link_pose_, pose);
+  if (robot_state_->setFromIK(group_, pose, 10, 0.1))
   {
 		ROS_INFO("robot_state_->setFromIK is true");
 
-std::vector<double> ik_seed_state;
-robot_state_->copyJointGroupPositions("arm", ik_seed_state);
-ROS_INFO("ik_seed_state.size() : %d", ik_seed_state.size());
-for(int i=0; i<ik_seed_state.size(); i++)
-	ROS_INFO("ik_seed_state[%d] : %lf", i, ik_seed_state[i]);
+		std::vector<double> ik_seed_state;
+		robot_state_->copyJointGroupPositions("arm", ik_seed_state);
+		ROS_INFO("ik_seed_state.size() : %d", ik_seed_state.size());
+		for(int i=0; i<ik_seed_state.size(); i++)
+			ROS_INFO("ik_seed_state[%d] : %lf", i, ik_seed_state[i]);
 
     publishRobotState();
 
