@@ -30,7 +30,7 @@
     <param name="text_binarize_win_size" value="4"/>
     <param name="text_binarize_subtract" value="3.0"/>
 
-    <param name="text_ransac_repeat_time" value="200"/>
+    <param name="text_ransac_repeat_time" value="100"/>
     <param name="text_ransac_th_error" value="0.5"/>
 
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>

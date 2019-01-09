@@ -63,4 +63,24 @@ inline void NORMALIZE_3D(T &p_ans, const T &p){
   p_ans.z = p.z*len;
 }
 
+
+template<typename T, typename T2>
+inline double CROSS_2D(T &p_ans, const T &p1, const T2 &p2){
+  return p1.x*p2.y - p1.y*p2.x;
+}
+
+template<typename T,typename T2>
+inline double INNER_2D(const T &p1, const T2 &p2){
+  return p1.x*p2.x + p1.y*p2.y;
+}
+template<typename T>
+inline double DIS2_2D(const T &p1, const T &p2){
+  return POW2(p1.x-p2.x)+POW2(p1.y-p2.y);
+}
+template<typename T>
+inline double LEN2_2D(const T &p){
+  return POW2(p.x)+POW2(p.y);
+}
+
+
 #endif

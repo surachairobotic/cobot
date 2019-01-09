@@ -342,7 +342,7 @@ int main(int argc, char **argv)
           cv::imshow("norm1", seg.img_norm1);*/
         }
       }
-      char k = (char)cv::waitKey(500);
+      char k = (char)cv::waitKey(1000);
       if (k == 27 || k == 'q')
       {
         break;

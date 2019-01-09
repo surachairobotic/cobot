@@ -19,6 +19,84 @@ class cFindLabel{
 private:
   cOCR ocr;
 
+  // p1 + k1*v1 = p2 + k2*v2
+  bool find_cross_point_2D( const cv::Point2d &p1, const cv::Point2d &v1
+    , const cv::Point2d &p2, const cv::Point2d &v2
+    , cv::Point2f &cross_p ){
+
+    if( fabs(CROSS_2D( v1, v2)) < 0.3 )
+      return false;
+    
+    cv::Point2d p0( p2.x-p1.x, p2.y-p1.y );
+    double det = 1.0/(v1.x*-v2.y + v2.x*v1.y);
+//    if( fabs(det) < 0.0001 )
+//      return false;
+    double k1 = det*(-v2.y*p0.x + v2.x*p0.y)
+      , k2 = det*(-v1.y*p0.x + v1.x*p0.y);
+    assert( fabs(p1.x + k1*v1.x - p2.x - k2*v2.x)<0.0001 
+      && fabs(p1.y + k1*v1.y - p2.y - k2*v2.y)<0.0001 );
+    return true;
+  }
+
+  void remove_edges(const std::vector<cv::Point2i> &edges
+      std::vector<cv::Point2i> &new_edges
+      , const cv::Point2d &bp, const cv::Point2d &bv
+      , const double dis){
+    new_edges.clear();
+    new_edges.reserve(edges.size()/2);
+    for(int i=edges.size()-1;i>=0;i--){
+      cv::Point2i p;
+      const cv::Point2i &e = edges[i];
+      p.x = e.x - bp.x;
+      p.y = e.y - bp.y;
+      double cross = fabs( p.x*bv.y - p.y*bv.x );
+      if( cross > dis ){
+        new_edges.push_back(e);
+      }
+    }
+    printf("new_edges : %lu / %lu\n", new_edges.size(), edges.size());
+  }
+
+  void ransac_2d(const std::vector<cv::Point2i> &edges
+      , cv::Point2d &best_p, cv::Point2d &best_v){
+    const double TH_DIS = config.text_ransac_th_error;
+    int best_cnt = 0;
+    for(int k=config.text_ransac_repeat_time;k>0;k--){
+      const cv::Point2i *p1 = &edges[NextMt() % edges.size()], *p2;
+      int cnt = 0;
+      cv::Point2d v;
+      for(;;){
+        p2 = &edges[NextMt() % edges.size()];
+        v.x = p2->x-p1->x;
+        v.y = p2->y-p1->y;
+        double len2 = POW2(v.x)+POW2(v.y);
+        if( len2>=25 ){
+          double len = 1.0/sqrt(len2);
+          v.x*= len;
+          v.y*= len;
+          break;
+        }
+        assert(++cnt<100);
+      }
+      cnt = 0;
+      for(int i=edges.size()-1;i>=0;i--){
+        const cv::Point2i &p = edges[i];
+        double x = p.x - p1->x, y = p.y - p1->y
+          , dis = fabs(x*v.y - y*v.x);
+        if( dis<=TH_DIS ){
+          cnt++;
+        }
+      }
+      if( cnt>best_cnt ){
+        best_cnt = cnt;
+        best_v.x = v.x;
+        best_v.y = v.y;
+        best_p.x = p1->x;
+        best_p.y = p1->y;
+      }
+    }
+    assert( best_cnt>0 );
+  }
 
   void ransac_3d(const tRegInfo &r
         , const pcl::PointCloud<pcl::PointXYZRGB> &cloud
@@ -198,9 +276,11 @@ public:
       cv::Mat img_filter;
       fill_region( &r, img_label, img_filter);
 
+      double center[2];
+      
       double vx[2], vy[2];
       double min_x, min_y, max_x, max_y;
-      double center[2];
+      cv::Point2f warp_src[4], warp_dst[4];
       min_x = min_y = 9999999.0;
       max_x = max_y = -min_x;
 
@@ -256,7 +336,139 @@ public:
             p2[i2] = 255;
           }
         }
+        
         // ransac
+        cv::Point2d best_v[4], best_p[4];
+        std::vector<cv::Point2i> new_edges, *p_edges[2] = {&edges, &new_edges};
+
+        for(int i=0;i<4;i++){
+          ransac_2d( *p_edges[i%2], best_p[i], best_v[i]);
+          if( i<3 )
+            remove_edges( *p_edges[i%2], *p_edges[(i+1)%2]
+              , best_p[i], best_v[i], 2.0 );
+        }
+
+        {
+
+          const int n = [[0, 2], [0, 3], [1, 3], [1, 2]];
+          bool b_ok = true;
+          for(int i=0;i<4;i++){
+            if( !find_cross_point_2D( best_p[n[i][0]], best_v[n[i][0]]
+              , best_p[n[i][1]], best_v[n[i][1]]
+              , warp_src[i] ) ){
+              b_ok = false;
+              break;
+            }
+          }
+          if( !b_ok )
+            continue;
+          {
+            double x = sqrt( DIS2_2D(warp_src[0], warp_src[1]))
+              , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]))
+            if( x<10 || y<10 )
+              continue;
+            warp_dst[0].x = 0.0f;
+            warp_dst[0].y = 0.0f;
+            warp_dst[1].x = x;
+            warp_dst[1].y = 0.0f;
+            warp_dst[2].x = x;
+            warp_dst[2].y = y;
+            warp_dst[3].x = 0.0f;
+            warp_dst[3].y = y;
+          }
+
+        // find 1st line
+/*        ransac_2d(edges, best_p[0], best_v[0]);
+        // remove edges for find 2nd line
+        {
+          edges2.reserve(edges.size()*0.5);
+          double min_inner = 9999.0, max_inner = -9999.0;
+          for(int i=edges.size()-1;i>=0;i--){
+            cv::Point2i p;
+            const cv::Point2i &e = edges[i];
+            const cv::Point2d &bp = best_p[0], &bv = best_v[0];
+            p.x = e.x - bp.x;
+            p.y = e.y - bp.y;
+            double cross = fabs( p.x*bv.y - p.y*bv.x );
+            if( cross > 2.0 ){
+              edges2.push_back(e);
+            }
+            else{
+              double inner = p.x*bv.x + p.y*bv.y;
+              if( inner < min_inner ){
+                min_inner = inner;
+                warp_src[0].x = e.x;
+                warp_src[0].y = e.y;
+              }
+              if( inner > max_inner ){
+                max_inner = inner;
+                warp_src[1].x = e.x;
+                warp_src[1].y = e.y;
+              }
+            }
+          }
+          printf("edges2 : %lu / %lu\n", edges2.size(), edges.size());
+        }
+        // find 2nd line
+        ransac_2d(edges2, best_p[1], best_v[1]);
+        {
+          if( fabs(best_v[0].x)>0.1  ){
+            if( best_v[0].x*best_v[1].x<0.0 ){
+              best_v[1].x*=-1.0;
+              best_v[1].y*=-1.0;
+            }
+          }
+          else{
+            if( best_v[0].y*best_v[1].y<0.0 ){
+              best_v[1].x*=-1.0;
+              best_v[1].y*=-1.0;
+            }
+          }
+          double min_inner = 9999.0, max_inner = -9999.0;
+          for(int i=edges2.size()-1;i>=0;i--){
+            cv::Point2i p;
+            const cv::Point2i &e = edges2[i];
+            const cv::Point2d &bp = best_p[1], &bv = best_v[1];
+            p.x = e.x - bp.x;
+            p.y = e.y - bp.y;
+            if( fabs( p.x*bv.y - p.y*bv.x ) < 2.0 ){
+              double inner = p.x*bv.x + p.y*bv.y;
+              if( inner < min_inner ){
+                min_inner = inner;
+                warp_src[3].x = e.x;
+                warp_src[3].y = e.y;
+              }
+              if( inner > max_inner ){
+                max_inner = inner;
+                warp_src[2].x = e.x;
+                warp_src[2].y = e.y;
+              }
+            }
+          }
+        }
+        {
+          double x = sqrt( POW2(warp_src[0].x-warp_src[1].x)
+            +POW2(warp_src[0].y-warp_src[1].y) )
+            , y = sqrt( POW2(warp_src[0].x-warp_src[3].x)
+            +POW2(warp_src[0].y-warp_src[3].y) );
+          warp_dst[0].x = 0.0f;
+          warp_dst[0].y = 0.0f;
+          warp_dst[1].x = x;
+          warp_dst[1].y = 0.0f;
+          warp_dst[2].x = x;
+          warp_dst[2].y = y;
+          warp_dst[3].x = 0.0f;
+          warp_dst[3].y = y;
+        }
+
+        for(int i=3;i>=0;i--){
+          warp_src[i].x+= r.x1;
+          warp_src[i].y+= r.y1;
+        }*/
+        
+        
+
+        /*
         const double TH_DIS = config.text_ransac_th_error;
         int best_cnt = 0;
         cv::Point2d best_v;
@@ -296,6 +508,7 @@ public:
           }
         }
         assert( best_cnt>0 );
+        
 
         {
           double len = 1.0/sqrt( POW2(best_v.x)+POW2(best_v.y) );
@@ -316,37 +529,47 @@ public:
           if( new_y<min_y ) min_y = new_y;
         }
         assert( min_x < 99999.0 );
-      }
 
-      const int *r_xy = &r.x1;
-      #define CAL_CORENER(x,y,axis) ( x*vx[axis] + y*vy[axis] + center[axis] + r_xy[axis] )
-      cv::Point2f warp_src[4], warp_dst[4];
-      warp_src[0].x = CAL_CORENER(min_x, min_y, 0);
-      warp_src[0].y = CAL_CORENER(min_x, min_y, 1);
-      warp_src[1].x = CAL_CORENER(max_x, min_y, 0);
-      warp_src[1].y = CAL_CORENER(max_x, min_y, 1);
-      warp_src[2].x = CAL_CORENER(max_x, max_y, 0);
-      warp_src[2].y = CAL_CORENER(max_x, max_y, 1);
-      warp_src[3].x = CAL_CORENER(min_x, max_y, 0);
-      warp_src[3].y = CAL_CORENER(min_x, max_y, 1);
-      
-      printf("vx : %.3lf, %.3lf\n", vx[0], vx[1]);
-      printf("vy : %.3lf, %.3lf\n", vy[0], vy[1]);
-      printf("mx : %.3lf, %.3lf\n", min_x, max_x);
-      printf("my : %.3lf, %.3lf\n", min_y, max_y);
+        const int *r_xy = &r.x1;
+        #define CAL_CORENER(x,y,axis) ( x*vx[axis] + y*vy[axis] + center[axis] + r_xy[axis] )
+        
+        warp_src[0].x = CAL_CORENER(min_x, min_y, 0);
+        warp_src[0].y = CAL_CORENER(min_x, min_y, 1);
+        warp_src[1].x = CAL_CORENER(max_x, min_y, 0);
+        warp_src[1].y = CAL_CORENER(max_x, min_y, 1);
+        warp_src[2].x = CAL_CORENER(max_x, max_y, 0);
+        warp_src[2].y = CAL_CORENER(max_x, max_y, 1);
+        warp_src[3].x = CAL_CORENER(min_x, max_y, 0);
+        warp_src[3].y = CAL_CORENER(min_x, max_y, 1);
+        
+        printf("vx : %.3lf, %.3lf\n", vx[0], vx[1]);
+        printf("vy : %.3lf, %.3lf\n", vy[0], vy[1]);
+        printf("mx : %.3lf, %.3lf\n", min_x, max_x);
+        printf("my : %.3lf, %.3lf\n", min_y, max_y);
+        for(int i=0;i<4;i++){
+          printf("warp_src[%d] : %.3f, %.3f\n", i, warp_src[i].x, warp_src[i].y);
+        }
+
+        warp_dst[0].x = 0.0f;
+        warp_dst[0].y = 0.0f;
+        warp_dst[1].x = max_x-min_x;
+        warp_dst[1].y = 0.0f;
+        warp_dst[2].x = max_x-min_x;
+        warp_dst[2].y = max_y-min_y;
+        warp_dst[3].x = 0.0f;
+        warp_dst[3].y = max_y-min_y;
+        */
+      }
+      if( warp_dst[2].y< 10 || warp_dst[2].x < 10 )
+        continue;
+/*      for(int i=0;i<4;i++){
+        printf("warp src[%d]: %.3f, %.3f\n", i, warp_src[i].x, warp_src[i].y);
+      }
       for(int i=0;i<4;i++){
-        printf("warp_src[%d] : %.3f, %.3f\n", i, warp_src[i].x, warp_src[i].y);
-      }
-
-      warp_dst[0].x = 0.0f;
-      warp_dst[0].y = 0.0f;
-      warp_dst[1].x = max_x-min_x;
-      warp_dst[1].y = 0.0f;
-      warp_dst[2].x = max_x-min_x;
-      warp_dst[2].y = max_y-min_y;
-      warp_dst[3].x = 0.0f;
-      warp_dst[3].y = max_y-min_y;
-      cv::Mat img_text = cv::Mat( max_y-min_y, max_x-min_x, CV_8UC3);
+        printf("warp dst[%d]: %.3f, %.3f\n", i, warp_dst[i].x, warp_dst[i].y);
+      }*/
+      
+      cv::Mat img_text = cv::Mat( warp_dst[2].y, warp_dst[2].x, CV_8UC3);
       cv::Mat trans = cv::getPerspectiveTransform(warp_src, warp_dst);
       cv::warpPerspective(img_col, img_text, trans, img_text.size());
 
@@ -466,14 +689,24 @@ public:
         cv::imwrite(config.result_save_path + str, img_text);
 
         sprintf(str, "filter%d.bmp", ir);
-        cv::line( img_filter
-          , cv::Point( center[0], center[1] )
-          , cv::Point(CAL_CORENER( max_x, 0, 0 )-r_xy[0], CAL_CORENER( max_x, 0, 1)-r_xy[1] )
+/*        cv::line( img_filter
+//          , cv::Point( center[0], center[1] )
+//          , cv::Point(CAL_CORENER( max_x, 0, 0 )-r_xy[0], CAL_CORENER( max_x, 0, 1)-r_xy[1] )
+          , cv::Point( warp_src[0].x - r.x1, warp_src[0].y - r.y1 )
+          , cv::Point( warp_src[1].x - r.x1, warp_src[1].y - r.y1 )
           , cv::Scalar(150), 1);
         cv::line( img_filter
-          , cv::Point( center[0], center[1] )
-          , cv::Point(CAL_CORENER( 0, max_y, 0 )-r_xy[0], CAL_CORENER( 0, max_y, 1)-r_xy[1] )
-          , cv::Scalar(150), 1);
+//          , cv::Point( center[0], center[1] )
+//          , cv::Point(CAL_CORENER( 0, max_y, 0 )-r_xy[0], CAL_CORENER( 0, max_y, 1)-r_xy[1] )
+          , cv::Point( warp_src[0].x - r.x1, warp_src[0].y - r.y1 )
+          , cv::Point( warp_src[3].x - r.x1, warp_src[3].y - r.y1 )
+          , cv::Scalar(150), 1);*/
+        for(int i=0;i<4;i++){
+          cv::line( img_result
+          , warp_src[i]
+          , warp_src[(i+1)%4]
+          , cv::Scalar(200,200,200), 1);
+        }
         cv::imshow(str, img_filter);
         cv::imwrite(config.result_save_path + str, img_filter);
 
