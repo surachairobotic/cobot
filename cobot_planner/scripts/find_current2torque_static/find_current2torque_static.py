@@ -14,6 +14,11 @@
 '''
 
 import sys
+sys.path.insert(0,'Z:\\Git\\cobot\\cobot_planner\\scripts')
+sys.path.insert(0,'/home/tong/catkin_ws/src/cobot/cobot_planner/scripts')
+
+
+import sys
 import os
 import math
 import numpy as np
@@ -22,11 +27,11 @@ import matplotlib.pyplot as plt
 import eq
 from test_cal_torque import cal_torque
 
-
 # data file for creating equation
 # (not for test)
-fname = 'find_current2torque_static/running_torque/torque_j5_all.txt'
-n_joint = 4
+#n_joint = 4
+#fname = 'torque_j' + str(n_joint) + '/set_1/torque_j'+str(n_joint)+'_all.txt'
+#fname = 'find_current2torque_static/running_torque/torque_j5_all.txt'
 
 def load(fname):
   points = []
@@ -72,9 +77,11 @@ def get_data(data):
   return t, goal_torque_up, effort_up, goal_torque_down, effort_down, q, q_rad
 
 
-def find_equation(name):
-  global n_joint
+def find_equation(name, n_joint):
   data = load(fname)
+  if data.shape[0]==0:
+    print('No data found')
+    return
   t, goal_torque_up, effort_up, goal_torque_down, effort_down, q, q_rad = get_data(data)
   effort_mean = (effort_up + effort_down)*0.5
   effort_fric = abs((effort_up - effort_down)*0.5)
@@ -115,17 +122,17 @@ def find_equation(name):
   axarr[1].legend(['torque', 'torque_est'])
   axarr[1].set_ylabel('torque [N-m]')
   axarr[len(axarr)-1].set_xlabel('q'+str(n_joint+1)+' [degree]')
-  plt.show()
+  #plt.show()
+  return [a,b]
 
 
-def test_equation():
-  global n_joint
-  dir = 'find_current2torque_static/j5_s'
+def test_equation(n_joint, ab):
+  dir = 'torque_j'+str(n_joint+1)+'/set_'
   n = 3
 
   f, axarr = plt.subplots(n, sharex=True)
   for k in range(n):
-    fname = dir+str(k+1)+'/torque_j5_all.txt'
+    fname = dir+str(k+1)+'/torque_j'+str(n_joint+1)+'_all.txt'
     data = load(fname)
     t, goal_torque_up, effort_up, goal_torque_down, effort_down, q, q_rad = get_data(data)
     effort_mean = (effort_up + effort_down)*0.5
@@ -144,9 +151,9 @@ def test_equation():
 
     # cal current 2 torque
     lsm = LSM()
-    a = 0.003417
-    b = 0.002010
-    a,b = lsm.fit(effort_mean, torque_cal[:,n_joint])
+    a = ab[0]
+    b = ab[1]
+    #a,b = lsm.fit(effort_mean, torque_cal[:,n_joint])
     err = lsm.get_error(effort_mean, torque_cal[:,n_joint], a, b)
     torque_est = lsm.get_y(effort_mean,a,b)
     torque_fric = a*effort_fric + b
@@ -163,8 +170,12 @@ def test_equation():
 
   axarr[0].legend(['torque', 'torque_est'])
   axarr[len(axarr)-1].set_xlabel('q'+str(n_joint+1)+' [degree]')
-  plt.show()
+  
 
 if __name__ == "__main__":
-  #find_equation(fname) # find a,b
-  test_equation() # test a,b with other dataset
+  n_joint = 4
+  fname = 'torque_j' + str(n_joint+1) + '/set_1/torque_j'+str(n_joint+1)+'_all.txt'
+  ab = find_equation(fname, n_joint) # find a,b
+  test_equation(n_joint, ab) # test a,b with other dataset
+  plt.show()
+

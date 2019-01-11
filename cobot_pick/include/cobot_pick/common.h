@@ -2,7 +2,10 @@
 #define __COMMON_H__
 
 const char FRAME_CAMERA[] = "camera"
-  , FRAME_WORLD[] = "world";
+  , FRAME_WORLD[] = "world"
+  , NS_PICK_ARROW[] = "pick_arrow"
+  , NS_LABEL_FRAME[] = "label_frame";
+  
 const double INVALID_POINT = 0.0;
 
 #define POW2(x) ((x)*(x))
@@ -65,7 +68,7 @@ inline void NORMALIZE_3D(T &p_ans, const T &p){
 
 
 template<typename T, typename T2>
-inline double CROSS_2D(T &p_ans, const T &p1, const T2 &p2){
+inline double CROSS_2D(const T &p1, const T2 &p2){
   return p1.x*p2.y - p1.y*p2.x;
 }
 

@@ -23,7 +23,7 @@ public:
     // Initialize tesseract to use English (eng) and the LSTM OCR engine.
     ocr->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
     // Set Page segmentation mode to PSM_AUTO (3)
-    ocr->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+    ocr->SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);// PSM_SINGLE_WORD);
     
   }
 

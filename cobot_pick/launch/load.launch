@@ -1,9 +1,11 @@
 <launch>
   <include file="$(find cobot_pick)/launch/inc_find_object.launch" >
-    <arg name="tf_world2camera" default="0 0 0 0 0 0 1" />
+    <arg name="tf_world2camera" default="0.494730 0.143424 0.465173 0.355984 0.911421 -0.181333 -0.098513" />
     <arg name="mode" default="load" />
     <arg name="save_file_prefix"
         default="/home/tong/catkin_ws/src/cobot/cobot_pick/data/smile_21" />
     <arg name="show_result" default="true" />
+    <arg name="save_result" default="true" />
+    <arg name="launch_prefix" default="gdb -ex run --args" />
   </include>
 </launch>

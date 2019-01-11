@@ -2,10 +2,11 @@
 #define __CONFIG_FIND_OBJECT_H__
 
 #include <string>
+#include <tf/tf.h>
 
 struct tConfig{
 
-  bool save_mode, load_mode, action_server_mode, show_result;
+  bool save_mode, load_mode, action_server_mode, show_result, save_result;
   std::string save_file_prefix, result_save_path;
 
   // segment
@@ -17,13 +18,16 @@ struct tConfig{
 
   // select object
   int plane_reg_min, plane_reg_max, plane_ransac_repeat_time, text_binarize_win_size
-    , text_ransac_repeat_time;
+    , text_ransac_repeat_time, th_region_color;
   double plane_reg_ratio_min, plane_reg_ratio_max, warp_meter2pixel
     , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error;
+  tf::Transform tf_cam;
+
 
 
   tConfig():
-    save_mode(false), load_mode(false), show_result(false), action_server_mode(false)
+    save_mode(false), load_mode(false), show_result(false)
+    , action_server_mode(false), save_result(false)
     , save_file_prefix("/home/tong/catkin_ws/src/cobot/cobot_pick/src/data/box")
     , result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/results")
 
@@ -45,6 +49,7 @@ struct tConfig{
     , text_binarize_subtract(20.0)
     , text_ransac_repeat_time(200)
     , text_ransac_th_error(2)
+    , th_region_color(500)
     {}
 } config;
 

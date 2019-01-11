@@ -27,19 +27,23 @@ private:
     if( fabs(CROSS_2D( v1, v2)) < 0.3 )
       return false;
     
-    cv::Point2d p0( p2.x-p1.x, p2.y-p1.y );
-    double det = 1.0/(v1.x*-v2.y + v2.x*v1.y);
+    const cv::Point2d p0( p2.x-p1.x, p2.y-p1.y );
+    const double det = 1.0/(v1.x*-v2.y + v2.x*v1.y);
 //    if( fabs(det) < 0.0001 )
 //      return false;
-    double k1 = det*(-v2.y*p0.x + v2.x*p0.y)
+    const double k1 = det*(-v2.y*p0.x + v2.x*p0.y)
       , k2 = det*(-v1.y*p0.x + v1.x*p0.y);
-    assert( fabs(p1.x + k1*v1.x - p2.x - k2*v2.x)<0.0001 
-      && fabs(p1.y + k1*v1.y - p2.y - k2*v2.y)<0.0001 );
+    cross_p.x = p1.x + k1*v1.x;
+    cross_p.y = p1.y + k1*v1.y;
+
+    assert( fabs(cross_p.x - p2.x - k2*v2.x)<0.0001 
+      && fabs(cross_p.y - p2.y - k2*v2.y)<0.0001 );
+    
     return true;
   }
 
   void remove_edges(const std::vector<cv::Point2i> &edges
-      std::vector<cv::Point2i> &new_edges
+      , std::vector<cv::Point2i> &new_edges
       , const cv::Point2d &bp, const cv::Point2d &bv
       , const double dis){
     new_edges.clear();
@@ -214,7 +218,8 @@ private:
   }
 public:
   std::vector<visualization_msgs::Marker> pick_markers;
-  std::vector<tPickPose> pick_poses;
+  std::vector<cPlane> planes;
+  tPickPose pick_pose;
 
   cFindLabel(){}
 
@@ -223,6 +228,12 @@ public:
     cv::Mat img_bin = cv::Mat( img_col.size(), CV_8UC1), img_label, img_result;
     visualization_msgs::Marker marker, marker_frame;
 
+    double max_plane_z = 0.0;
+    int pick_plane_id = -1;
+
+    pick_markers.clear();
+    planes.clear();
+
     binarize( img_col, img_bin, config.text_binarize_win_size
         , config.text_binarize_subtract);
     label.ExecBin( img_bin, img_label);
@@ -230,21 +241,19 @@ public:
     geometry_msgs::Point marker_point;
     tPickPose pick_pose;
     marker.header.frame_id = marker_frame.header.frame_id = FRAME_CAMERA;
-    marker.ns = "pick_markers";
+    marker.ns = NS_PICK_ARROW;
     marker.type = visualization_msgs::Marker::ARROW;
     marker.scale.x = 0.005;
     marker.scale.y = 0.01;
     marker.scale.z = 0.02;
     marker.color.a = 1.0;
 
-    marker_frame.ns = "pick_frames";
+    marker_frame.ns = NS_LABEL_FRAME;
     marker_frame.type = visualization_msgs::Marker::LINE_STRIP;
     marker_frame.scale.x = 0.005;
     marker_frame.scale.y = 0.005;
     marker_frame.scale.z = 0.005;
     marker_frame.color.a = 1.0;
-
-    pick_poses.clear();
 
     if( config.show_result ){      
       label.CreateImageResult( img_label, img_result, true);
@@ -267,6 +276,25 @@ public:
       if( ratio>3.0 ){
         printf("invalid text reg : ratio = %.3lf\n", ratio);
         continue;
+      }
+      // exclude color region
+      {
+        unsigned int sum = 0;
+        for(int i=r.y1;i<=r.y2;i++){
+          const unsigned char *pi = img_col.data + img_col.step * i;
+          const unsigned short *pl = (const unsigned short*)(img_label.data + img_label.step * i);
+          for(int j=r.x1;j<=r.x2;j++){
+            if( pl[j]==r.n_label ){
+              const unsigned char *p = pi + j*3;
+              sum+= POW2(p[0]-p[1]) + POW2(p[2]-p[1]) + POW2(p[0]-p[2]);
+            }
+          }
+        }
+        double c = double(sum)/r.pix_num;
+        if( c>config.th_region_color ){
+          printf("invalid reg color [%d]: %.3lf\n", ir, c );
+          continue;
+        }
       }
       if( config.show_result ){
         cv::rectangle(img_result, cv::Point(r.x1, r.y1)
@@ -302,7 +330,7 @@ public:
               p2[j] = 255;
             }
           }
-        }          
+        }
         for(int i=img_filter.rows-1;i>=0;i--){
           unsigned char *p = img_filter.data + img_filter.step*i
             , *p2 = img_edge.data + img_edge.step*i;
@@ -340,22 +368,37 @@ public:
         // ransac
         cv::Point2d best_v[4], best_p[4];
         std::vector<cv::Point2i> new_edges, *p_edges[2] = {&edges, &new_edges};
-
-        for(int i=0;i<4;i++){
-          ransac_2d( *p_edges[i%2], best_p[i], best_v[i]);
-          if( i<3 )
-            remove_edges( *p_edges[i%2], *p_edges[(i+1)%2]
-              , best_p[i], best_v[i], 2.0 );
+        {
+          bool b_ok = true;
+          for(int i=0;i<4;i++){
+            ransac_2d( *p_edges[i%2], best_p[i], best_v[i]);
+            if( i<3 ){
+              remove_edges( *p_edges[i%2], *p_edges[(i+1)%2]
+                , best_p[i], best_v[i], 2.0 );
+              if( p_edges[(i+1)%2]->size()<4 ){
+                b_ok = false;
+                break;
+              }
+            }
+          }
+          if( !b_ok ){
+            printf("too few edges\n");
+          }
         }
 
         {
 
-          const int n = [[0, 2], [0, 3], [1, 3], [1, 2]];
+          const int n[4][2] = {{0, 2}, {0, 3}, {1, 3}, {1, 2}};
           bool b_ok = true;
           for(int i=0;i<4;i++){
             if( !find_cross_point_2D( best_p[n[i][0]], best_v[n[i][0]]
               , best_p[n[i][1]], best_v[n[i][1]]
               , warp_src[i] ) ){
+              
+              printf("invalid line %d (%d,%d) : %.3lf, %.3lf / %.3lf, %.3lf\n"
+                , ir, n[i][0], n[i][1]
+                , best_v[n[i][0]].x, best_v[n[i][0]].y
+                , best_v[n[i][1]].x, best_v[n[i][1]].y );
               b_ok = false;
               break;
             }
@@ -364,9 +407,16 @@ public:
             continue;
           {
             double x = sqrt( DIS2_2D(warp_src[0], warp_src[1]))
-              , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]))
-            if( x<10 || y<10 )
+              , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]));
+            if( x<10 || y<10 ){
+              printf("invalid label size %d : %.3lf, %.3lf\n"
+                , ir, x, y);
+              for(int i=0;i<4;i++){
+                printf("warp src[%d]: %.3f, %.3f\n"
+                  , i, warp_src[i].x, warp_src[i].y);
+              }
               continue;
+            }
             warp_dst[0].x = 0.0f;
             warp_dst[0].y = 0.0f;
             warp_dst[1].x = x;
@@ -376,6 +426,27 @@ public:
             warp_dst[3].x = 0.0f;
             warp_dst[3].y = y;
           }
+          for(int i=3;i>=0;i--){
+            warp_src[i].x+= r.x1;
+            warp_src[i].y+= r.y1;
+          }
+
+          // check label flip
+          {
+            cv::Point2d v1(warp_src[1].x-warp_src[0].x, warp_src[1].y-warp_src[0].y )
+              , v2(warp_src[2].x-warp_src[1].x, warp_src[2].y-warp_src[1].y );
+            if( CROSS_2D( v1, v2 )<0.0 ){
+              cv::Point2d p;
+              p = warp_src[0];
+              warp_src[0] = warp_src[3];
+              warp_src[3] = p;
+
+              p = warp_src[1];
+              warp_src[1] = warp_src[2];
+              warp_src[2] = p;
+            }
+          }
+        }
 
         // find 1st line
 /*        ransac_2d(edges, best_p[0], best_v[0]);
@@ -560,8 +631,9 @@ public:
         warp_dst[3].y = max_y-min_y;
         */
       }
+      /*
       if( warp_dst[2].y< 10 || warp_dst[2].x < 10 )
-        continue;
+        continue; */
 /*      for(int i=0;i<4;i++){
         printf("warp src[%d]: %.3f, %.3f\n", i, warp_src[i].x, warp_src[i].y);
       }
@@ -621,35 +693,28 @@ public:
               }
             }
           }
-          if( config.show_result ){
+          if( config.show_result || config.save_result){
             char str[20];
             sprintf(str, "text_gray%d-%d.tif", ir, k);
-            cv::imshow(str, img_gray);
-            cv::imwrite(config.result_save_path + str, img_gray);
+            if( config.show_result )
+              cv::imshow(str, img_gray);
+            if( config.save_result )
+              cv::imwrite(config.result_save_path + str, img_gray);
           }
 
           cPlane plane(&r);
           ransac_3d( r, cloud, plane );
 
           if( n_label>=0 ){
+            /*
             double d = 1.0/255.0;
-            marker.id = marker_frame.id = n_label;
-            marker.color.r = marker_frame.color.r = cols[n_label-1][0] * d;
-            marker.color.g = marker_frame.color.g = cols[n_label-1][1] * d;
-            marker.color.b = marker_frame.color.b = cols[n_label-1][2] * d;
-            marker.points.clear();
+            marker_frame.id = n_label;
+            marker_frame.color.r = cols[n_label-1][0] * d;
+            marker_frame.color.g = cols[n_label-1][1] * d;
+            marker_frame.color.b = cols[n_label-1][2] * d;
             marker_frame.points.clear();
-            plane.find_center(cloud, img_label);
-            marker_point.x = plane.center.x;
-            marker_point.y = plane.center.y;
-            marker_point.z = plane.center.z;
-            marker.points.push_back(marker_point);
-            marker_point.x+= plane.normal.x * -0.1;
-            marker_point.y+= plane.normal.y * -0.1;
-            marker_point.z+= plane.normal.z * -0.1;
-            marker.points.push_back(marker_point);
-            pick_markers.push_back(marker);
-
+            plane.find_center_frames( warp_src);
+       
             for(int i=0;i<5;i++){
               const pcl::PointXYZ &f = plane.frames[i%4];
               marker_point.x = f.x;
@@ -658,67 +723,128 @@ public:
               marker_frame.points.push_back(marker_point);
             }
             pick_markers.push_back(marker_frame);
+            */
+            plane.find_center_frames( warp_src);
+            plane.set_label( n_label );
+            plane.find_max_height(cloud, warp_src);
+            planes.push_back(plane);
+            /*
 
-            {
-              tf::Vector3 v(plane.normal.x,plane.normal.y,plane.normal.z)
-                , vx( 1.0, 0.0, 0.0)
-                , vn = vx.cross(v);
-              vn.normalize();
-              tf::Quaternion q(vn, acos(v.dot(vx)));
-              pick_pose.pose.position.x = plane.center.x;
-              pick_pose.pose.position.y = plane.center.y;
-              pick_pose.pose.position.z = plane.center.z;
-              pick_pose.pose.orientation.x = q.x();
-              pick_pose.pose.orientation.y = q.y();
-              pick_pose.pose.orientation.z = q.z();
-              pick_pose.pose.orientation.w = q.w();
-
-              char str[8];
-              sprintf(str, "M%d", n_label);
-              pick_pose.label = str;
-              pick_poses.push_back(pick_pose);
-            }
+            double l = plane.find_plane_distance(cloud, warp_src);
+            printf("plane dis [%d] : %.3lf\n", ir, l);
+            if( l > max_plane_z ){
+              max_plane_z = l;
+              pick_plane_id = planes.size()-1;
+            }*/
             break;
           }
         }
       }
-      if( config.show_result ){
+      if( config.show_result || config.save_result ){
         char str[32];
         sprintf(str, "text%d.bmp", ir);
-        cv::imshow(str, img_text);
-        cv::imwrite(config.result_save_path + str, img_text);
+        if( config.show_result )
+          cv::imshow(str, img_text);
+        if( config.save_result )
+          cv::imwrite(config.result_save_path + str, img_text);
 
         sprintf(str, "filter%d.bmp", ir);
-/*        cv::line( img_filter
-//          , cv::Point( center[0], center[1] )
-//          , cv::Point(CAL_CORENER( max_x, 0, 0 )-r_xy[0], CAL_CORENER( max_x, 0, 1)-r_xy[1] )
-          , cv::Point( warp_src[0].x - r.x1, warp_src[0].y - r.y1 )
-          , cv::Point( warp_src[1].x - r.x1, warp_src[1].y - r.y1 )
-          , cv::Scalar(150), 1);
-        cv::line( img_filter
-//          , cv::Point( center[0], center[1] )
-//          , cv::Point(CAL_CORENER( 0, max_y, 0 )-r_xy[0], CAL_CORENER( 0, max_y, 1)-r_xy[1] )
-          , cv::Point( warp_src[0].x - r.x1, warp_src[0].y - r.y1 )
-          , cv::Point( warp_src[3].x - r.x1, warp_src[3].y - r.y1 )
-          , cv::Scalar(150), 1);*/
         for(int i=0;i<4;i++){
           cv::line( img_result
           , warp_src[i]
           , warp_src[(i+1)%4]
           , cv::Scalar(200,200,200), 1);
         }
-        cv::imshow(str, img_filter);
-        cv::imwrite(config.result_save_path + str, img_filter);
-
+        if( config.show_result )
+          cv::imshow(str, img_filter);
+        if( config.save_result )
+          cv::imwrite(config.result_save_path + str, img_filter);
         sprintf(str, "filter_edge%d.bmp", ir);
-        cv::imshow(str, img_edge);
+        if( config.show_result )
+          cv::imshow(str, img_edge);
       }
     }
-    if( config.show_result ){
+    if( config.show_result )
       cv::imshow( "result.bmp", img_result);
+    if( config.save_result )
+      cv::imwrite( "result.bmp", img_result);
+
+//    printf("pick plane id : %d\n", pick_plane_id);
+    if( planes.size()>0 ){
+      // sort by height
+      std::vector<cPlane*> pp(planes.size());
+      for(int i=0;i<planes.size();i++){
+        pp[i] = &planes[i];
+      }
+      for(int i=0;i<planes.size()-1;i++){
+        for(int j=i+1;j<planes.size();j++){
+          if( pp[i]->max_height < pp[j]->max_height ){
+            cPlane *p = pp[i];
+            pp[i] = pp[j];
+            pp[j] = p;
+          }
+        }
+      }
+      for(int i=0;i<planes.size();i++){
+        pp[i]->order = i;
+        if( i<planes.size()-1 )
+          assert( pp[i]->max_height >= pp[i+1]->max_height );
+      }
+
+      // marker
+      const double d = 1.0/255.0;
+      for(int i=0;i<planes.size();i++){
+        cPlane &plane = planes[i];//[pick_plane_id];
+        //plane.get_pick_pose( pick_pose );
+        const int n_label = plane.label;
+        const double arrow_size = plane.order==0 ? 0.1 : 0.03;
+
+        marker.color.r = marker_frame.color.r = cols[n_label-1][0] * d;
+        marker.color.g = marker_frame.color.g = cols[n_label-1][1] * d;
+        marker.color.b = marker_frame.color.b = cols[n_label-1][2] * d;
+
+        // arrow
+        marker.id = n_label;
+        marker.points.clear();
+        marker_point.x = plane.center.x - plane.normal.x * arrow_size;
+        marker_point.y = plane.center.y - plane.normal.y * arrow_size;
+        marker_point.z = plane.center.z - plane.normal.z * arrow_size;
+        marker.points.push_back(marker_point);
+        marker_point.x = plane.center.x;
+        marker_point.y = plane.center.y;
+        marker_point.z = plane.center.z;
+        marker.points.push_back(marker_point);
+        pick_markers.push_back(marker);
+
+        // frame
+        marker_frame.id = n_label;
+        marker_frame.points.clear();
+        for(int i=0;i<5;i++){
+          const pcl::PointXYZ &f = plane.frames[i%4];
+          marker_point.x = f.x;
+          marker_point.y = f.y;
+          marker_point.z = f.z;
+          marker_frame.points.push_back(marker_point);
+        }
+        pick_markers.push_back(marker_frame);
+      }
     }
   }
 
+
+  void clear_markers(ros::Publisher &pub){
+    std::vector<visualization_msgs::Marker> markers(2);
+    markers[0].ns = NS_PICK_ARROW;
+    markers[1].ns = NS_LABEL_FRAME;
+    for(int j=markers.size()-1;j>=0;j--){
+      visualization_msgs::Marker &m = markers[j];
+      m.type = visualization_msgs::Marker::ARROW;
+      for(int i=0;i<8;i++){
+        m.id = i;
+        pub.publish(m);
+      }
+    }
+  }
 };
 
 #endif
