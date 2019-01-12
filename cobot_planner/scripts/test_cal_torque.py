@@ -12,7 +12,7 @@ import numpy as np
 import eq
 from scipy import signal
 
-fname = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/bag2txt_j5_1hz_s1/joint_states.txt'
+fname = '/home/tong/catkin_ws/src/cobot/cobot_planner/scripts/old_bag2txt/bag2txt_j1_v05_s1/joint_states.txt'
 
 b_filter = True
 
@@ -71,7 +71,7 @@ def cal_torque(q, dq, ddq, vars):
         + Kw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(dR_dq[i][j][0:3,0:3].T).dot(Kw[i])
         + Kw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(R[i][0:3,0:3].T).dot(dKw_dq[i][j])
         ).dot(dq)
-      dU_dq[j]+= (M[i]*g*dz_dq[i][j])[0]
+      dU_dq[j]+= (M[i]*g*dz_dq[i][j])
 
     dT_ddq+= M[i]*( dJ[i].T.dot(J[i]).dot(dq) + J[i].T.dot(dJ[i]).dot(dq) ) \
       + dKw[i].T.dot(R[i][0:3,0:3]).dot(I[i]).dot(R[i][0:3,0:3].T).dot(Kw[i]).dot(dq) \
@@ -120,6 +120,7 @@ def save_torque(fname):
   fname_out = fname[0:fname.rfind('/')+1] + 'torque.txt'
   with open(fname_out, 'wt') as f:
     for i in range(1, len(data)):
+      t = time.time()
       d = data[i]
       q = np.array(d[1:7])
       dq = np.array(d[7:13])
@@ -127,6 +128,8 @@ def save_torque(fname):
       vars = eq.get_vars(q)
 #      torque, torque_no_ddq = cal_torque(q, np.array([0.0,0.0,0.0,0.0,0.0,0.0]), ddq[i,:], vars)
       torque, torque_no_ddq = cal_torque(q, dq, ddq[i,:], vars)
+      print(time.time()-t)
+      exit()
       R = vars[0]
       xyz = R[5].dot(np.array([0.0,0.0,0.0,1.0]))
       f.write('%f' % (d[0]))

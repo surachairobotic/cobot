@@ -450,6 +450,101 @@ def set_const(_L,_COM,_M,_I,_g):
 
 
 
+def create_c_func(name, var, b_has_q):
+  shape = []
+  
+  v = var
+  while True:
+    t = type(v)
+    if t is list:
+      shape.append( len(v) )
+      v = v[0]
+    elif hasattr( v, 'shape' ):
+      if len(v.shape)==1:
+        v = v[0]
+        shape.append( v.shape[0] )
+      elif len(v.shape)==2:
+        if v.shape[0]==1:
+          shape.append( v.shape[1] )
+        elif v.shape[1]==1:
+          shape.append( v.shape[0] )
+        else:
+          shape.append( v.shape )
+        v = v[0,0]
+      else:
+        assert(0)
+    else:
+      break
+  
+  
+  if b_has_q:
+    v = 'const double q[6], '
+  else:
+    v = ''
+  var_num = 1
+  if len(shape)>0:
+    v+= 'double var'
+    for sh in shape:
+      if type(sh) is int:
+        v+= '['+str(sh)+']'
+        var_num*= sh
+      else:
+        for a in sh:
+          if a>1:
+            v+= '['+str(a)+']'
+            var_num*= a
+  else:
+    v = 'double &var'
+  
+  s = 'void get_'+name+'(' + v +' ){\n'
+  if b_has_q:
+    s+= '  double'
+    for j in range(len(R)):
+      if j>0:
+        s+= '\n  ,'
+      s+= " c"+str(j)+" = cos(q["+str(j)+'])\n'
+      s+= "  , s"+str(j)+" = sin(q["+str(j)+'])'
+    s+= ';\n\n'
+  
+  
+  def get_bracket(n, shape, var):
+    ss = ''
+    var_i = []
+    for i in range( len(shape) ):
+      sh = shape[len(shape)-i-1]
+      if type(sh) is int:
+        n2 = n % sh
+        ss = '['+str(n2)+']'+ss
+        var_i.append(n2)
+        
+        n = n/sh
+      else:
+        vi = []
+        for j in range(len(sh)):
+          a = sh[len(sh)-j-1]
+          n2 = n % a
+          ss = '['+str(n2)+']'+ss
+          vi = [n2] + vi
+          
+          n = n/a
+        var_i.append(tuple(vi))
+    
+    v = var
+    for i in range(len(var_i)):
+      vi = var_i[len(var_i)-i-1]
+      v = v[vi]
+    return ss, v
+  
+  for n in range(var_num):
+    ss, v = get_bracket( n, shape, var )
+    s+='  var' + ss + ' = ' + str(v)+';\n'
+  
+  s+= '}\n\n'
+  return s
+    
+    
+
+
 
 def save_txt(file_name):
   global R,dR_dq,Kw,dKw_dq,J \
@@ -462,6 +557,7 @@ def save_txt(file_name):
   names_no_q = ['M', 'I', 'g']
   s = 'import numpy as np\nimport math\n\n'
 
+  sc = '#ifndef __EQ_C_H__\n#define __EQ_C_H__\n\n#include <math.h>\n\n'
   for i in range(len(vars)):
     if i<len(names_q):
       name = names_q[i]
@@ -469,11 +565,24 @@ def save_txt(file_name):
       for j in range(len(R)):
         s+= "  c"+str(j)+" = math.cos(q["+str(j)+'])\n'
         s+= "  s"+str(j)+" = math.sin(q["+str(j)+'])\n'
+      sc+= create_c_func( name, vars[i], True)
     else:
       name = names_no_q[i-len(names_q)]
       s+= 'def get_'+name+'():\n'
-    s+= '  return ' + str(vars[i])+'\n'
+      sc+= create_c_func( name, vars[i], False)
+    if name=='M':
+      M2 = []
+      for i in range(M.shape[0]):
+        M2.append(M[i])
+      s+= '  return np.array(' + str(M2)+')\n\n'
+    else:
+      s+= '  return ' + str(vars[i])+'\n\n'
+    
+    
+  with open('eq_c.h','wt') as f:
+    f.write(sc+'\n#endif')
 
+  
   s+= 'def get_vars(q):\n'
   s+= '  return '
   for i in range(len(vars)):
