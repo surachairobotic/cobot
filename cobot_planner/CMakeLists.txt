@@ -85,6 +85,9 @@ target_link_libraries(cobot_planner
 add_executable(cobot_test_eq src/cobot_test_eq.cpp)
 target_link_libraries(cobot_test_eq
   ${catkin_LIBRARIES}
+  opencv_core
+  opencv_imgcodecs
+  opencv_highgui
 )
 
 #############
