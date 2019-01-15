@@ -25,7 +25,7 @@
 #include "cobot_dynamixel_driver/cJoint.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
 
-std::string result_dir = "/home/dell/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";
+std::string result_dir = "/home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";
 std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
@@ -56,6 +56,10 @@ int main(int argc, char **argv)
   boost::posix_time::ptime my_posix_time = ros::Time::now().toBoost();
   iso_time_str = boost::posix_time::to_iso_extended_string(my_posix_time);
   FILE *_fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "w");
+	if(_fp == NULL) {
+    ROS_ERROR("Can't open log file.");
+		return -1;
+	}		
   fp = _fp;
 
   pub_return = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states_return", 1000);
@@ -167,7 +171,33 @@ int main(int argc, char **argv)
           joint_state.effort[i] = 0;
         }
         pub.publish(joint_state);
-        fprintf(fp, "cobot_dynamixel_driver/joint_states|name|%s,%s,%s,%s,%s,%s|pos|%f,%f,%f,%f,%f,%f|vel|%f,%f,%f,%f,%f,%f|eff|%f,%f,%f,%f,%f,%f\n", joint_state.name[0].c_str(), joint_state.name[1].c_str(), joint_state.name[2].c_str(), joint_state.name[3].c_str(), joint_state.name[4].c_str(), joint_state.name[5].c_str(), joint_state.position[0], joint_state.position[1], joint_state.position[2], joint_state.position[3], joint_state.position[4], joint_state.position[5], joint_state.velocity[0], joint_state.velocity[1], joint_state.velocity[2], joint_state.velocity[3], joint_state.velocity[4], joint_state.velocity[5], joint_state.effort[0], joint_state.effort[1], joint_state.effort[2], joint_state.effort[3], joint_state.effort[4], joint_state.effort[5]);
+        fprintf(fp, "cobot_dynamixel_driver/joint_states|name|%s,%s,%s,%s,%s,%s"
+									, joint_state.name[0].c_str()
+									, joint_state.name[1].c_str()
+									, joint_state.name[2].c_str()
+									, joint_state.name[3].c_str()
+									, joint_state.name[4].c_str()
+									, joint_state.name[5].c_str() );
+
+        fprintf(fp, "|pos|%lf,%lf,%lf,%lf,%lf,%lf|vel|%lf,%lf,%lf,%lf,%lf,%lf|eff|%lf,%lf,%lf,%lf,%lf,%lf\n" , joint_state.name[0].c_str()
+			, joint_state.position[0]
+			, joint_state.position[1]
+			, joint_state.position[2]
+			, joint_state.position[3]
+			, joint_state.position[4]
+			, joint_state.position[5]
+			, joint_state.velocity[0]
+			, joint_state.velocity[1]
+			, joint_state.velocity[2]
+			, joint_state.velocity[3]
+			, joint_state.velocity[4]
+			, joint_state.velocity[5]
+			, joint_state.effort[0]
+			, joint_state.effort[1]
+			, joint_state.effort[2]
+			, joint_state.effort[3]
+			, joint_state.effort[4]
+			, joint_state.effort[5]);
       }
       ros::spinOnce();
       usleep(10000);

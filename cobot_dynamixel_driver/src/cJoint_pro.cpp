@@ -623,7 +623,7 @@ std::vector<cJoint> &cJoint::init(){
     ROS_INFO("Succeeded to open the port!\n");
   }
   else{
-    ROS_ERROR("Failed to open the port!\n");
+    ROS_ERROR("Failed to open the port! : %s\n", DEVICENAME);
     throw 0;
   }
 
