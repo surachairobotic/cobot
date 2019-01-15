@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
   set_jnt(jntHome, pub)
   t_start = time.time()
-  while (time.time()-t_start) < 5.0 and not rospy.is_shutdown():
+  while (time.time()-t_start) < 1.0 and not rospy.is_shutdown():
     a=0
     rate.sleep()
     

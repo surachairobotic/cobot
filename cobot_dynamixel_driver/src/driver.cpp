@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-//#include "test_dynamixel/Goal.h"
 #include "cobot_dynamixel_driver/get_motor_number.h"
 #include "cobot_dynamixel_driver/set_home.h"
 #include "cobot_dynamixel_driver/set_acc.h"
@@ -24,12 +23,14 @@
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include <unistd.h>
+#include <limits.h>
 
-std::string result_dir = "/home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";
 std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
 FILE *fp;
+std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg);
 bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res);
@@ -55,11 +56,18 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   boost::posix_time::ptime my_posix_time = ros::Time::now().toBoost();
   iso_time_str = boost::posix_time::to_iso_extended_string(my_posix_time);
+
+	char username[LOGIN_NAME_MAX];
+	getlogin_r(username, LOGIN_NAME_MAX);
+	std::string result_dir = "/home/";
+	result_dir += username;
+	result_dir += "/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";	
   FILE *_fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "w");
+	ROS_ERROR("check file path : %s", (result_dir + iso_time_str + "_driver_log.txt").c_str());
 	if(_fp == NULL) {
     ROS_ERROR("Can't open log file.");
 		return -1;
-	}		
+	}
   fp = _fp;
 
   pub_return = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states_return", 1000);

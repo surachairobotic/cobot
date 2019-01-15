@@ -116,7 +116,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 		ROS_WARN("searchPositionIK : false");
 
 	//offset : 0.000002 0.000000 -0.016406 -0.009949 0.028798 -0.000698 -0.076794
-	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+/*	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
 	if(ui_->checkBox->checkState() == 2)
 		if(solution.size() == offset.size())
 		{
@@ -124,6 +124,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 			for(int i=0; i<solution.size(); i++)
 				solution[i] -= offset[i];
 		}
+*/
 	pubCurrentRobotState(solution);
 }
 

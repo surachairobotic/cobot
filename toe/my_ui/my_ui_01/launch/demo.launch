@@ -1,13 +1,21 @@
 <launch>
-
+  <!-- GDB Debug Option -->
   <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+  <!-- Verbose Mode Option -->
+  <arg name="info" default="$(arg debug)" />
+  <arg unless="$(arg info)" name="command_args" value="" />
+  <arg     if="$(arg info)" name="command_args" value="--debug" />
+
   <arg name="use_gui" default="false" />
 
   <include file="$(find test_abb_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
   </include>
 
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" launch-prefix="$(arg launch_prefix)" args="$(arg command_args)">
 
     <rosparam command="load" file="$(find test_abb_moveit_config)/config/kinematics.yaml"/>
   </node>
