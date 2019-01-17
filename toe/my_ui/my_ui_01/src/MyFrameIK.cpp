@@ -110,7 +110,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 			ROS_INFO("B : %lf, %lf, %lf, %lf, %lf, %lf", new_solutions[i][0], new_solutions[i][1], new_solutions[i][2], new_solutions[i][3], new_solutions[i][4], new_solutions[i][5]);
 		}
 
-		//best_solution(ik_seed_state, solutions);		
+		best_solution(ik_seed_state, new_solutions);		
 	}
 	else
 		ROS_WARN("searchPositionIK : false");
@@ -124,6 +124,16 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 			for(int i=0; i<solution.size(); i++)
 				solution[i] -= offset[i];
 		}
+*/
+	ROS_INFO("Check : %lf, %lf, %lf, %lf, %lf, %lf", ik_seed_state[0], ik_seed_state[1], ik_seed_state[2], ik_seed_state[3], ik_seed_state[4], ik_seed_state[5]);
+/*	double TWO_PI = 2.0*M_PI;
+	for(int i=0; i<ik_seed_state.size(); i++){
+		if(ik_seed_state[i] < limit_min[i] && ik_seed_state[i]+TWO_PI < limit_max[i])
+			ik_seed_state[i] += TWO_PI;
+		else if(ik_seed_state[i] > limit_max[i] && ik_seed_state[i]-TWO_PI > limit_min[i])
+			ik_seed_state[i] -= TWO_PI;
+	}
+	ROS_INFO("Check2 : %lf, %lf, %lf, %lf, %lf, %lf", ik_seed_state[0], ik_seed_state[1], ik_seed_state[2], ik_seed_state[3], ik_seed_state[4], ik_seed_state[5]);
 */
 	pubCurrentRobotState(solution);
 }

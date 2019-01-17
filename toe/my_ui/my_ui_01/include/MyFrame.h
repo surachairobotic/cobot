@@ -138,6 +138,8 @@ namespace my_plugin {
 			std::vector<QLineEdit*> ui_textbox;
 			std::vector<std::vector<double>> test_point;
 			int index = 0;
+			double limit_min[6] = {-105.0/180.0*M_PI, -62.45/180.0*M_PI, -195.000/180.0*M_PI, -115.0/180.0*M_PI, -209.0000/180.0*M_PI, -180.0/180.0*M_PI};
+			double limit_max[6] = { 105.0/180.0*M_PI,  64.00/180.0*M_PI,   73.155/180.0*M_PI,  360.0/180.0*M_PI,   25.7831/180.0*M_PI,  180.0/180.0*M_PI};
 
 			/* Indicate that the world or the robot has changed and
 			 * the new state needs to be updated and published to rviz */

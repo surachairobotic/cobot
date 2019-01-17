@@ -515,7 +515,7 @@ void MyFrame::pushButton_2Clicked()
 	theta[4] = ui_->input_j5->text().toDouble();
 	theta[5] = ui_->input_j6->text().toDouble();
 
-	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+/*	std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
 	if(ui_->checkBox->checkState() == 2)
 	{
 		if(theta.size() == offset.size())
@@ -525,6 +525,7 @@ void MyFrame::pushButton_2Clicked()
 				theta[i] -= offset[i];
 		}
 	}
+*/
 	pubCurrentRobotState(theta);
 
 /*

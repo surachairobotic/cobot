@@ -15,11 +15,11 @@ from sensor_msgs.msg import JointState
 # J5 = [-3.15  , +0.35]
 # J6 = [-3.15  , +3.15]
 
-file_path = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/torque_j4/set_1/"
+file_path = "/home/mtec/catkin_ws/src/cobot/cobot_jig_controller/results/torque_j5/set_over/"
 file_name = ""
-name = "torque_j4_s1_"
-numJnt = 3
-nameJnt = 'J4'
+name = "torque_j5_over_"
+numJnt = 4
+nameJnt = 'J5'
 arm_state = JointState()
 jntReturn = JointState()
 b_return_start = False
@@ -32,6 +32,7 @@ def set_jnt(jnt, pub):
   print('set_jnt')
   global b_return_start, effort
   rate = rospy.Rate(10) # 10hz
+  jnt.header.frame_id = "/torque.py"
 
   chk = False
   while not chk and not rospy.is_shutdown():
@@ -123,6 +124,7 @@ def chk_return(jntPush):
 
 def reset_torque(pub):
   jntTorque = JointState()
+  jntTorque.header.frame_id = "/torque.py"
   jntTorque.name = [nameJnt]
   jntTorque.position = []
   jntTorque.velocity = []
@@ -227,7 +229,7 @@ def torque_finding(theta, direction):
           print("arm_state.position[3]")
           out = True
           break
-        if arm_state.position[4] < -3.3 or arm_state.position[4] > +0.2:
+        if arm_state.position[4] < -3.3 or arm_state.position[4] > +0.37:
           print("arm_state.position[4]")
           out = True
           break
@@ -278,11 +280,11 @@ def torque_finding(theta, direction):
 if __name__ == '__main__':
   rospy.init_node('init_torque', anonymous=True)
   
-  file_all = "torque_j4_all.txt"
+  file_all = "torque_j5_over_all.txt"
   fp = open(file_path + file_all, "w")
   fp.close()
   
-  for i in range(90, -91, -15):
+  for i in range(20, -21, -5):
     print(i)
     t_fp = time.time()
     t_offset = time.time()
@@ -295,7 +297,6 @@ if __name__ == '__main__':
     while (time.time()-t_start) < 1.0 and not rospy.is_shutdown():
       print("delay time : b")
 
-    file_all = "torque_j4_all.txt"
     fp = open(file_path + file_all, "a")
     fp.write("%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\r\n" % (time.time()-t_offset, push_a, state_a, push_b, state_b, 0.0, 0.0, 0.0, 0.0, i, 0.0))
     fp.close()

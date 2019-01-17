@@ -494,12 +494,15 @@ void MyFrame::pubUiSeed(const std::vector<double>& vPosition)
 {
 //	for(int i=0; i<vPosition.size(); i++)
 //		ui_textbox[i]->setText(QString::number(qRadiansToDegrees(vPosition[i]), 'f', 4));
-	for(int i=0; i<vPosition.size(); i++)
+	for(int i=0; i<vPosition.size(); i++){
+//		ROS_INFO("vPosition[%d]:%lf", i, vPosition[i]);
 		ui_textbox[i]->setText(QString::number(vPosition[i], 'f', 4));
+	}
 
 	std::vector<geometry_msgs::Pose> pose_fk;
 	std::vector<std::string> link_names;
 	link_names.push_back(planning_display_->end_link);
+//	std::vector<double> joint_pos = {-1.57, 0.0, 0.0, 0.0, -1.57, 0.0};
 	planning_display_->solver->getPositionFK(link_names, vPosition, pose_fk);
 	geometry_msgs::Pose pose = pose_fk[0];
 

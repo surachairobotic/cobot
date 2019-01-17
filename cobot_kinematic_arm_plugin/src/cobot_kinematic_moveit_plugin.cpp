@@ -165,8 +165,8 @@ class CobotKinematic : public kinematics::KinematicsBase
 
 public:
 
-	// std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.161};
-	std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.12136};
+	std::vector<double> L{0.184, 0.27203, 0.25, 0.0, 0.161};
+	//std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.12136};
 	std::vector<double> a, alpha, d, theta;
 	double H_PI;
 
@@ -835,23 +835,23 @@ bool CobotKinematic::getPositionFK(const std::vector<std::string>& link_names,
 		point.position.y = t_all(1, 3);
 		point.position.z = t_all(2, 3);
 
-Eigen::Matrix3f rot_;
-rot_(0, 0) = t_all(0, 0);
-rot_(0, 1) = t_all(0, 1);
-rot_(0, 2) = t_all(0, 2);
+		Eigen::Matrix3f rot_;
+		rot_(0, 0) = t_all(0, 0);
+		rot_(0, 1) = t_all(0, 1);
+		rot_(0, 2) = t_all(0, 2);
 
-rot_(1, 0) = t_all(1, 0);
-rot_(1, 1) = t_all(1, 1);
-rot_(1, 2) = t_all(1, 2);
+		rot_(1, 0) = t_all(1, 0);
+		rot_(1, 1) = t_all(1, 1);
+		rot_(1, 2) = t_all(1, 2);
 
-rot_(2, 0) = t_all(2, 0);
-rot_(2, 1) = t_all(2, 1);
-rot_(2, 2) = t_all(2, 2);
-Eigen::Quaternionf q_(rot_);
-point.orientation.x = q_.x();
-point.orientation.y = q_.y();
-point.orientation.z = q_.z();
-point.orientation.w = q_.w();
+		rot_(2, 0) = t_all(2, 0);
+		rot_(2, 1) = t_all(2, 1);
+		rot_(2, 2) = t_all(2, 2);
+		Eigen::Quaternionf q_(rot_);
+		point.orientation.x = q_.x();
+		point.orientation.y = q_.y();
+		point.orientation.z = q_.z();
+		point.orientation.w = q_.w();
 
 		if(j == T.size()-1)	poses.clear();
 		poses.push_back(point);

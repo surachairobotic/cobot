@@ -31,6 +31,7 @@ int num_log = 0;
 ros::Publisher pub_return;
 FILE *fp;
 std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+bool debug = false;
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg);
 bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res);
@@ -39,6 +40,7 @@ bool set_acc(cobot_dynamixel_driver::set_acc::Request &req, cobot_dynamixel_driv
 bool set_p_gain(cobot_dynamixel_driver::set_p_gain::Request &req, cobot_dynamixel_driver::set_p_gain::Response &res);
 bool set_i_gain(cobot_dynamixel_driver::set_i_gain::Request &req, cobot_dynamixel_driver::set_i_gain::Response &res);
 bool set_torque(cobot_dynamixel_driver::set_torque::Request &req, cobot_dynamixel_driver::set_torque::Response &res);
+bool get_offset(std::string name, double* offs);
 
 bool up_one(cobot_dynamixel_driver::up_one::Request &req, cobot_dynamixel_driver::up_one::Response &res) {
   res.out = req.in + 1;
@@ -166,19 +168,25 @@ int main(int argc, char **argv)
         for(int i=joints.size()-1;i>=0;i--){
           const cJoint &j = joints[i];
           joint_state.name[i] = j.get_name();
-          joint_state.position[i] = j.get_pos();
+          joint_state.position[i] = j.get_pos() + offset[i];
           joint_state.velocity[i] = j.get_velo();
           joint_state.effort[i] = j.get_load();
+
 //					if( i == joints.size()-1 ) pub_gain.publish(j.get_p_gain());
 					//ROS_INFO("Current J%d : %lf", i, j.get_current());
         }
         for(i=joints.size();i<joint_num;i++){
           joint_state.name[i] = cJoint::get_joint_name(i+1);
-          joint_state.position[i] = 0;
+          joint_state.position[i] = 0 + offset[i];
           joint_state.velocity[i] = 0;
           joint_state.effort[i] = 0;
         }
-        pub.publish(joint_state);
+				if(debug){
+					ROS_INFO("Call3 : %lf, %lf, %lf, %lf, %lf, %lf", joint_state.position[0]-offset[0], joint_state.position[1]-offset[1], joint_state.position[2]-offset[2], joint_state.position[3]-offset[3], joint_state.position[4]-offset[4], joint_state.position[5]-offset[5]);
+					ROS_INFO("Call4 : %lf, %lf, %lf, %lf, %lf, %lf", joint_state.position[0], joint_state.position[1], joint_state.position[2], joint_state.position[3], joint_state.position[4], joint_state.position[5]);
+					debug = false;
+				}
+	      pub.publish(joint_state);
         fprintf(fp, "cobot_dynamixel_driver/joint_states|name|%s,%s,%s,%s,%s,%s"
 									, joint_state.name[0].c_str()
 									, joint_state.name[1].c_str()
@@ -228,6 +236,9 @@ int main(int argc, char **argv)
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   ROS_INFO("void control_callback frame_id : %s", msg->header.frame_id.c_str());
+	if(msg->position.size() == 6)
+		ROS_INFO("Call1 : %lf, %lf, %lf, %lf, %lf, %lf", msg->position[0], msg->position[1], msg->position[2], msg->position[3], msg->position[4], msg->position[5]);
+	double pos[6];
 
   std::string s_info = "-";
   for(int i=0; i<msg->name.size(); i++) {
@@ -272,7 +283,11 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
           for(int i=msg->name.size()-1; i>=0; i--) {
             cJoint *j = cJoint::get_joint(std::string(msg->name[i]));
             if( j ) {
-              if( !j->set_goal_pos_velo_acc((double)msg->position[i], (double)msg->velocity[i], (double)msg->effort[i]) ) {
+							double off = -99.99;
+							if( !get_offset(msg->name[i], &off) )
+								break;
+							pos[i] = (double)msg->position[i]-off;
+              if( !j->set_goal_pos_velo_acc((double)msg->position[i]-off, (double)msg->velocity[i], (double)msg->effort[i]) ) {
                 b_ok = false;
                 break;
               }
@@ -297,7 +312,11 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
           for(int i=msg->name.size()-1; i>=0; i--) {
             cJoint *j = cJoint::get_joint(std::string(msg->name[i]));
             if( j ) {
-              if( !j->set_goal_pos_velo((double)msg->position[i], (double)msg->velocity[i]) ) {
+							double off = -99.99;
+							if( !get_offset(msg->name[i], &off) )
+								break;
+							pos[i] = (double)msg->position[i]-off;
+              if( !j->set_goal_pos_velo((double)msg->position[i]-off, (double)msg->velocity[i]) ) {
                 b_ok = false;
                 break;
               }
@@ -423,9 +442,26 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   }
 
   pub_return.publish(msg);
+	ROS_INFO("Call2 : %lf, %lf, %lf, %lf, %lf, %lf", pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]);
+	debug = true;
   ROS_INFO("end - control_callback");
 //  ros::Time t2 = ros::Time::now();
 //  ROS_ERROR("Callback rate : %lf sec", (t2-t1).toSec());        
+}
+
+bool get_offset(std::string name, double* offs){
+	if(name.size() != 2 || name[0] != 'J')
+		return false;
+	char txt;
+	txt = name[1];
+	char* pTxt;
+	pTxt = &txt;
+	int indx = std::atoi(pTxt)-1;
+	if(indx < 0 || indx >= 6)
+		return false;
+	*offs = offset[indx];
+//	ROS_INFO("in:%s, txt:%c, indx:%d, out:%lf", name.c_str(), txt, indx, *offs);
+	return true;
 }
 
 bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res){
