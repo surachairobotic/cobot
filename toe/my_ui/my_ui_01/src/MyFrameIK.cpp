@@ -110,7 +110,7 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 			ROS_INFO("B : %lf, %lf, %lf, %lf, %lf, %lf", new_solutions[i][0], new_solutions[i][1], new_solutions[i][2], new_solutions[i][3], new_solutions[i][4], new_solutions[i][5]);
 		}
 
-		best_solution(ik_seed_state, new_solutions);		
+		//best_solution(ik_seed_state, new_solutions);		
 	}
 	else
 		ROS_WARN("searchPositionIK : false");
