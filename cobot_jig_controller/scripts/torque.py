@@ -15,11 +15,11 @@ from sensor_msgs.msg import JointState
 # J5 = [-3.15  , +0.35]
 # J6 = [-3.15  , +3.15]
 
-file_path = "/home/mtec/catkin_ws/src/cobot/cobot_jig_controller/results/torque_j5/set_over/"
-file_name = ""
-name = "torque_j5_over_"
-numJnt = 4
 nameJnt = 'J5'
+numJnt = int(nameJnt[1])-1
+file_path = "/home/mtec/catkin_ws/src/cobot/cobot_jig_controller/results/torque_" + nameJnt + "/set_over_4/"
+file_name = ""
+name = "torque_" + nameJnt + "_over4_"
 arm_state = JointState()
 jntReturn = JointState()
 b_return_start = False
@@ -153,13 +153,14 @@ def torque_finding(theta, direction):
   global t_fp, numJnt, file_path, file_name, b_save
   t_fp = time.time()
 
+#0.036528,0.535648,0.635215,-0.000006,0.348968,0.000041
   set_pos = [0.0]*6
-  set_pos[0] = 0.0
-  set_pos[1] = 0.0
-  set_pos[2] = 0.0
-  set_pos[3] = 0.0
+  set_pos[0] = 0.036528
+  set_pos[1] = 0.535648
+  set_pos[2] = 0.635215
+  set_pos[3] = -0.000006
   set_pos[4] = 0.0
-  set_pos[5] = 0.0
+  set_pos[5] = 0.000041
   set_pos[numJnt] = math.radians(theta)
 
   if direction:
@@ -278,13 +279,14 @@ def torque_finding(theta, direction):
   return val, effort_return;
 
 if __name__ == '__main__':
+  global arm_state
   rospy.init_node('init_torque', anonymous=True)
   
-  file_all = "torque_j5_over_all.txt"
+  file_all = name + "all.txt"
   fp = open(file_path + file_all, "w")
   fp.close()
   
-  for i in range(20, -21, -5):
+  for i in range(20, -161, -15):
     print(i)
     t_fp = time.time()
     t_offset = time.time()
@@ -298,7 +300,7 @@ if __name__ == '__main__':
       print("delay time : b")
 
     fp = open(file_path + file_all, "a")
-    fp.write("%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\r\n" % (time.time()-t_offset, push_a, state_a, push_b, state_b, 0.0, 0.0, 0.0, 0.0, i, 0.0))
+    fp.write("%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\r\n" % (time.time()-t_offset, push_a, state_a, push_b, state_b, math.degrees(arm_state.position[0]), math.degrees(arm_state.position[1]), math.degrees(arm_state.position[2]), math.degrees(arm_state.position[3]), i, math.degrees(arm_state.position[5])))
     fp.close()
 
   print("OK !!!")

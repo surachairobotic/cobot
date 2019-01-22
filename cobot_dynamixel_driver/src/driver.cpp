@@ -30,8 +30,8 @@ std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
 FILE *fp;
-//std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
-std::vector<double> offset{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+//std::vector<double> offset{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 bool debug = false;
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg);

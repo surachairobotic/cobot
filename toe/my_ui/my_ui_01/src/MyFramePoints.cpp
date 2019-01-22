@@ -1,7 +1,8 @@
 #include <MyFrame.h>
 #include <MyDisplay.h>
 #include <QString>
-
+#include <unistd.h>
+#include <limits.h>
 
 #include "ui_multimovedisplay.h"
 
@@ -42,8 +43,14 @@ void MyFrame::btn_del_pointsClicked()
 void MyFrame::btn_save_pointsClicked()
 {
   ROS_INFO("MyFrame::btn_save_pointsClicked()");
-  std::string dir = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/";
-  FILE *fp = fopen( (dir + "point_cloud.txt").c_str() , "wt");
+	char username[LOGIN_NAME_MAX];
+	getlogin_r(username, LOGIN_NAME_MAX);
+	std::string result_dir = "/home/";
+	result_dir += username;
+	result_dir += "/catkin_ws/src/cobot/cobot_jig_controller/results/";	
+
+//  std::string dir = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/";
+  FILE *fp = fopen( (result_dir + "point_cloud.txt").c_str() , "wt");
   if( !fp ) {
     ROS_ERROR("Cannot open point_cloud.txt");
     return ;

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     control.init();
     ros::NodeHandle n;
     ros::ServiceServer service = n.advertiseService("cobot_planning", cobot_planning);
-    pub_plan = n.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
+    pub_plan = n.advertise<moveit_msgs::DisplayTrajectory>("/cobot/display_planned_path", 1, true);
     ROS_INFO("\nstart\n");
     
     ros::MultiThreadedSpinner spinner(1);
