@@ -120,6 +120,8 @@ public:
   double get_velo() const;
   double get_current() const; // mA
   double get_load() const;    // current / max_current
+  double get_voltage() const;
+  int get_temperature() const;
   double get_info();
   
   static std::vector<cJoint> &init();

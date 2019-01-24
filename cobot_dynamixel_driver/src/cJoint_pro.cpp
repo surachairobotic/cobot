@@ -333,6 +333,14 @@ double cJoint::get_load() const {
   return current * current_max / 2048.0;
 }
 
+double cJoint::get_voltage() const {
+  return input_voltage * 0.1;
+}
+
+int cJoint::get_temperature() const {
+  return temperature;
+}
+
 void cJoint::write(const int param, const int val){
 //  ROS_INFO("cJoint::write()");
   int addr = ADDR[param][0];
@@ -593,9 +601,9 @@ std::vector<cJoint> &cJoint::init(){
   ADDR[P_PRESENT_TEMPERATURE][0] = 625;
   ADDR[P_PRESENT_TEMPERATURE][1] = 1;
 	ADDR[P_HARDWARE_ERROR_STATUS][0] = 892;
-	ADDR[P_HARDWARE_ERROR_STATUS][1] = 1;
+	ADDR[P_HARDWARE_ERROR_STATUS][1] = 4;
 
-  group_read_size = 4+4+2+2+1;
+  group_read_size = 15;
   
   load_settings(setting_file);
 

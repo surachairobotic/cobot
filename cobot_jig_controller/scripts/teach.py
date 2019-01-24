@@ -29,31 +29,24 @@ def main():
   
   jntHome = JointState()
   jntHome.name = ['J1','J2','J3','J4','J5','J6']
-  jntHome.position = [0.0,0.0,0.0,0.0,0.0,0.0]
+  jntHome.position = [0.0,0.0,0.0,0.0,math.radians(-90.0),0.0]
   jntHome.velocity = [0.25,0.25,0.25,0.25,0.25,0.25]
   jntHome.effort = []
   
   t_start = time.time()
 #  while not rospy.is_shutdown():
-  while (time.time()-t_start) < 5.0 and not rospy.is_shutdown():
+  while (time.time()-t_start) < 2.0 and not rospy.is_shutdown():
     set_jnt(jntHome, pub)
     rate.sleep()
-#  sub.unregister()
+  sub.unregister()
   rospy.loginfo("step 1 : OK")
 
-  t_start = time.time()
-  while not rospy.is_shutdown():
-    a=0
-    rate.sleep()
-  sub.unregister()
-  rospy.loginfo("step 11 : OK")
-
   jntSend = JointState()
-  jntSend.name = ['J1','J2','J3','J4','J5','J6']
+  jntSend.name = ['J5']
   jntSend.position = []
   jntSend.velocity = []
 #  jntSend.effort = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  jntSend.effort = curr
+  jntSend.effort = [curr[4]]
   t_start = time.time()
   while (time.time()-t_start) < 5.0 and not rospy.is_shutdown():
     set_jnt(jntSend, pub)
