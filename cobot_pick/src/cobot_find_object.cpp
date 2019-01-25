@@ -36,7 +36,6 @@ ros::Publisher *p_pc_pub_pick = NULL;
 
 void process_data()
 {
-  b_pub = false;
   ROS_INFO("start process");
   pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
 
@@ -52,19 +51,18 @@ void process_data()
   ros_pc.msg.header.frame_id = FRAME_CAMERA;
   msg_pc_seg.header.frame_id = FRAME_CAMERA;
   msg_pc_plane.header.frame_id = FRAME_CAMERA;
-  b_pub = true;
 }
 
 void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction> *as)
 {
   cobot_pick::CobotFindObjectFeedback feedback;
   cobot_pick::CobotFindObjectResult result;
-  if( p_pc_pub_pick )
-    find_label.clear_markers(*p_pc_pub_pick);
   cROSData::start_sub();
   ros::Rate loop_rate(20);
   bool b_ok = false;
   ros::Time t = ros::Time::now();
+  if( p_pc_pub_pick )
+    find_label.clear_markers();
   for (;;)
   {
     loop_rate.sleep();
@@ -92,17 +90,20 @@ void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, ac
       }
       as->setSucceeded(result);
       printf("action end.\n");
+      b_pub = true;
       return;
     }
     if (!ros::ok())
     {
       ROS_WARN("ROS was shutdowned while action is running");
+      b_pub = true;
       return;
     }
     if ((ros::Time::now() - t).toSec() > 10.0)
     {
       ROS_ERROR("Action does not finished within 5 sec.");
       printf("saved : %d, %d, %d\n", (int)ros_cam_info.is_saved(), (int)ros_depth.is_saved(), (int)ros_col.is_saved());
+      b_pub = true;
       break;
     }
   }
@@ -129,7 +130,11 @@ int main(int argc, char **argv)
     }
     InitMtEx(aa, 128);
   }
+  
+  if( !get_config() )
+    return -1;
 
+  /*
   {
     ros::NodeHandle nh("~");
     std::string str;
@@ -145,6 +150,8 @@ int main(int argc, char **argv)
         config.load_mode = true;
       else if (str == "action")
         config.action_server_mode = true;
+      else if (str == "collect_sample")
+        config.collect_sample_mode = true;
       else
       {
         ROS_ERROR("Invalid mode : %s", str.c_str());
@@ -315,6 +322,7 @@ int main(int argc, char **argv)
   ROS_INFO("save : %d", (int)config.save_mode);
   ROS_INFO("load : %d", (int)config.load_mode);
   ROS_INFO("action_server : %d", (int)config.action_server_mode);
+  ROS_INFO("collect_sample : %d", (int)config.collect_sample_mode);
 
   ROS_INFO("show_result : %d", (int)config.show_result);
   ROS_INFO("save_result : %d", (int)config.save_result);
@@ -344,7 +352,7 @@ int main(int argc, char **argv)
     tf::Quaternion q = config.tf_cam.getRotation();
     ROS_INFO("tf_cam trans: %.3lf, %.3lf, %.3lf", v.x(), v.y(), v.z());
     ROS_INFO("tf_cam quat : %.3lf, %.3lf, %.3lf, %.3lf", q.x(), q.y(), q.z(), q.w());
-  }
+  }*/
 
   /*
   ROS_INFO("norm_th_curvature : %.3lf", config.norm_th_curvature);
@@ -377,6 +385,9 @@ int main(int argc, char **argv)
       r.sleep();
     }
   }
+  else if (config.save_mode){
+  
+  }
   else
   {
     actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction>
@@ -385,7 +396,9 @@ int main(int argc, char **argv)
     if (config.load_mode)
     {
       cROSData::load_mode();
+      b_pub = false;
       process_data();
+      b_pub = true;
       //cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
     }
     else if (config.action_server_mode)
@@ -410,8 +423,9 @@ int main(int argc, char **argv)
         pc_pub_plane.publish(msg_pc_plane);
         
         for (int i = find_label.pick_markers.size() - 1; i >= 0; i--){
-          find_label.pick_markers[i].header.stamp = ros::Time::now();
+          find_label.pick_markers[i].header.stamp = find_label.frame_markers[i].header.stamp = ros::Time::now();
           pc_pub_pick.publish(find_label.pick_markers[i]);
+          pc_pub_pick.publish(find_label.frame_markers[i]);
         }
       }
       if (config.show_result)

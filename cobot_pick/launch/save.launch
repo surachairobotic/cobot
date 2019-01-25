@@ -2,6 +2,6 @@
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
     <param name="mode" value="save"/>
     <param name="save_file_prefix" 
-      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/smile_31"/>
+      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib_02"/>
   </node>
 </launch>

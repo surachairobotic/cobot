@@ -111,9 +111,9 @@ public:
 
   cROSCameraInfo():cROSData("_cam_info.bin"){}
 
-  bool save(const sensor_msgs::CameraInfo& msg){
+  bool save(const sensor_msgs::CameraInfo& msg, const char *fname=NULL){
     FILE *fp;
-    fp = fopen( get_file_name().c_str(), "wb" );
+    fp = fopen( fname ? fname : get_file_name().c_str(), "wb" );
     if(fp){
       write(fp, msg.height);
       write(fp, msg.width);
@@ -184,9 +184,9 @@ public:
   cROSImage():cROSData("_img.bin"){}
   cROSImage(const std::string &_name):cROSData(_name){}
 
-  bool save(const sensor_msgs::Image& msg){
+  bool save(const sensor_msgs::Image& msg, const char *fname=NULL){
     FILE *fp;
-    fp = fopen( get_file_name().c_str(), "wb" );
+    fp = fopen( fname ? fname : get_file_name().c_str(), "wb" );
     if(fp){
       write(fp, msg.height);
       write(fp, msg.width);
@@ -249,11 +249,10 @@ public:
 
   cROSPointCloud():cROSData("_pc.pcd"){}
 
-  bool save(const sensor_msgs::PointCloud2& msg){
+  bool save(const sensor_msgs::PointCloud2& msg, const char *fname=NULL){
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
     pcl::fromROSMsg( msg, cloud );
-    ROS_INFO("pc : %s", get_file_name().c_str());
-    pcl::io::savePCDFileASCII (get_file_name().c_str(), cloud);
+    pcl::io::savePCDFileASCII (fname ? fname : get_file_name().c_str(), cloud);
     ROS_INFO("pc saved");
     return true;
   }
@@ -299,6 +298,8 @@ void cROSData::start_sub(){
   ros_depth.sub = p_nh->subscribe("/camera/aligned_depth_to_color/image_raw", 10, cb_depth);
   ros_col.sub = p_nh->subscribe("/camera/color/image_raw", 10, cb_col);
 //  ros_pc.sub = p_nh->subscribe("/camera/depth/color/points", 10, cb_pc);
+
+  ROS_INFO("start sub");
 }
 
 void cROSData::stop_sub(){

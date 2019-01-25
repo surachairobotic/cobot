@@ -241,7 +241,7 @@ def find_equation(name, n_joint, n_loop):
 
 def test_equation(n_joint, ab):
   dir = 'torque_j'+str(n_joint+1)+'/set_'
-  n = 3
+  n = 4
 
   f, axarr = plt.subplots(n, sharex=True)
   for k in range(n):
@@ -307,7 +307,7 @@ def test_equation(n_joint, ab):
 
 if __name__ == "__main__":
   n_joint = 4
-  fname = 'torque_j' + str(n_joint+1) + '/set_1/torque_j'+str(n_joint+1)+'_all.txt'
+  fname = 'torque_j' + str(n_joint+1) + '/set_4/torque_j'+str(n_joint+1)+'_all.txt'
   ab = find_equation(fname, n_joint, 100) # find a,b
   test_equation(n_joint, ab) # test a,b with other dataset
   plt.show()

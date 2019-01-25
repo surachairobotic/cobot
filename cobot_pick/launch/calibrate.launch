@@ -6,27 +6,27 @@
       value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib_01"/>
     <param name="show_result" value="true"/>
 
-    <param name="chess_num_x" value="10"/>
-    <param name="chess_num_y" value="7"/>
+    <param name="chess_num_x" value="9"/>
+    <param name="chess_num_y" value="5"/>
 
-    <param name="chess_size_x" value="0.0232"/>
-    <param name="chess_size_y" value="0.0232"/>
+    <param name="chess_size_x" value="0.025"/>
+    <param name="chess_size_y" value="0.025"/>
 
-    <param name="chess_pos1_x" value="0.0"/>
-    <param name="chess_pos1_y" value="0.0"/>
-    <param name="chess_pos1_z" value="0.0"/>
+    <param name="chess_pos1_x" value="0.1874"/> <!-- top left -->
+    <param name="chess_pos1_y" value="-0.0956"/>
+    <param name="chess_pos1_z" value="0.010"/>
 
-    <param name="chess_pos2_x" value="0.0"/>
-    <param name="chess_pos2_y" value="0.0"/>
-    <param name="chess_pos2_z" value="0.0"/>
+    <param name="chess_pos2_x" value="0.1874"/> <!-- top right -->
+    <param name="chess_pos2_y" value="0.1044"/>
+    <param name="chess_pos2_z" value="0.010"/>
 
-    <param name="chess_pos3_x" value="0.0"/>
+    <param name="chess_pos3_x" value="0.0"/> <!-- bot right not necessary -->
     <param name="chess_pos3_y" value="0.0"/>
     <param name="chess_pos3_z" value="0.0"/>
 
-    <param name="chess_pos4_x" value="0.0"/>
-    <param name="chess_pos4_y" value="0.0"/>
-    <param name="chess_pos4_z" value="0.0"/>
+    <param name="chess_pos4_x" value="0.2874"/> <!-- bot left -->
+    <param name="chess_pos4_y" value="-0.0956"/>
+    <param name="chess_pos4_z" value="0.010"/>
 
     <param name="plane_ransac_repeat_time" value="1000"/>
     <param name="plane_ransac_th_error" value="0.0005"/>

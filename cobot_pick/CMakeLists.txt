@@ -116,3 +116,18 @@ target_link_libraries(
   ${PCL_IO_LIBRARIES}
   tbb
 )
+
+add_executable(cobot_collect_pick_sample src/collect_pick_sample.cpp src/cLabeling.cpp src/zdsfmt.cpp)
+target_link_libraries(
+  cobot_collect_pick_sample
+  ${catkin_LIBRARIES}
+  opencv_core
+  opencv_imgcodecs
+  opencv_highgui
+  ${PCL_COMMON_LIBRARIES}
+  ${PCL_IO_LIBRARIES}
+  tbb
+  ${TESSERACT_LIBRARIES}
+  ${LEPTONICA_LIBRARIES}
+)
+

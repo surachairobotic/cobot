@@ -15,6 +15,12 @@
 #include "cobot_pick/cSelectObject.h"
 #include "cobot_pick/cOCR.h"
 
+
+void print_reg(const tRegInfo &r){
+  printf("reg : (%d, %d), (%d, %d)\n", r.x1, r.y1, r.x2, r.y2);
+}
+
+
 class cFindLabel{
 private:
   cOCR ocr;
@@ -58,10 +64,10 @@ private:
         new_edges.push_back(e);
       }
     }
-    printf("new_edges : %lu / %lu\n", new_edges.size(), edges.size());
+//    printf("new_edges : %lu / %lu\n", new_edges.size(), edges.size());
   }
 
-  void ransac_2d(const std::vector<cv::Point2i> &edges
+  bool ransac_2d(const std::vector<cv::Point2i> &edges
       , cv::Point2d &best_p, cv::Point2d &best_v){
     const double TH_DIS = config.text_ransac_th_error;
     int best_cnt = 0;
@@ -74,13 +80,17 @@ private:
         v.x = p2->x-p1->x;
         v.y = p2->y-p1->y;
         double len2 = POW2(v.x)+POW2(v.y);
-        if( len2>=25 ){
+        if( len2>=9 ){
           double len = 1.0/sqrt(len2);
           v.x*= len;
           v.y*= len;
           break;
         }
-        assert(++cnt<100);
+        if(++cnt>100){
+          printf("ransac2d failed : edges = %d\n", (int)edges.size());
+          return false;
+        }
+//        assert(++cnt<100);
       }
       cnt = 0;
       for(int i=edges.size()-1;i>=0;i--){
@@ -99,7 +109,7 @@ private:
         best_p.y = p1->y;
       }
     }
-    assert( best_cnt>0 );
+    return best_cnt>0;
   }
 
   void ransac_3d(const tRegInfo &r
@@ -217,21 +227,63 @@ private:
     }
   }
 public:
-  std::vector<visualization_msgs::Marker> pick_markers;
+  std::vector<visualization_msgs::Marker> pick_markers, frame_markers;
   std::vector<cPlane> planes;
   tPickPose pick_pose;
 
-  cFindLabel(){}
+  cFindLabel(){
+    int n = 8;
+    pick_markers.resize(n);
+    frame_markers.resize(n);
+    
+    std::vector<visualization_msgs::Marker>* ms[2] = {&pick_markers, &frame_markers};
+    const double d = 1.0/255.0;
+    for(int j=0;j<2;j++){
+      std::string ns;
+      int type;
+      if( j==0 ){
+        ns = NS_PICK_ARROW;
+        type = visualization_msgs::Marker::ARROW;
+      }
+      else{
+        ns = NS_LABEL_FRAME;
+        type = visualization_msgs::Marker::LINE_STRIP;
+      }
+      for(int i=0;i<n;i++){
+        visualization_msgs::Marker &m = (*ms[j])[i];
+        m.id = i;
+        m.header.frame_id = FRAME_CAMERA;
+        m.ns = ns;
+        m.type = type;
+        m.scale.x = m.scale.y = m.scale.z = 0.005;
+        
+        m.color.r = cols[i][0] * d;
+        m.color.g = cols[i][1] * d;
+        m.color.b = cols[i][2] * d;
+        if( j==0 ){
+          m.scale.x = 0.005;
+          m.scale.y = 0.01;
+          m.scale.z = 0.02;
+          m.color.a = 1.0;
+        }
+        else{
+          m.scale.x = 0.005;
+          m.scale.y = 0.005;
+          m.scale.z = 0.005;
+          m.color.a = 1.0;
+        }
+      }
+    }
+  }
 
   void run(const cv::Mat &img_col, const pcl::PointCloud<pcl::PointXYZRGB> &cloud){
     cLabeling label;
     cv::Mat img_bin = cv::Mat( img_col.size(), CV_8UC1), img_label, img_result;
-    visualization_msgs::Marker marker, marker_frame;
+    int cnt_sample = 0;
 
     double max_plane_z = 0.0;
     int pick_plane_id = -1;
 
-    pick_markers.clear();
     planes.clear();
 
     binarize( img_col, img_bin, config.text_binarize_win_size
@@ -240,6 +292,8 @@ public:
 
     geometry_msgs::Point marker_point;
     tPickPose pick_pose;
+    /*
+    visualization_msgs::Marker marker, marker_frame;
     marker.header.frame_id = marker_frame.header.frame_id = FRAME_CAMERA;
     marker.ns = NS_PICK_ARROW;
     marker.type = visualization_msgs::Marker::ARROW;
@@ -253,28 +307,32 @@ public:
     marker_frame.scale.x = 0.005;
     marker_frame.scale.y = 0.005;
     marker_frame.scale.z = 0.005;
-    marker_frame.color.a = 1.0;
+    marker_frame.color.a = 1.0;*/
 
-    if( config.show_result ){      
+    if( config.show_result || config.save_result ){      
       label.CreateImageResult( img_label, img_result, true);
       char str[20] = "region.bmp";
-      cv::imwrite(config.result_save_path + str, img_result);
+      if( config.save_result )
+        cv::imwrite(config.result_save_path + str, img_result);
     }
 
     for(int ir=label.reg_info.size()-1;ir>=0;ir--){
       const tRegInfo &r = label.reg_info[ir];
       /* pix = 789, ratio = 1.739
           pix = 722, ratio = 1.400 */
-      if( r.pix_num<500 || r.pix_num>3000 ){
-        if( r.pix_num>100 )
-          printf("invalid text reg : pix_num = %d\n", r.pix_num);
+      if( r.pix_num<250 || r.pix_num>2000 ){
+        if( r.pix_num>100 ){
+          printf("invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
+          print_reg(r);
+        }
         continue;
       }
       double ratio = double(r.x2-r.x1+1)/(r.y2-r.y1+1);
       if( ratio<1.0 )
         ratio = 1.0/ratio;
       if( ratio>3.0 ){
-        printf("invalid text reg : ratio = %.3lf\n", ratio);
+        printf("invalid text reg [%d] : ratio = %.3lf\n", ir, ratio);
+        print_reg(r);
         continue;
       }
       // exclude color region
@@ -293,10 +351,11 @@ public:
         double c = double(sum)/r.pix_num;
         if( c>config.th_region_color ){
           printf("invalid reg color [%d]: %.3lf\n", ir, c );
+          print_reg(r);
           continue;
         }
       }
-      if( config.show_result ){
+      if( config.show_result || config.save_result ){
         cv::rectangle(img_result, cv::Point(r.x1, r.y1)
           , cv::Point(r.x2, r.y2), cv::Scalar(30,30,255));
       }
@@ -371,18 +430,27 @@ public:
         {
           bool b_ok = true;
           for(int i=0;i<4;i++){
-            ransac_2d( *p_edges[i%2], best_p[i], best_v[i]);
+            if( !ransac_2d( *p_edges[i%2], best_p[i], best_v[i]) ){
+              b_ok = false;
+              printf("ransac2d failed [%d]\n", ir);
+              break;
+            }
             if( i<3 ){
               remove_edges( *p_edges[i%2], *p_edges[(i+1)%2]
                 , best_p[i], best_v[i], 2.0 );
               if( p_edges[(i+1)%2]->size()<4 ){
                 b_ok = false;
+                printf("too few edges [%d]\n", ir);
                 break;
               }
             }
           }
           if( !b_ok ){
-            printf("too few edges\n");
+            print_reg(r);
+/*            cv::imshow("img_edge", img_edge);
+            cv::imshow("img_filter", img_filter);
+            cv::waitKey(0);*/
+            continue;
           }
         }
 
@@ -409,7 +477,7 @@ public:
             double x = sqrt( DIS2_2D(warp_src[0], warp_src[1]))
               , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]));
             if( x<10 || y<10 ){
-              printf("invalid label size %d : %.3lf, %.3lf\n"
+              printf("invalid label size [%d] : %.3lf, %.3lf\n"
                 , ir, x, y);
               for(int i=0;i<4;i++){
                 printf("warp src[%d]: %.3f, %.3f\n"
@@ -649,8 +717,9 @@ public:
         cv::Mat img_flip;
         cv::flip( img_text, img_flip, -1);
         cv::Mat *pi[2] = {&img_text, &img_flip};
-        cv::Mat img_gray = cv::Mat( img_text.size(), CV_8UC1);
-        int n_label = -1;
+        cv::Mat img_gray = cv::Mat( img_text.size(), CV_8UC1)
+          , img_gray_resize;
+        int n_label = 0;
         for(int k=1;k>=0;k--){
           cv::cvtColor( *pi[k], img_gray, cv::COLOR_BGR2GRAY);
           const int MEAN = 140;
@@ -661,7 +730,8 @@ public:
               p[j] = v<0 ? 0 : (v>255 ? 255 : v);
             }
           }
-          ocr.get_text(img_gray);
+          cv::resize(img_gray, img_gray_resize, cv::Size( 55, 30 ));
+          ocr.get_text(img_gray_resize);
 
           for(int i=0;i<ocr.confs.size();i++){
             const char *str = ocr.texts[i].c_str();
@@ -697,46 +767,34 @@ public:
             char str[20];
             sprintf(str, "text_gray%d-%d.tif", ir, k);
             if( config.show_result )
-              cv::imshow(str, img_gray);
+              cv::imshow(str, img_gray_resize);
             if( config.save_result )
-              cv::imwrite(config.result_save_path + str, img_gray);
+              cv::imwrite(config.result_save_path + str, img_gray_resize);
+          }
+          if( config.collect_mode ){
+            char fname[256];
+            create_filename( config.collect_prefix_label, fname, cnt_sample, n_label );
+            cv::imwrite( fname, img_gray_resize );
+            if( k==0 ){
+              create_filename( config.collect_prefix_label_raw, fname, cnt_sample, n_label );
+              cv::imwrite( fname, cv::Mat(img_col, cv::Range(r.y1, r.y2+1), cv::Range(r.x1, r.x2+1)) );
+            }
+            printf("saved %d\n", cnt_sample);
+            cnt_sample++;
           }
 
           cPlane plane(&r);
           ransac_3d( r, cloud, plane );
 
-          if( n_label>=0 ){
-            /*
-            double d = 1.0/255.0;
-            marker_frame.id = n_label;
-            marker_frame.color.r = cols[n_label-1][0] * d;
-            marker_frame.color.g = cols[n_label-1][1] * d;
-            marker_frame.color.b = cols[n_label-1][2] * d;
-            marker_frame.points.clear();
-            plane.find_center_frames( warp_src);
-       
-            for(int i=0;i<5;i++){
-              const pcl::PointXYZ &f = plane.frames[i%4];
-              marker_point.x = f.x;
-              marker_point.y = f.y;
-              marker_point.z = f.z;
-              marker_frame.points.push_back(marker_point);
-            }
-            pick_markers.push_back(marker_frame);
-            */
+          if( n_label>0 ){
             plane.find_center_frames( warp_src);
             plane.set_label( n_label );
             plane.find_max_height(cloud, warp_src);
             planes.push_back(plane);
-            /*
-
-            double l = plane.find_plane_distance(cloud, warp_src);
-            printf("plane dis [%d] : %.3lf\n", ir, l);
-            if( l > max_plane_z ){
-              max_plane_z = l;
-              pick_plane_id = planes.size()-1;
-            }*/
             break;
+          }
+          else{
+            printf("invalid label text [%d]\n", ir);
           }
         }
       }
@@ -767,7 +825,7 @@ public:
     if( config.show_result )
       cv::imshow( "result.bmp", img_result);
     if( config.save_result )
-      cv::imwrite( "result.bmp", img_result);
+      cv::imwrite(config.result_save_path + "result.bmp", img_result);
 
 //    printf("pick plane id : %d\n", pick_plane_id);
     if( planes.size()>0 ){
@@ -798,13 +856,11 @@ public:
         //plane.get_pick_pose( pick_pose );
         const int n_label = plane.label;
         const double arrow_size = plane.order==0 ? 0.1 : 0.03;
-
-        marker.color.r = marker_frame.color.r = cols[n_label-1][0] * d;
-        marker.color.g = marker_frame.color.g = cols[n_label-1][1] * d;
-        marker.color.b = marker_frame.color.b = cols[n_label-1][2] * d;
-
+        visualization_msgs::Marker &marker = pick_markers[n_label-1]
+          , marker_frame = frame_markers[n_label-1];
+        
         // arrow
-        marker.id = n_label;
+        marker.action = marker.ADD;
         marker.points.clear();
         marker_point.x = plane.center.x - plane.normal.x * arrow_size;
         marker_point.y = plane.center.y - plane.normal.y * arrow_size;
@@ -814,10 +870,9 @@ public:
         marker_point.y = plane.center.y;
         marker_point.z = plane.center.z;
         marker.points.push_back(marker_point);
-        pick_markers.push_back(marker);
 
         // frame
-        marker_frame.id = n_label;
+        marker_frame.action = marker.ADD;
         marker_frame.points.clear();
         for(int i=0;i<5;i++){
           const pcl::PointXYZ &f = plane.frames[i%4];
@@ -826,24 +881,33 @@ public:
           marker_point.z = f.z;
           marker_frame.points.push_back(marker_point);
         }
-        pick_markers.push_back(marker_frame);
+        printf("label : %d, height : %.3lf\n", n_label, plane.max_height);
       }
     }
   }
 
 
-  void clear_markers(ros::Publisher &pub){
-    std::vector<visualization_msgs::Marker> markers(2);
+  void clear_markers(){
+    for(int i=0;i<pick_markers.size();i++){
+      pick_markers[i].action = visualization_msgs::Marker::DELETE;
+      pick_markers[i].points.clear();
+      frame_markers[i].action = visualization_msgs::Marker::DELETE;
+      frame_markers[i].points.clear();
+    }
+/*    std::vector<visualization_msgs::Marker> markers(2);
     markers[0].ns = NS_PICK_ARROW;
     markers[1].ns = NS_LABEL_FRAME;
+    markers[0].type = visualization_msgs::Marker::ARROW;
+    markers[1].type = visualization_msgs::Marker::LINE_STRIP;
     for(int j=markers.size()-1;j>=0;j--){
       visualization_msgs::Marker &m = markers[j];
-      m.type = visualization_msgs::Marker::ARROW;
+      m.header.frame_id = FRAME_CAMERA;
+      m.scale.x = m.scale.y = m.scale.z = 0.005;
       for(int i=0;i<8;i++){
         m.id = i;
         pub.publish(m);
       }
-    }
+    }*/
   }
 };
 

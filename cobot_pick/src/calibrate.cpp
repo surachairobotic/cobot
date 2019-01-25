@@ -686,7 +686,7 @@ int main(int argc, char **argv)
     char s[16];
     for(int i=0;i<4;i++){
       for(int j=0;j<3;j++){
-        sprintf(s, "chess_pos%d_%c", i, xyz[j]);
+        sprintf(s, "chess_pos%d_%c", i+1, xyz[j]);
         if (nh.getParam(s, d)){
           nh.deleteParam(s);
           config.chess_pos[i][j] = d;
@@ -717,7 +717,7 @@ int main(int argc, char **argv)
       config.bruteforce_num = i;
     }
   }
-  create_chess_pos();
+//  create_chess_pos();
 
   ROS_INFO("load : %d", (int)config.load_mode);
   ROS_INFO("show_result : %d", (int)config.show_result);
@@ -741,12 +741,14 @@ int main(int argc, char **argv)
     cROSData::load_mode();
   }
   else{
+    config.action_server_mode = true;
     cROSData::start_sub();
     ros::Rate loop_rate(20);
     bool b_ok = false;
     ros::Time t = ros::Time::now();
     do{
       loop_rate.sleep();
+      ros::spinOnce();
       if( !ros::ok() ){
         ROS_WARN("ROS was shutdowned while subscribing data");
         return 0;
