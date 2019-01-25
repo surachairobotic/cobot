@@ -128,7 +128,7 @@ catkin_package(
     moveit_ros_planning_interface
     interactive_markers
   DEPENDS
-    system_lib
+#    system_lib
     EIGEN3
 )
 

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   roscpp
   tf_conversions
+  geometry_msgs
 )
 
 include_directories(${catkin_INCLUDE_DIRS})

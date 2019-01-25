@@ -62,7 +62,7 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(10);
 
   try {
-    std::string dir = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/";
+    std::string dir = "/home/mtec/catkin_ws/src/cobot/cobot_jig_controller/results/";
     std::vector<std::string> lines;
     std::string line;
     std::ifstream myfile (dir + "point_cloud_03.txt");
@@ -76,9 +76,9 @@ int main(int argc, char **argv)
         split( tmp, line, ",", 1 );
         std::string::size_type sz;
         geometry_msgs::Point pnt;
-        pnt.x = std::stof(tmp[6],&sz);
-        pnt.y = std::stof(tmp[7],&sz);
-        pnt.z = std::stof(tmp[8],&sz);
+        pnt.x = std::stof(tmp[0],&sz);
+        pnt.y = std::stof(tmp[1],&sz);
+        pnt.z = std::stof(tmp[2],&sz);
         points.push_back(pnt);
       }
       ROS_INFO("File is ok.");
@@ -86,7 +86,12 @@ int main(int argc, char **argv)
     }
     else {
       ROS_ERROR("Unable to open file");
-      return -1;
+      geometry_msgs::Point pnt;
+      pnt.x = 0.0;
+      pnt.y = 0.0;
+      pnt.z = 0.0;
+      points.push_back(pnt);
+//      return -1;
     }
 
     control.init();
@@ -184,12 +189,12 @@ void pose_callback(const geometry_msgs::PoseArray& msg) {
   moveit_msgs::DisplayTrajectory dis_traj;
 //  p_control->replan_velocity( req.max_velocity, req.max_acceleration);
   dis_traj.trajectory.push_back(plan_line_two_pose(msg.poses[0], msg.poses[1], 0.01));
-  pub_plan.publish(dis_traj);
+//  pub_plan.publish(dis_traj);
 }
 
 const moveit_msgs::RobotTrajectory& plan_line_two_pose(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, float step) {
   p_control->plan_line(p1, p2, step);
-  p_control->replan_velocity(0.1, 0.3);
+//  p_control->replan_velocity(0.1, 0.3);
   return p_control->get_robot_trajectory();
 }
 
@@ -198,7 +203,7 @@ const moveit_msgs::RobotTrajectory& plan_line_two_pose(const geometry_msgs::Pose
 /////////////////////////////////////////////////////////////////////////////////////////
 bool move_trajectory(cControl &control) {
   printf("move_trajectory\n");
-  std::string result_dir = "/home/dell/catkin_ws/src/cobot/cobot_jig_controller/results/";
+  std::string result_dir = "/home/mtec/catkin_ws/src/cobot/cobot_jig_controller/results/";
   FILE *fp1 = fopen( (result_dir + "move_cartesian_indv.txt").c_str() , "wt");
   FILE *fp2 = fopen( (result_dir + "move_joint_indv.txt").c_str() , "wt");
   ROS_ERROR("result_dir : %s", result_dir.c_str());

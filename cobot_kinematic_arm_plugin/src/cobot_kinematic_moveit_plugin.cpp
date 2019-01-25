@@ -524,13 +524,19 @@ int CobotKinematic::solve(KDL::Frame& pose_frame, const std::vector<double>& vfr
 	ROS_INFO("CobotKinematic::solve");
   solutions.clear();
 	geometry_msgs::Pose pose;
+	ROS_INFO("CobotKinematic::solve-A");
 	tf::PoseKDLToMsg(pose_frame, pose);
+	ROS_INFO("CobotKinematic::solve-B");
 
 	std::vector<double> solution;
 	double Px06 = pose.position.x, Py06 = pose.position.y, Pz06 = pose.position.z;
 
 	Eigen::Quaterniond q;
+	ROS_INFO("CobotKinematic::solve-C");
+	double norm = sqrt(pow(pose.orientation.x, 2) + pow(pose.orientation.y, 2) + pow(pose.orientation.z, 2) + pow(pose.orientation.w, 2));
+  ROS_INFO("%lf,%lf,%lf,%lf|%lf", pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w, norm);
 	tf::quaternionMsgToEigen(pose.orientation, q);
+	ROS_INFO("CobotKinematic::solve-D");
 	Eigen::Matrix3d r06 = q.normalized().toRotationMatrix();
 
 	double Px05 = Px06-(L[4]*r06(0,2)), Py05 = Py06-(L[4]*r06(1,2)), Pz05 = Pz06-(L[4]*r06(2,2));
