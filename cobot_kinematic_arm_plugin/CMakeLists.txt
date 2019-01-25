@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   roscpp
   tf_conversions
+  eigen_conversions
   geometry_msgs
 )
 
@@ -20,6 +21,8 @@ catkin_package(
     pluginlib
     roscpp
     tf_conversions
+    eigen_conversions
+    geometry_msgs
 )
 
 include_directories(include)
