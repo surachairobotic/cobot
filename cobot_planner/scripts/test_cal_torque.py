@@ -94,7 +94,7 @@ def cal_torque(q, dq, ddq, vars):
   torque_no_ddq = - (dT_dq - dU_dq - dT_ddq)
 #  print('T : '+str(K_ddq.dot(ddq) + torque_no_ddq))
 #  exit()
-  return K_ddq.dot(ddq) + torque_no_ddq, torque_no_ddq
+  return K_ddq.dot(ddq) + torque_no_ddq, torque_no_ddq , dT_dq, dU_dq, dT_ddq, K_ddq
 #  return -(dT_dq - dU_dq - dT_ddq)
 
 
