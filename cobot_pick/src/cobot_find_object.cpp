@@ -399,6 +399,13 @@ int main(int argc, char **argv)
       b_pub = false;
       process_data();
       b_pub = true;
+      for (int i = 0; i < find_label.planes.size(); i++)
+      {
+        cPlane &plane = find_label.planes[i];
+        tPickPose tp;
+        plane.get_pick_pose(tp);
+        printf("label[%d] : %s\n", plane.order, tp.label.c_str());
+      }
       //cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
     }
     else if (config.action_server_mode)

@@ -45,7 +45,7 @@ struct tConfig{
   tConfig():
     save_mode(false), load_mode(false), show_result(false), collect_mode(false)
     , action_server_mode(false), save_result(false)
-    , data_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/src/data/")
+    , data_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/data/")
     , save_file_prefix("")
     , result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/results")
 
@@ -326,7 +326,7 @@ bool get_config(){
       return false;
     }
   }
-  config.save_file_prefix+= config.data_save_path;
+  config.save_file_prefix = config.data_save_path + config.save_file_prefix;
   return true;
 }
 

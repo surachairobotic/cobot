@@ -474,14 +474,27 @@ public:
     tf::Vector3 v(normal.x, normal.y, normal.z), vx(1.0, 0.0, 0.0), vn = vx.cross(v);
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
-    pick_pose.pose.position.x = center.x;
+/*    pick_pose.pose.position.x = center.x;
     pick_pose.pose.position.y = center.y;
     pick_pose.pose.position.z = center.z;
     pick_pose.pose.orientation.x = q.x();
     pick_pose.pose.orientation.y = q.y();
     pick_pose.pose.orientation.z = q.z();
-    pick_pose.pose.orientation.w = q.w();
-
+    pick_pose.pose.orientation.w = q.w();*/
+    
+    tf::Vector3 c = config.tf_cam( tf::Vector3(center.x, center.y, center.z));
+    tf::Quaternion q2 = config.tf_cam.getRotation() * q;
+    pick_pose.pose.position.x = c.x();
+    pick_pose.pose.position.y = c.y();
+    pick_pose.pose.position.z = c.z();
+    pick_pose.pose.orientation.x = q2.x();
+    pick_pose.pose.orientation.y = q2.y();
+    pick_pose.pose.orientation.z = q2.z();
+    pick_pose.pose.orientation.w = q2.w();
+    tf::Vector3 v2 = tf::quatRotate( q2, vx ) * (order==0 ? 0.1 : 0.03);
+    printf("pick [label=%d]\n  head : %.3lf, %.3lf, %.3lf\n  tail : %.3lf, %.3lf, %.3lf\n", label
+      , c.x(), c.y(), c.z()
+      , c.x() - v2.x(), c.y() - v2.y(), c.z() - v2.z() );
     char str[8];
     sprintf(str, "M%d", label);
     pick_pose.label = str;
