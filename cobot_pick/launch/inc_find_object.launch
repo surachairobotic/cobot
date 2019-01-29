@@ -10,10 +10,10 @@
          output="screen" launch-prefix="$(arg launch_prefix)">
     <param name="mode" value="$(arg mode)"/>
     <param name="data_save_path"
-      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/"/>
+      value="$(find cobot_pick)/data/"/>
     <param name="save_file_prefix" value="$(arg save_file_prefix)"/>
     <param name="result_save_path" 
-      value="/home/tong/catkin_ws/src/cobot/cobot_pick/results/"/>
+      value="$(find cobot_pick)/results/"/>
     <param name="show_result" value="$(arg show_result)"/>
     <param name="save_result" value="$(arg save_result)"/>
 

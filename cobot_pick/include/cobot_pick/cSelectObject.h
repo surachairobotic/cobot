@@ -471,7 +471,7 @@ public:
 
   void get_pick_pose(tPickPose &pick_pose)
   {
-    tf::Vector3 v(normal.x, normal.y, normal.z), vx(1.0, 0.0, 0.0), vn = vx.cross(v);
+    tf::Vector3 v( normal.x, normal.y, normal.z), vx(0.0, 0.0, 1.0), vn = vx.cross(v);
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
 /*    pick_pose.pose.position.x = center.x;
