@@ -38,7 +38,8 @@ def load(fname):
   points = []
   if not os.path.isfile(fname):
     print("file not exist : " + fname)
-    return points
+    exit()
+#    return None
   with open(fname,'rt') as f:
     for line in f:
       vals = line.strip().split(' ')
@@ -60,6 +61,12 @@ class LSM:
     a = (n*xy - nx*ny)/div
     b = (xx*ny - xy*nx)/div
     return a,b
+  
+  def fit_a(self,x,y):
+    xy = np.sum(x*y)
+    xx = np.sum(x*x)
+    a = xy / (2.0*xx)
+    return a,0.0
 
   def get_error(self,x,y,a,b):
     err = y - self.get_y(x,a,b)
@@ -107,7 +114,7 @@ class cFindEq:
     for i in range(2):
       if len(xy[i])>3:
         xy2 = np.array(xy[i])
-        ab[i] = np.array( lsm.fit( xy2[:,0], xy2[:,1] ) )
+        ab[i] = np.array( lsm.fit_a( xy2[:,0], xy2[:,1] ) )
     if ab[0] is not None and ab[1] is not None:
       mean = 0.5*(ab[0] + ab[1])
       diff = abs(ab[0] - ab[1])
@@ -241,9 +248,12 @@ def find_equation(name, n_joint, n_loop):
 
 def test_equation(n_joint, ab):
   dir = 'torque_j'+str(n_joint+1)+'/set_'
-  n = 4
+  n = 3
 
-  f, axarr = plt.subplots(n, sharex=True)
+  if n==1:
+    f, axarr = plt.subplots(2, sharex=True)
+  else:
+    f, axarr = plt.subplots(n, sharex=True)
   for k in range(n):
     fname = dir+str(k+1)+'/torque_j'+str(n_joint+1)+'_all.txt'
     data = load(fname)
@@ -306,8 +316,8 @@ def test_equation(n_joint, ab):
   
 
 if __name__ == "__main__":
-  n_joint = 4
-  fname = 'torque_j' + str(n_joint+1) + '/set_4/torque_j'+str(n_joint+1)+'_all.txt'
+  n_joint = 3
+  fname = 'torque_j' + str(n_joint+1) + '/set_1/torque_j'+str(n_joint+1)+'_all.txt'
   ab = find_equation(fname, n_joint, 100) # find a,b
   test_equation(n_joint, ab) # test a,b with other dataset
   plt.show()

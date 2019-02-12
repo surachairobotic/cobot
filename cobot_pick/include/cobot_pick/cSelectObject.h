@@ -380,22 +380,42 @@ public:
     }
   }
 
-  double find_max_height(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Point2f *warp_src)
+  double find_max_height(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Point2f *warp_src, const double dis2plane, const int radius)
   {
     cLabeling label;
-    cv::Mat img_bin(cloud.height, cloud.width, CV_8UC1, cv::Scalar(0)), img_label;
+    cv::Mat img_bin, img_label;
 
-    for (int i = cloud.height - 1; i >= 0; i--)
+    int cx = 0, cy = 0;
+    for (int i = 3; i >= 0; i--)
+    {
+      cx += warp_src[i].x;
+      cy += warp_src[i].y;
+    }
+    cx >>= 2;
+    cy >>= 2;
+    
+    int x1, x2, y1, y2;
+    x1 = cx - radius;
+    x2 = cx + radius;
+    y1 = cy - radius;
+    y2 = cy + radius;
+    if( x1<0 ) x1 = 0;
+    if( x2>=cloud.width ) x2 = cloud.width - 1;
+    if( y1<0 ) y1 = 0;
+    if( y2>=cloud.height ) y2 = cloud.height - 1;
+    
+    img_bin = cv::Mat(y2-y1+1, x2-x1+1, CV_8UC1, cv::Scalar(0))
+    for (int i = y2-y1;i>=0 ; i--)
     {
       unsigned char *p = img_bin.data + img_bin.step * i;
-      for (int j = cloud.width - 1; j >= 0; j--)
+      for (int j = x2-x1; j>=0; j--)
       {
-        const pcl::PointXYZRGB &c = cloud.points[i * cloud.width + j];
+        const pcl::PointXYZRGB &c = cloud.points[(i+y1) * cloud.width + j+x1];
         if (IS_VALID_POINT(c))
         {
           pcl::PointXYZRGB p0;
           MINUS_3D(p0, c, point);
-          if (fabs(INNER_3D(p0, normal)) < 0.005)
+          if (fabs(INNER_3D(p0, normal)) < dis2plane)
           {
             p[j] = 255;
           }
@@ -404,19 +424,13 @@ public:
     }
     label.ExecBin(img_bin, img_label);
 
-    int cx = 0, cy = 0, min_pix_num = 999999999;
+    int min_pix_num = 999999999;
     tRegInfo *pr = NULL;
-    for (int i = 3; i >= 0; i--)
-    {
-      cx += warp_src[i].x;
-      cy += warp_src[i].y;
-    }
-    cx >>= 2;
-    cy >>= 2;
+    int cx2 = cx - x1, cy2 = cy - y1;
     for (int i = label.reg_info.size() - 1; i >= 0; i--)
     {
       tRegInfo &r = label.reg_info[i];
-      if (r.x1 < cx && r.x2 > cx && r.y1 < cy && r.y2 > cy && r.pix_num < min_pix_num)
+      if (r.x1 < cx2 && r.x2 > cx2 && r.y1 < cy2 && r.y2 > cy2 && r.pix_num < min_pix_num)
       {
         min_pix_num = r.pix_num;
         pr = &r;
@@ -424,42 +438,19 @@ public:
     }
     if (!pr)
       return -1.0;
-    /*    {
-      static cv::Mat img( img_bin.size(), CV_8UC3 , cv::Scalar(0));
-      static int cnt = 0;
-      const int *col = &cols[cnt%4][0];
-      for(int i=pr->y1;i<=pr->y2;i++){
-        const unsigned short *pl = (unsigned short*)(img_label.data 
-          + img_label.step * i);
-        unsigned char *p = img.data + img.step * i;
-        for(int j=pr->x1;j<=pr->x2;j++){
-          if( pl[j]==pr->n_label ){
-            p[j*3] = col[2];
-            p[j*3+1] = col[1];
-            p[j*3+2] = col[0];
-          }
-        }
-      }
-      cnt++;
-      cv::imshow("label plane", img);
-    }*/
+
 
     max_height = 0.0;
-    for (int i = pr->y1; i <= pr->y2; i++)
+    for (int i = y2-y1;i>=0 ; i--)
     {
       const unsigned short *pl = (unsigned short *)(img_label.data + img_label.step * i);
-      for (int j = pr->x1; j <= pr->x2; j++)
+      for (int j = x2-x1; j>=0; j--)
       {
         if (pl[j] == pr->n_label)
         {
-          const pcl::PointXYZRGB &c = cloud.points[i * cloud.width + j];
+          const pcl::PointXYZRGB &c = cloud.points[(i+y1) * cloud.width + j+x1];
           if (!IS_VALID_POINT(c))
             continue;
-          /*
-          double l = LEN2( c );
-          if( l<min_len ){
-            min_len = l;
-          }*/
           tf::Vector3 v = config.tf_cam(tf::Vector3(c.x, c.y, c.z));
           if (v.z() > max_height)
             max_height = v.z();

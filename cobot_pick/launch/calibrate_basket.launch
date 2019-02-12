@@ -3,11 +3,11 @@
          output="screen"  launch-prefix="gdb -ex run --args">
     <param name="load_mode" value="true"/>
     <param name="save_file_prefix" 
-      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib_01"/>
+      value="/home/tong/catkin_ws/src/cobot/cobot_pick/data/calib_basket_01"/>
     <param name="show_result" value="true"/>
 
-    <param name="chess_num_x" value="9"/>
-    <param name="chess_num_y" value="5"/>
+    <param name="chess_num_x" value="5"/>
+    <param name="chess_num_y" value="9"/>
 
     <param name="chess_size_x" value="0.025"/>
     <param name="chess_size_y" value="0.025"/>

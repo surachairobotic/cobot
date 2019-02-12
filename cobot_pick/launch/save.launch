@@ -1,6 +1,8 @@
 <launch>
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
     <param name="mode" value="save"/>
-    <param name="save_file_prefix" value="calib_02"/>
+    <param name="save_file_prefix" value="box_01_03_bold"/>
+    <param name="data_save_path" value="$(find cobot_pick)/data/"/>
+    <param name="result_save_path" value="$(find cobot_pick)/results/"/>
   </node>
 </launch>

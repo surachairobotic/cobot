@@ -91,7 +91,9 @@ include_directories(
 
 
 link_directories(/usr/local/lib ${PCL_LIBRARY_DIRS})
+
 add_executable(cobot_find_object src/cobot_find_object.cpp src/cLabeling.cpp src/zdsfmt.cpp)
+add_dependencies(cobot_find_object cobot_pick_generate_messages_cpp)
 target_link_libraries(
   cobot_find_object
   ${catkin_LIBRARIES}

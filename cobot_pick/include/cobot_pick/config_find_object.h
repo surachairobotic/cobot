@@ -9,6 +9,10 @@
 #include <cstdlib>
 
 
+#define OBJECT_BOX 0
+#define OBJECT_BASKET 1
+
+
 bool create_dir(const char *path){
   char str[256];
   sprintf(str, "mkdir -p %s", path);
@@ -26,6 +30,8 @@ struct tConfig{
   std::string save_file_prefix, result_save_path, collect_save_path, data_save_path
     , collect_prefix_label, collect_prefix_data, collect_prefix_label_raw;
 
+  int object_type;
+
   // segment
   double normal_th_ang, th_pointcloud_distance;
     //, norm_scale1, norm_scale2
@@ -35,12 +41,13 @@ struct tConfig{
 
   // select object
   int plane_reg_min, plane_reg_max, plane_ransac_repeat_time, text_binarize_win_size
-    , text_ransac_repeat_time, th_region_color;
+    , text_ransac_repeat_time, th_region_color
+    , min_label_pix_num, max_label_pix_num, min_label_size_x, min_label_size_y, label_mean_rgb, find_plane_radius;
   double plane_reg_ratio_min, plane_reg_ratio_max, warp_meter2pixel
-    , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error;
+    , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error
+    , min_label_ratio, max_label_ratio, dis_remove_edge, label_multiply_rgb, pc_dis2plane;
+    
   tf::Transform tf_cam;
-
-
 
   tConfig():
     save_mode(false), load_mode(false), show_result(false), collect_mode(false)
@@ -48,6 +55,7 @@ struct tConfig{
     , data_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/data/")
     , save_file_prefix("")
     , result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/results")
+    , object_type( OBJECT_BOX )
 
     // segment
     , normal_th_ang(0.1)
@@ -68,6 +76,18 @@ struct tConfig{
     , text_ransac_repeat_time(200)
     , text_ransac_th_error(2)
     , th_region_color(500)
+    
+    , min_label_pix_num(250)
+    , max_label_pix_num(2000)
+    , min_label_ratio(1.0)
+    , max_label_ratio(3.0)
+    , dis_remove_edge(2.0)
+    , min_label_size_x(10)
+    , min_label_size_y(10)
+    , label_mean_rgb(140)
+    , label_multiply_rgb(3.0)
+    , pc_dis2plane(0.005)
+    , find_plane_radius(150)
     {}
 } config;
 
@@ -90,6 +110,19 @@ bool get_config(){
     else
     {
       ROS_ERROR("Invalid mode : %s", str.c_str());
+      return false;
+    }
+  }
+  if (nh.getParam("object_type", str))
+  {
+    nh.deleteParam("object_type");
+    if (str == "box")
+      config.object_type = OBJECT_BOX;
+    else if (str == "basket")
+      config.object_type = OBJECT_BASKET;
+    else
+    {
+      ROS_ERROR("Invalid object_type : %s", str.c_str());
       return false;
     }
   }
@@ -209,7 +242,63 @@ bool get_config(){
     nh.deleteParam("th_region_color");
     config.th_region_color = i;
   }
-
+  if (nh.getParam("min_label_pix_num", i))
+  {
+    nh.deleteParam("min_label_pix_num");
+    config.min_label_pix_num = i;
+  }
+  if (nh.getParam("max_label_pix_num", i))
+  {
+    nh.deleteParam("max_label_pix_num");
+    config.max_label_pix_num = i;
+  }
+  if (nh.getParam("min_label_ratio", d))
+  {
+    nh.deleteParam("min_label_ratio");
+    config.min_label_ratio = d;
+  }
+  if (nh.getParam("max_label_ratio", d))
+  {
+    nh.deleteParam("max_label_ratio");
+    config.max_label_ratio = d;
+  }
+  if (nh.getParam("dis_remove_edge", d))
+  {
+    nh.deleteParam("dis_remove_edge");
+    config.dis_remove_edge = d;
+  }
+  if (nh.getParam("min_label_size_x", i))
+  {
+    nh.deleteParam("min_label_size_x");
+    config.min_label_size_x = i;
+  }
+  if (nh.getParam("min_label_size_y", i))
+  {
+    nh.deleteParam("min_label_size_y");
+    config.min_label_size_y = i;
+  }
+  if (nh.getParam("label_mean_rgb", i))
+  {
+    nh.deleteParam("label_mean_rgb");
+    config.label_mean_rgb = i;
+  }
+  if (nh.getParam("label_multiply_rgb", d))
+  {
+    nh.deleteParam("label_multiply_rgb");
+    config.label_multiply_rgb = d;
+  }
+  if (nh.getParam("pc_dis2plane", d))
+  {
+    nh.deleteParam("pc_dis2plane");
+    config.pc_dis2plane = d;
+  }
+  if (nh.getParam("find_plane_radius", i))
+  {
+    nh.deleteParam("find_plane_radius");
+    config.find_plane_radius = i;
+  }
+  
+  
   if (nh.getParam("tf_world2camera", str))
   {
     nh.deleteParam("tf_world2camera");
@@ -280,6 +369,7 @@ bool get_config(){
     }
   }
 
+  ROS_INFO("object_type : %d", (int)config.object_type);
   ROS_INFO("save : %d", (int)config.save_mode);
   ROS_INFO("load : %d", (int)config.load_mode);
   ROS_INFO("action_server : %d", (int)config.action_server_mode);
@@ -309,6 +399,19 @@ bool get_config(){
   ROS_INFO("text_ransac_repeat_time : %d", config.text_ransac_repeat_time);
   ROS_INFO("text_ransac_th_error : %.3lf", config.text_ransac_th_error);
   ROS_INFO("th_region_color : %d", config.th_region_color);
+  
+  ROS_INFO("min_label_pix_num : %d", config.min_label_pix_num);
+  ROS_INFO("max_label_pix_num : %d", config.max_label_pix_num);
+  ROS_INFO("min_label_ratio : %.3lf", config.min_label_ratio);
+  ROS_INFO("max_label_ratio : %.3lf", config.max_label_ratio);
+  ROS_INFO("dis_remove_edge : %.3lf", config.dis_remove_edge);
+  ROS_INFO("min_label_size_x : %d", config.min_label_size_x);
+  ROS_INFO("min_label_size_y : %d", config.min_label_size_y);
+  ROS_INFO("label_mean_rgb : %d", config.label_mean_rgb);
+  ROS_INFO("label_multiply_rgb : %.3lf", config.label_multiply_rgb);
+  ROS_INFO("pc_dis2plane : %.3lf", config.pc_dis2plane);
+  ROS_INFO("find_plane_radius : %d", config.find_plane_radius);
+
   {
     tf::Vector3 v = config.tf_cam.getOrigin();
     tf::Quaternion q = config.tf_cam.getRotation();

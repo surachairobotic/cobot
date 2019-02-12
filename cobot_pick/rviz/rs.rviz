@@ -27,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Image
+    SyncSource: PointCloud plane
 Preferences:
   PromptSaveOnExit: true
 Visualization Manager:
@@ -139,7 +139,8 @@ Visualization Manager:
       Marker Topic: /my_pc_pick
       Name: Pick
       Namespaces:
-        {}
+        label_frame: true
+        pick_arrow: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -237,25 +238,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.9792298078536987
+      Distance: 0.6832481026649475
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.2763288915157318
-        Y: 0.01366248819977045
-        Z: -0.06102573499083519
+        X: 0.12087605893611908
+        Y: -0.18367230892181396
+        Z: 0.10416757315397263
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.47479701042175293
+      Pitch: 0.44479674100875854
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.823091506958008
+      Yaw: 6.271267414093018
     Saved: ~
 Window Geometry:
   Displays:
