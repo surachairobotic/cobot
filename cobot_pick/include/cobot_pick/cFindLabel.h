@@ -220,14 +220,15 @@ private:
         }
         if (cnt > best_cnt)
         {
-          best_plane.set_plane(*ps[0]->p, cross, v[0]);
+          best_plane.set_plane(*ps[0]->p, cross);//, v[0]);
           best_cnt = cnt;
         }
       }
     }
   }
 public:
-  std::vector<visualization_msgs::Marker> pick_markers, frame_markers;
+  std::vector<visualization_msgs::Marker> pick_markers, frame_markers
+    , place_markers, basket_markers;
   std::vector<cPlane> planes;
   tPickPose pick_pose;
 
@@ -235,13 +236,16 @@ public:
     int n = 8;
     pick_markers.resize(n);
     frame_markers.resize(n);
+    place_markers.resize(n);
+    basket_markers.resize(n);
     
-    std::vector<visualization_msgs::Marker>* ms[2] = {&pick_markers, &frame_markers};
+    std::vector<visualization_msgs::Marker>* ms[4] = {&pick_markers, &frame_markers
+      , &place_markers, &basket_markers};
     const double d = 1.0/255.0;
-    for(int j=0;j<2;j++){
+    for(int j=0;j<4;j++){
       std::string ns;
       int type;
-      if( j==0 ){
+      if( j%2==0 ){
         ns = NS_PICK_ARROW;
         type = visualization_msgs::Marker::ARROW;
       }
@@ -252,7 +256,7 @@ public:
       for(int i=0;i<n;i++){
         visualization_msgs::Marker &m = (*ms[j])[i];
         m.id = i;
-        m.header.frame_id = FRAME_CAMERA;
+        m.header.frame_id = FRAME_WORLD;
         m.ns = ns;
         m.type = type;
         m.scale.x = m.scale.y = m.scale.z = 0.005;
@@ -282,8 +286,6 @@ public:
     int cnt_sample = 0;
     double max_plane_z = 0.0;
     int pick_plane_id = -1;
-    geometry_msgs::Point marker_point;
-    tPickPose pick_pose;
 
     planes.clear();
     binarize( img_col, img_bin, config.text_binarize_win_size
@@ -570,10 +572,11 @@ public:
             cnt_sample++;
           }
 
-          cPlane plane(&r);
-          ransac_3d( r, cloud, plane );
 
           if( n_label>0 ){
+            cPlane plane(&r);
+            ransac_3d( r, cloud, plane );
+            plane.set_flip( k==1 );
             plane.find_center_frames( warp_src);
             plane.set_label( n_label );
             if( config.object_type==OBJECT_BOX ){
@@ -645,8 +648,10 @@ public:
 
         // marker
         const double d = 1.0/255.0;
+        geometry_msgs::Point p1, p2;
         for(int i=0;i<planes.size();i++){
           cPlane &plane = planes[i];//[pick_plane_id];
+          plane.get_pick_pose();
           //plane.get_pick_pose( pick_pose );
           const int n_label = plane.label;
           const double arrow_size = plane.order==0 ? 0.1 : 0.03;
@@ -656,31 +661,71 @@ public:
           // arrow
           marker.action = marker.ADD;
           marker.points.clear();
+          /*
           marker_point.x = plane.center.x - plane.normal.x * arrow_size;
           marker_point.y = plane.center.y - plane.normal.y * arrow_size;
           marker_point.z = plane.center.z - plane.normal.z * arrow_size;
-          marker.points.push_back(marker_point);
           marker_point.x = plane.center.x;
           marker_point.y = plane.center.y;
           marker_point.z = plane.center.z;
-          marker.points.push_back(marker_point);
+        */
+          plane.get_arrow_marker( p1, p2, arrow_size );
+          marker.points.push_back(p2);
+          marker.points.push_back(p1);
 
           // frame
           marker_frame.action = marker.ADD;
           marker_frame.points.clear();
           for(int i=0;i<5;i++){
             const pcl::PointXYZ &f = plane.frames[i%4];
-            marker_point.x = f.x;
-            marker_point.y = f.y;
-            marker_point.z = f.z;
-            marker_frame.points.push_back(marker_point);
+            p1.x = f.x;
+            p1.y = f.y;
+            p1.z = f.z;
+            marker_frame.points.push_back(p1);
           }
           printf("label : %d, height : %.3lf\n", n_label, plane.max_height);
         }
       }
     }
     else if( config.object_type==OBJECT_BASKET ){
-    
+      place_markers.resize(planes.size());
+      geometry_msgs::Point p1, p2;
+      for(int i=0;i<planes.size();i++){
+        cPlane &plane = planes[i];//[pick_plane_id];
+        plane.get_place_pose();
+        const int n_label = plane.label;
+        const double arrow_size = 0.05;
+        visualization_msgs::Marker &marker = place_markers[i]
+          , &marker_frame = basket_markers[i];
+        
+        // arrow
+        marker.action = marker.ADD;
+        marker.points.clear();
+        plane.get_arrow_marker( p1, p2, arrow_size );
+        marker.points.push_back(p2);
+        marker.points.push_back(p1);
+
+        // frame
+        marker_frame.action = marker.ADD;
+        marker_frame.points.clear();
+        geometry_msgs::Point &p = plane.pick_pose.pose.position;
+        geometry_msgs::Quaternion &o = plane.pick_pose.pose.orientation;
+        tf::Quaternion q(o.x, o.y, o.z, o.w);
+        
+        tf::Vector3 v_basket[4] = {
+          tf::Vector3( 0.02, 0.03, 0.0 ),
+          tf::Vector3(-0.08, 0.03, 0.0 ),
+          tf::Vector3(-0.08,-0.03, 0.0 ),
+          tf::Vector3( 0.02,-0.03, 0.0 )
+        };
+        for(int i=0;i<5;i++){
+          const tf::Vector3 v = tf::quatRotate( q, v_basket[i%4] );
+          p1.x = v.x() + p.x;
+          p1.y = v.y() + p.y;
+          p1.z = v.z() + p.z;
+          marker_frame.points.push_back(p1);
+        }
+      }
     }
   }
 
@@ -691,6 +736,8 @@ public:
       pick_markers[i].points.clear();
       frame_markers[i].action = visualization_msgs::Marker::DELETE;
       frame_markers[i].points.clear();
+      place_markers[i].action = visualization_msgs::Marker::DELETE;
+      basket_markers[i].points.clear();
     }
 /*    std::vector<visualization_msgs::Marker> markers(2);
     markers[0].ns = NS_PICK_ARROW;

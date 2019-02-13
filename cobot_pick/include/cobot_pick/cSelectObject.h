@@ -204,22 +204,30 @@ public:
   pcl::PointXYZ corners[4];
   cv::Mat img_plane;
   int label, order;
+  bool b_flip;
   double max_height;
+  tPickPose pick_pose;
+  
 
-  cPlane(const tRegInfo *r) : p_reg(r), label(-1), max_height(0.0), order(0) {}
+  cPlane(const tRegInfo *r) : p_reg(r), label(-1), max_height(0.0), order(0), b_flip(NULL) {}
   cPlane() : cPlane(NULL) {}
 
   void set_label(int _label) { label = _label; }
-  void set_plane(const pcl::PointXYZRGB &_p, const pcl::PointXYZ &_normal, const pcl::PointXYZ &_x_axis)
+  void set_flip(bool flip){ b_flip = flip; }
+  void set_plane(const pcl::PointXYZRGB &_p, const pcl::PointXYZ &_normal)//, const pcl::PointXYZ &_x_axis)
   {
     point.x = _p.x;
     point.y = _p.y;
     point.z = _p.z;
     normal = _normal;
-    NORMALIZE_3D(x_axis, _x_axis);
+/*    NORMALIZE_3D(x_axis, _x_axis);
     CROSS_3D(y_axis, normal, x_axis);
     NORMALIZE_3D(y_axis);
-    assert(fabs(INNER_3D(normal, x_axis)) < 0.00001 && fabs(INNER_3D(y_axis, x_axis)) < 0.00001);
+    assert(fabs(INNER_3D(normal, x_axis)) < 0.00001 && fabs(INNER_3D(y_axis, x_axis)) < 0.00001);*/
+  }
+  
+  void set_xy_axis(){
+  
   }
 
   void warp(const cv::Mat &img_col, const cSegment *p_seg)
@@ -327,6 +335,19 @@ public:
     center.x *= 0.25;
     center.y *= 0.25;
     center.z *= 0.25;
+    
+    if( b_flip ){
+      y_axis.x = frames[0].x - frames[1].x;
+      y_axis.y = frames[0].y - frames[1].y;
+      y_axis.z = frames[0].z - frames[1].z;
+    }
+    else{
+      y_axis.x = frames[1].x - frames[0].x;
+      y_axis.y = frames[1].y - frames[0].y;
+      y_axis.z = frames[1].z - frames[0].z;
+    }
+    NORMALIZE_3D(y_axis);
+    CROSS_3D(x_axis, y_axis, normal);
   }
 
   void find_center(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat &img_label)
@@ -404,7 +425,7 @@ public:
     if( y1<0 ) y1 = 0;
     if( y2>=cloud.height ) y2 = cloud.height - 1;
     
-    img_bin = cv::Mat(y2-y1+1, x2-x1+1, CV_8UC1, cv::Scalar(0))
+    img_bin = cv::Mat(y2-y1+1, x2-x1+1, CV_8UC1, cv::Scalar(0));
     for (int i = y2-y1;i>=0 ; i--)
     {
       unsigned char *p = img_bin.data + img_bin.step * i;
@@ -460,21 +481,23 @@ public:
     return max_height;
   }
 
-  void get_pick_pose(tPickPose &pick_pose)
+  void get_pick_pose()
   {
-    tf::Vector3 v( normal.x, normal.y, normal.z), vx(0.0, 0.0, 1.0), vn = vx.cross(v);
+    tf::Vector3 vx(0.0, 0.0, 1.0);
+    tf::Matrix3x3 mat( 
+      x_axis.x, y_axis.x, normal.x,
+      x_axis.y, y_axis.y, normal.y,
+      x_axis.z, y_axis.z, normal.z
+    );
+    tf::Quaternion q;
+    mat.getRotation(q);
+/*    tf::Vector3 v( normal.x, normal.y, normal.z), vn = vx.cross(v);
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
-/*    pick_pose.pose.position.x = center.x;
-    pick_pose.pose.position.y = center.y;
-    pick_pose.pose.position.z = center.z;
-    pick_pose.pose.orientation.x = q.x();
-    pick_pose.pose.orientation.y = q.y();
-    pick_pose.pose.orientation.z = q.z();
-    pick_pose.pose.orientation.w = q.w();*/
-    
+    */
     tf::Vector3 c = config.tf_cam( tf::Vector3(center.x, center.y, center.z));
     tf::Quaternion q2 = config.tf_cam.getRotation() * q;
+    
     pick_pose.pose.position.x = c.x();
     pick_pose.pose.position.y = c.y();
     pick_pose.pose.position.z = c.z();
@@ -489,6 +512,58 @@ public:
     char str[8];
     sprintf(str, "M%d", label);
     pick_pose.label = str;
+  }
+  
+  void get_place_pose()
+  {
+    tf::Vector3 vx(0.0, 0.0, 1.0);
+    tf::Matrix3x3 mat( 
+      x_axis.x, y_axis.x, normal.x,
+      x_axis.y, y_axis.y, normal.y,
+      x_axis.z, y_axis.z, normal.z
+    );
+    tf::Quaternion q;
+    mat.getRotation(q);
+/*    tf::Vector3 v( normal.x, normal.y, normal.z), vn = vx.cross(v);
+    vn.normalize();
+    tf::Quaternion q(vn, acos(v.dot(vx)));
+    */
+    const double DIS2CENTER_BASEKET = 0.11, HEIGHT_BASKET = 0.07;
+    tf::Vector3 c = config.tf_cam( tf::Vector3(
+      center.x + normal.x * DIS2CENTER_BASEKET, 
+      center.y + normal.y * DIS2CENTER_BASEKET, 
+      center.z + normal.z * DIS2CENTER_BASEKET));
+    c.setZ(HEIGHT_BASKET);
+    tf::Quaternion q2 = config.tf_cam.getRotation() * q 
+      * tf::Quaternion( tf::Vector3( 0.0, 1.0, 0.0 ), -M_PI*0.5 );
+    
+    pick_pose.pose.position.x = c.x();
+    pick_pose.pose.position.y = c.y();
+    pick_pose.pose.position.z = c.z();
+    pick_pose.pose.orientation.x = q2.x();
+    pick_pose.pose.orientation.y = q2.y();
+    pick_pose.pose.orientation.z = q2.z();
+    pick_pose.pose.orientation.w = q2.w();
+    tf::Vector3 v2 = tf::quatRotate( q2, vx ) * (order==0 ? 0.1 : 0.03);
+    printf("place [label=%d]\n  head : %.3lf, %.3lf, %.3lf\n  tail : %.3lf, %.3lf, %.3lf\n", label
+      , c.x(), c.y(), c.z()
+      , c.x() - v2.x(), c.y() - v2.y(), c.z() - v2.z() );
+    char str[8];
+    sprintf(str, "M%d", label);
+    pick_pose.label = str;
+  }
+  
+  void get_arrow_marker( geometry_msgs::Point &head, geometry_msgs::Point &tail, const double len ){
+    head.x = pick_pose.pose.position.x;
+    head.y = pick_pose.pose.position.y;
+    head.z = pick_pose.pose.position.z;
+    
+    geometry_msgs::Quaternion &o = pick_pose.pose.orientation;
+    tf::Vector3 v = tf::quatRotate( tf::Quaternion(o.x, o.y, o.z, o.w)
+      , tf::Vector3(0.0,0.0,-len) );
+    tail.x = v.x() + head.x;
+    tail.y = v.y() + head.y;
+    tail.z = v.z() + head.z;
   }
 };
 
@@ -649,7 +724,7 @@ private:
           }
           if (cnt > best_cnt)
           {
-            best_plane.set_plane(*ps[0]->p, cross, v[0]);
+            best_plane.set_plane(*ps[0]->p, cross);//, v[0]);
             best_cnt = cnt;
           }
         }
@@ -1067,7 +1142,7 @@ private:
               pick_pose.label = str;
               */
                 plane.set_label(n_label);
-                plane.get_pick_pose(pick_pose);
+                plane.get_pick_pose();//pick_pose);
                 pick_poses.push_back(pick_pose);
               }
               break;

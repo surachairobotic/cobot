@@ -80,11 +80,18 @@ void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, ac
       for (int i = 0; i < find_label.planes.size(); i++)
       {
         cPlane &plane = find_label.planes[i];
-        tPickPose tp;
-        plane.get_pick_pose(tp);
-        result.poses[plane.order] = tp.pose;
-        result.labels[plane.order] = tp.label;
-        printf("label[%d] : %s\n", plane.order, tp.label.c_str());
+//        tPickPose tp;
+        if( config.object_type==OBJECT_BOX ){
+//          plane.get_pick_pose(tp);
+          result.poses[plane.order] = plane.pick_pose.pose;
+          result.labels[plane.order] = plane.pick_pose.label;
+        }
+        else{
+//          plane.get_place_pose(tp);
+          result.poses[i] = plane.pick_pose.pose;
+          result.labels[i] = plane.pick_pose.label;
+        }
+        printf("label[%d] : %s\n", plane.order, plane.pick_pose.label.c_str());
       }
       as->setSucceeded(result);
       printf("action end.\n");
@@ -152,7 +159,8 @@ int main(int argc, char **argv)
   else
   {
     actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction>
-        action_server(n, "/cobot/find_object", boost::bind(&execute_find_object, _1, &action_server), false);
+        action_server(n, config.object_type==OBJECT_BOX ? "/cobot/find_object" : "/cobot/find_basket"
+        , boost::bind(&execute_find_object, _1, &action_server), false);
 
     if (config.load_mode)
     {
@@ -163,9 +171,7 @@ int main(int argc, char **argv)
       for (int i = 0; i < find_label.planes.size(); i++)
       {
         cPlane &plane = find_label.planes[i];
-        tPickPose tp;
-        plane.get_pick_pose(tp);
-        printf("label[%d] : %s\n", plane.order, tp.label.c_str());
+        printf("label[%d] : %s\n", plane.order, plane.pick_pose.label.c_str());
       }
       //cROSData::load_mode(msg_cam_info, msg_depth, msg_col, cloud_rgb);
     }
@@ -176,7 +182,7 @@ int main(int argc, char **argv)
     }
 
     ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20), pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20), pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20), pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20), pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20);
-    ros::Publisher pc_pub_pick = n.advertise<visualization_msgs::Marker>("/my_pc_pick", 20);
+    ros::Publisher pc_pub_pick = n.advertise<visualization_msgs::Marker>(config.object_type==OBJECT_BOX ? "/cobot/pick" : "/cobot/place", 20);
     p_pc_pub_pick = &pc_pub_pick;
     ros::Time t_loop = ros::Time::now();
     ros::Rate r(1);
@@ -192,8 +198,14 @@ int main(int argc, char **argv)
         
         for (int i = find_label.pick_markers.size() - 1; i >= 0; i--){
           find_label.pick_markers[i].header.stamp = find_label.frame_markers[i].header.stamp = ros::Time::now();
-          pc_pub_pick.publish(find_label.pick_markers[i]);
-          pc_pub_pick.publish(find_label.frame_markers[i]);
+          if( config.object_type==OBJECT_BOX ){
+            pc_pub_pick.publish(find_label.pick_markers[i]);
+            pc_pub_pick.publish(find_label.frame_markers[i]);
+          }
+          else{
+            pc_pub_pick.publish(find_label.place_markers[i]);
+            pc_pub_pick.publish(find_label.basket_markers[i]);
+          }
         }
       }
       if (config.show_result)

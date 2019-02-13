@@ -316,7 +316,7 @@ def test_equation(n_joint, ab):
   
 
 if __name__ == "__main__":
-  n_joint = 3
+  n_joint = 4
   fname = 'torque_j' + str(n_joint+1) + '/set_1/torque_j'+str(n_joint+1)+'_all.txt'
   ab = find_equation(fname, n_joint, 100) # find a,b
   test_equation(n_joint, ab) # test a,b with other dataset
