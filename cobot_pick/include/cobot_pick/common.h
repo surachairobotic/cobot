@@ -8,6 +8,9 @@ const char FRAME_CAMERA[] = "camera"
   
 const double INVALID_POINT = 0.0;
 
+#define OBJECT_BOX 0
+#define OBJECT_BASKET 1
+
 #define POW2(x) ((x)*(x))
 #define IS_VALID_POINT(p)  ((p).z!=INVALID_POINT)
 #define SET_INVALID_POINT(p)  ((p).z = INVALID_POINT)

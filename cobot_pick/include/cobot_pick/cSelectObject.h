@@ -528,12 +528,13 @@ public:
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
     */
-    const double DIS2CENTER_BASEKET = 0.11, HEIGHT_BASKET = 0.07;
+    const double DIS2CENTER_BASEKET = (config.basket_size_x + config.box_size_x)*0.5 
+      - config.box_label_shift_x ;
     tf::Vector3 c = config.tf_cam( tf::Vector3(
       center.x + normal.x * DIS2CENTER_BASEKET, 
       center.y + normal.y * DIS2CENTER_BASEKET, 
       center.z + normal.z * DIS2CENTER_BASEKET));
-    c.setZ(HEIGHT_BASKET);
+    c.setZ(config.basket_size_z);
     tf::Quaternion q2 = config.tf_cam.getRotation() * q 
       * tf::Quaternion( tf::Vector3( 0.0, 1.0, 0.0 ), -M_PI*0.5 );
     

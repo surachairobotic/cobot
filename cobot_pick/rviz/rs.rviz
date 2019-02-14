@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
         - /DepthCloud1/Auto Size1
         - /Calib Marker1/Namespaces1
       Splitter Ratio: 0.5558823347091675
@@ -27,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud plane
+    SyncSource: PointCloud box
 Preferences:
   PromptSaveOnExit: true
 Visualization Manager:
@@ -58,14 +57,6 @@ Visualization Manager:
       Radius: 0.009999999776482582
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /my_pc_plane_frames
-      Name: Plane frame
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -84,55 +75,47 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: PointCloud plane
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.004999999888241291
-      Style: Flat Squares
-      Topic: /my_pc_plane
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: PointCloud org
+      Name: PointCloud box
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.0010000000474974513
       Style: Flat Squares
-      Topic: /my_pc_org
+      Topic: /cobot/pointcloud_box
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Class: rviz/Marker
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
       Enabled: true
-      Marker Topic: /my_pc_normal
-      Name: Normal plane (debug)
-      Namespaces:
-        {}
-      Queue Size: 100
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud basket
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.0010000000474974513
+      Style: Flat Squares
+      Topic: /cobot/pointcloud_basket
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -141,6 +124,14 @@ Visualization Manager:
       Namespaces:
         label_frame: true
         pick_arrow: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /cobot/place
+      Name: Place
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -213,15 +204,6 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /cobot/place
-      Name: Place
-      Namespaces:
-        label_frame: true
-        pick_arrow: true
-      Queue Size: 100
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -247,25 +229,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.8303083181381226
+      Distance: 0.9565634727478027
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.11264105141162872
-        Y: -0.10845302790403366
-        Z: 0.1169869676232338
+        X: 0.1276431381702423
+        Y: -0.18389353156089783
+        Z: -0.09156079590320587
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5647964477539062
+      Pitch: 1.0897940397262573
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.266265392303467
+      Yaw: 6.251236438751221
     Saved: ~
 Window Geometry:
   Displays:

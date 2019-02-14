@@ -181,7 +181,12 @@ int main(int argc, char **argv)
       printf("start action server\n");
     }
 
-    ros::Publisher pc_pub_org = n.advertise<sensor_msgs::PointCloud2>("/my_pc_org", 20), pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20), pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20), pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20), pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20);
+    ros::Publisher 
+      pc_pub_org = n.advertise<sensor_msgs::PointCloud2>(config.object_type==OBJECT_BOX ? "/cobot/pointcloud_box" : "/cobot/pointcloud_basket", 20);
+//      pc_pub_seg = n.advertise<sensor_msgs::PointCloud2>("/my_pc_seg", 20), 
+//      pc_pub_plane = n.advertise<sensor_msgs::PointCloud2>("/my_pc_plane", 20), 
+//      pc_pub_plane_frames = n.advertise<visualization_msgs::Marker>("/my_pc_plane_frames", 20), 
+//      pc_pub_normal = n.advertise<visualization_msgs::Marker>("/my_pc_normal", 20);
     ros::Publisher pc_pub_pick = n.advertise<visualization_msgs::Marker>(config.object_type==OBJECT_BOX ? "/cobot/pick" : "/cobot/place", 20);
     p_pc_pub_pick = &pc_pub_pick;
     ros::Time t_loop = ros::Time::now();
@@ -193,8 +198,8 @@ int main(int argc, char **argv)
       {
         ros_pc.msg.header.stamp = msg_pc_seg.header.stamp = msg_pc_plane.header.stamp = t_loop = ros::Time::now();
         pc_pub_org.publish(ros_pc.msg);
-        pc_pub_seg.publish(msg_pc_seg);
-        pc_pub_plane.publish(msg_pc_plane);
+//        pc_pub_seg.publish(msg_pc_seg);
+//        pc_pub_plane.publish(msg_pc_plane);
         
         for (int i = find_label.pick_markers.size() - 1; i >= 0; i--){
           find_label.pick_markers[i].header.stamp = find_label.frame_markers[i].header.stamp = ros::Time::now();

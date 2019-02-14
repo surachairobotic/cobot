@@ -294,9 +294,10 @@ void cROSData::start_sub(){
   ros_col.reset_saved();
   ros_pc.reset_saved();
 
-  ros_cam_info.sub = p_nh->subscribe("/camera/aligned_depth_to_color/camera_info", 10, cb_cam_info);
-  ros_depth.sub = p_nh->subscribe("/camera/aligned_depth_to_color/image_raw", 10, cb_depth);
-  ros_col.sub = p_nh->subscribe("/camera/color/image_raw", 10, cb_col);
+  std::string tf_prefix = config.object_type==OBJECT_BOX ? "/camera" : "/camera_basket";
+  ros_cam_info.sub = p_nh->subscribe(tf_prefix+"/aligned_depth_to_color/camera_info", 10, cb_cam_info);
+  ros_depth.sub = p_nh->subscribe(tf_prefix+"/aligned_depth_to_color/image_raw", 10, cb_depth);
+  ros_col.sub = p_nh->subscribe(tf_prefix+"/color/image_raw", 10, cb_col);
 //  ros_pc.sub = p_nh->subscribe("/camera/depth/color/points", 10, cb_pc);
 
   ROS_INFO("start sub");

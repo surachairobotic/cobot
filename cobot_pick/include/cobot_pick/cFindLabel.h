@@ -259,22 +259,19 @@ public:
         m.header.frame_id = FRAME_WORLD;
         m.ns = ns;
         m.type = type;
-        m.scale.x = m.scale.y = m.scale.z = 0.005;
-        
         m.color.r = cols[i][0] * d;
         m.color.g = cols[i][1] * d;
         m.color.b = cols[i][2] * d;
-        if( j==0 ){
+        m.color.a = 1.0;
+        if( j%2==0 ){
           m.scale.x = 0.005;
-          m.scale.y = 0.01;
-          m.scale.z = 0.02;
-          m.color.a = 1.0;
+          m.scale.y = 0.01;// arrow width
+          m.scale.z = 0.02;// arrow height
         }
         else{
           m.scale.x = 0.005;
           m.scale.y = 0.005;
           m.scale.z = 0.005;
-          m.color.a = 1.0;
         }
       }
     }
@@ -688,6 +685,15 @@ public:
       }
     }
     else if( config.object_type==OBJECT_BASKET ){
+      const double x1 = config.box_label_shift_x
+        , x2 = config.box_label_shift_x - config.box_size_x
+        , y = config.box_size_y*0.5;
+      const tf::Vector3 v_basket[4] = {
+        tf::Vector3( x1, y, 0.0 ),
+        tf::Vector3( x2, y, 0.0 ),
+        tf::Vector3( x2,-y, 0.0 ),
+        tf::Vector3( x1,-y, 0.0 )
+      };
       place_markers.resize(planes.size());
       geometry_msgs::Point p1, p2;
       for(int i=0;i<planes.size();i++){
@@ -695,8 +701,8 @@ public:
         plane.get_place_pose();
         const int n_label = plane.label;
         const double arrow_size = 0.05;
-        visualization_msgs::Marker &marker = place_markers[i]
-          , &marker_frame = basket_markers[i];
+        visualization_msgs::Marker &marker = place_markers[n_label-1]
+          , &marker_frame = basket_markers[n_label-1];
         
         // arrow
         marker.action = marker.ADD;
@@ -711,13 +717,7 @@ public:
         geometry_msgs::Point &p = plane.pick_pose.pose.position;
         geometry_msgs::Quaternion &o = plane.pick_pose.pose.orientation;
         tf::Quaternion q(o.x, o.y, o.z, o.w);
-        
-        tf::Vector3 v_basket[4] = {
-          tf::Vector3( 0.02, 0.03, 0.0 ),
-          tf::Vector3(-0.08, 0.03, 0.0 ),
-          tf::Vector3(-0.08,-0.03, 0.0 ),
-          tf::Vector3( 0.02,-0.03, 0.0 )
-        };
+
         for(int i=0;i<5;i++){
           const tf::Vector3 v = tf::quatRotate( q, v_basket[i%4] );
           p1.x = v.x() + p.x;

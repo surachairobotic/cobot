@@ -9,8 +9,7 @@
 #include <cstdlib>
 
 
-#define OBJECT_BOX 0
-#define OBJECT_BASKET 1
+
 
 
 bool create_dir(const char *path){
@@ -45,7 +44,9 @@ struct tConfig{
     , min_label_pix_num, max_label_pix_num, min_label_size_x, min_label_size_y, label_mean_rgb, find_plane_radius;
   double plane_reg_ratio_min, plane_reg_ratio_max, warp_meter2pixel
     , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error
-    , min_label_ratio, max_label_ratio, dis_remove_edge, label_multiply_rgb, pc_dis2plane;
+    , min_label_ratio, max_label_ratio, dis_remove_edge, label_multiply_rgb, pc_dis2plane
+    , box_size_x, box_size_y, box_size_z, box_label_shift_x
+    , basket_size_x, basket_size_y, basket_size_z;
     
   tf::Transform tf_cam;
 
@@ -88,6 +89,14 @@ struct tConfig{
     , label_multiply_rgb(3.0)
     , pc_dis2plane(0.005)
     , find_plane_radius(150)
+    
+    , box_size_x(0.10)
+    , box_size_y(0.07)
+    , box_size_z(0.03)
+    , box_label_shift_x(0.03)
+    , basket_size_x(0.17)
+    , basket_size_y(0.11)
+    , basket_size_z(0.05)
     {}
 } config;
 
@@ -298,6 +307,41 @@ bool get_config(){
     config.find_plane_radius = i;
   }
   
+  if (nh.getParam("box_size_x", d))
+  {
+    nh.deleteParam("box_size_x");
+    config.box_size_x = d;
+  }
+  if (nh.getParam("box_size_y", d))
+  {
+    nh.deleteParam("box_size_y");
+    config.box_size_y = d;
+  }
+  if (nh.getParam("box_size_z", d))
+  {
+    nh.deleteParam("box_size_z");
+    config.box_size_z = d;
+  }
+  if (nh.getParam("box_label_shift_x", d))
+  {
+    nh.deleteParam("box_label_shift_x");
+    config.box_label_shift_x = d;
+  }
+  if (nh.getParam("basket_size_x", d))
+  {
+    nh.deleteParam("basket_size_x");
+    config.basket_size_x = d;
+  }
+  if (nh.getParam("basket_size_y", d))
+  {
+    nh.deleteParam("basket_size_y");
+    config.basket_size_y = d;
+  }
+  if (nh.getParam("basket_size_z", d))
+  {
+    nh.deleteParam("basket_size_z");
+    config.basket_size_z = d;
+  }
   
   if (nh.getParam("tf_world2camera", str))
   {
@@ -412,6 +456,15 @@ bool get_config(){
   ROS_INFO("pc_dis2plane : %.3lf", config.pc_dis2plane);
   ROS_INFO("find_plane_radius : %d", config.find_plane_radius);
 
+  ROS_INFO("box_size_x : %.3lf", config.box_size_x);
+  ROS_INFO("box_size_y : %.3lf", config.box_size_y);
+  ROS_INFO("box_size_z : %.3lf", config.box_size_z);
+  ROS_INFO("box_label_shift_x : %.3lf", config.box_label_shift_x);
+  ROS_INFO("basket_size_x : %.3lf", config.basket_size_x);
+  ROS_INFO("basket_size_y : %.3lf", config.basket_size_y);
+  ROS_INFO("basket_size_z : %.3lf", config.basket_size_z);
+
+  
   {
     tf::Vector3 v = config.tf_cam.getOrigin();
     tf::Quaternion q = config.tf_cam.getRotation();
