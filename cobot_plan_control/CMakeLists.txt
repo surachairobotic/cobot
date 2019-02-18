@@ -177,14 +177,28 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-add_executable(cobot_plan_control src/cobot_plan_control.cpp)
-
+add_executable(cobot_plan_control
+  src/cobot_plan_control.cpp
+  src/tcp_client.cpp
+)
 target_link_libraries(cobot_plan_control
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   cobot_controller_class
 )
 
+add_executable(gpio_server src/gpio_server.c)
+target_link_libraries(gpio_server
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  libmatrix_dio.so
+)
+
+add_executable(gpio_client src/gpio_client.c)
+target_link_libraries(gpio_client
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
 #############
 ## Install ##
 #############

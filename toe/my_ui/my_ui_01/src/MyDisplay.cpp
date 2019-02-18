@@ -53,6 +53,7 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
   group_ = robotCurrentState->getJointModelGroup(planning_group);
 	sJointsName = group_->getActiveJointModelNames();
   end_link = group_->getLinkModelNames().back();
+  ROS_ERROR("end_link : %s", end_link.c_str());
   desired_group_end_link_pose_ = robotCurrentState->getGlobalLinkTransform(end_link);
 
   // Load solver

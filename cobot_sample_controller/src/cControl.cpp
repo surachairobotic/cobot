@@ -194,6 +194,7 @@ bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pos
   ROS_INFO("cControl::plan_line : A");
   std::vector< geometry_msgs::Pose > wp;
   wp.push_back(p2);
+  move_group.setStartState(*get_robot_state(p2));
   move_group.setStartState(*get_robot_state(p1));
   return plan_line(wp, step);
 

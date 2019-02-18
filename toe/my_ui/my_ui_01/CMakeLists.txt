@@ -19,6 +19,7 @@ set(SOURCE_FILES
 	src/MyFrameIK.cpp
 	src/MyFrameMove.cpp
 	src/MyFramePoints.cpp
+	src/MyFrameTrigger.cpp
 	src/MyDisplay.cpp
 	src/pose_string.cpp
 	src/imarker.cpp

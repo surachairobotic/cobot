@@ -29,7 +29,8 @@
 std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
-ros::Time t, t_callback;
+ros::Time t, t_callback, t_push;
+double timestamp = 0.0;
 FILE *_log;
 FILE *_cmd;
 std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
     ROS_INFO("running ...\n");
     int joint_num = fake_joints > joints.size() ? fake_joints : joints.size();
     ros::Time t_prev = ros::Time::now();
-    ros::Time t_push = ros::Time::now();
+    t_push = ros::Time::now();
 
     sensor_msgs::JointState joint_state;
 		double dt;
@@ -176,6 +177,7 @@ int main(int argc, char **argv)
 */
         t_prev = t;
         joint_state.header.stamp = t;
+        timestamp = joint_state.header.stamp.toSec();
         joint_state.header.seq = seq;
         for(int i=joints.size()-1;i>=0;i--){
           const cJoint &j = joints[i];
@@ -185,6 +187,8 @@ int main(int argc, char **argv)
           joint_state.effort[i] = j.get_load();
           voltage[i] = j.get_voltage();
           temperature[i] = j.get_temperature();
+//          ROS_INFO("joints[i] = %d", i);
+//          j.get_info();
 
 //					if( i == joints.size()-1 ) pub_gain.publish(j.get_p_gain());
 					//ROS_INFO("Current J%d : %lf", i, j.get_current());
@@ -195,7 +199,7 @@ int main(int argc, char **argv)
           joint_state.velocity[i] = 0;
           joint_state.effort[i] = 0;
         }
-				if(debug){
+				if(debug && false){
 					ROS_INFO("Call3 : %lf, %lf, %lf, %lf, %lf, %lf", joint_state.position[0]-offset[0]-offset_2[0], joint_state.position[1]-offset[1]-offset_2[1], joint_state.position[2]-offset[2]-offset_2[2], joint_state.position[3]-offset[3]-offset_2[3], joint_state.position[4]-offset[4]-offset_2[4], joint_state.position[5]-offset[5]-offset_2[5]);
 					ROS_INFO("Call4 : %lf, %lf, %lf, %lf, %lf, %lf", joint_state.position[0], joint_state.position[1], joint_state.position[2], joint_state.position[3], joint_state.position[4], joint_state.position[5]);
 					debug = false;
@@ -238,9 +242,18 @@ int main(int argc, char **argv)
 }
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
+  bool b_write = false;
+  if((ros::Time::now()-t_callback).toSec() > 0.025) {
+    b_write = true;
+    t_callback = ros::Time::now();
+  }
+
+  if(b_write)
+    fprintf(_cmd, "%lf,", timestamp);
+
   ROS_INFO("void control_callback frame_id : %s", msg->header.frame_id.c_str());
-	if(msg->position.size() == 6)
-		ROS_INFO("Call1 : %lf, %lf, %lf, %lf, %lf, %lf", msg->position[0], msg->position[1], msg->position[2], msg->position[3], msg->position[4], msg->position[5]);
+//	if(msg->position.size() == 6)
+//		ROS_INFO("Call1 : %lf, %lf, %lf, %lf, %lf, %lf", msg->position[0], msg->position[1], msg->position[2], msg->position[3], msg->position[4], msg->position[5]);
 	double pos[6];
 
   std::string s_info = "-";
@@ -276,8 +289,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
         s_info += "vel_";
         if( msg->effort.size() ) {
           s_info += "eff";
-          fprintf(_cmd, "%lf,", ros::Time::now().toSec());
-          fprintf(_cmd, "%s\n", s_info.c_str());
+          if(b_write)
+            fprintf(_cmd, "%s\n", s_info.c_str());
 //          ROS_INFO("%s", s_info.c_str());
           if( msg->name.size() != msg->velocity.size() || 
               msg->name.size() != msg->position.size() ||
@@ -306,7 +319,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
             cJoint::reset_goal();
         }
 	      else {
-          fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+          if(b_write)
+            fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //          ROS_INFO("%s", s_info.c_str());
           if( msg->name.size()!=msg->velocity.size() || msg->name.size()!=msg->position.size() ) {
             ROS_ERROR("size not math . . .");
@@ -339,7 +353,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
       // pos control
       else {
         s_info += ": else ???";
-        fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+        if(b_write)
+          fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size()!=msg->position.size() ) {
 //          ROS_ERROR("%s", s_info);
@@ -352,7 +367,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
       s_info += "vel_";
       if( msg->effort.size() ) {
         s_info += "eff";
-        fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+        if(b_write)
+          fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size() != msg->velocity.size() ||
 			      msg->name.size() != msg->effort.size())
@@ -379,7 +395,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
 	      }
       }
       else {
-        fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+        if(b_write)
+          fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //        ROS_INFO("%s", s_info.c_str());
         if( msg->name.size()!=msg->velocity.size() ) {
           throw -1;
@@ -404,7 +421,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
     }
     else if( msg->effort.size() ) {
       s_info += "eff_";
-      fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+      if(b_write)
+        fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
 //      ROS_INFO("%s", s_info.c_str());
       if( msg->name.size() != msg->effort.size() )
         throw -1;
@@ -419,7 +437,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
         }
       }
       if( b_ok )
-        ;//cJoint::sync_torque();
+        cJoint::sync_torque();
       else
         cJoint::reset_goal();
     }
@@ -427,27 +445,30 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   } // try
   catch(int err) {
 //    ROS_ERROR("%s", s_info.c_str());
-    fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+    if(b_write)
+      fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
     if( err==-1 ) {
       ROS_ERROR("invalid data size : %d, %d, %d, %d / %d\n", (int)msg->name.size()
         , (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size()
         , (int)cJoint::get_joints().size());
     }
 //    FILE *fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
-    fprintf(_cmd, "%d\n%s\ninvalid data size : %d, %d, %d, %d / %d\n", num_log++, s_info.c_str(), (int)msg->name.size(), (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size(), (int)cJoint::get_joints().size());
+    if(b_write)
+      fprintf(_cmd, "%d\n%s\ninvalid data size : %d, %d, %d, %d / %d\n", num_log++, s_info.c_str(), (int)msg->name.size(), (int)msg->position.size(), (int)msg->velocity.size(), (int)msg->effort.size(), (int)cJoint::get_joints().size());
   }
   catch(const std::string &err) {
     ROS_ERROR("%s", err.c_str());
-    fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
-//    ROS_ERROR("%s", s_info.c_str());
+    if(b_write) {
+      fprintf(_cmd, "cobot_dynamixel_driver/goal|%s\n", s_info.c_str());
+  //    ROS_ERROR("%s", s_info.c_str());
 
-//    FILE *fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
-    fprintf(_cmd, "%d\n%s\n%s\n", num_log++, s_info.c_str(), err.c_str());
+  //    FILE *fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "a");
+      fprintf(_cmd, "%d\n%s\n%s\n", num_log++, s_info.c_str(), err.c_str());
+    }
   }
 
   pub_return.publish(msg);
-	ROS_INFO("Call2 : %lf, %lf, %lf, %lf, %lf, %lf", pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]);
-	debug = true;
+//	debug = true;
   ROS_INFO("end - control_callback");
 //  ros::Time t2 = ros::Time::now();
 //  ROS_ERROR("Callback rate : %lf sec", (t2-t1).toSec());        

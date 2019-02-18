@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 file_path = "/home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/log/"
-file_all  = "2019-01-24T09:24:31.346374_driver_log.txt"
+file_all  = "2019-02-06T05:30:12.073922_driver_log.txt"
 
 if __name__ == "__main__":
   rospy.init_node('plot_tq', anonymous=True)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     axarr[i].hold(True)
     axarr[i].grid(linestyle='-', linewidth='0.5')
   
-  indx = 2
+  indx = 1
   axarr[0].plot(t, pos[:,indx]*180/3.1416)
   axarr[1].plot(t, vel[:,indx]*180/3.1416)
   axarr[2].plot(t, eff[:,indx])
@@ -45,7 +45,7 @@ if __name__ == "__main__":
   axarr[1].legend('vel')
   axarr[1].set_xlabel('time [s]')
   axarr[2].legend('eff')
-  axarr[3].set_xlabel('time [s]')
+  axarr[2].set_xlabel('time [s]')
   axarr[3].legend('volt')
   axarr[3].set_xlabel('time [s]')
   axarr[4].legend('temp')

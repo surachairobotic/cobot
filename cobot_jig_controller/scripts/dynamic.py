@@ -74,7 +74,7 @@ def torque2current(tq, dq, abc):
   return abc[0]*tq + abc[1]*dq + c
 
 def jnt_over_limit(jnt_state):
-  if jnt_state.position[0] < -1.5 or jnt_state.position[0] > +1.5:
+  if jnt_state.position[0] < -1.83 or jnt_state.position[0] > +1.83:
     rospy.loginfo("jnt_state.position[0]")
     return True
   if jnt_state.position[1] < -1.2214 or jnt_state.position[1] > +2.25:

@@ -133,6 +133,7 @@ namespace my_plugin {
 		  ros::Publisher pub_pose;
 		  ros::Publisher pub_execute;
 		  ros::Publisher joint_debug_publisher_;
+		  ros::Publisher trigger_pub;
 			//sensor_msgs::JointState msgJoint;
 
 			std::vector<QLineEdit*> ui_textbox;
@@ -194,6 +195,9 @@ namespace my_plugin {
 			void btn_inputClicked();
 
 			void updateTextbox(const std::vector<geometry_msgs::Pose> image);
+
+			// Move tab
+			void triggerClicked();
 
 			// Move tab
 			void planButtonClicked();

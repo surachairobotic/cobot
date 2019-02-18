@@ -150,18 +150,13 @@ void cJoint::load_settings(const std::string &xml_file){
 
 bool cJoint::set_goal_torque(double torque) {
   ROS_INFO("cJoint::set_goal_torque()");
-	int tq = (int)(torque*2048.0/33000.0);
+	int tq = (int)(torque*2048.0/current_max);
   b_goal_velo = b_goal_velo_acc = b_goal_pos_velo = b_goal_pos_velo_acc = false;
-  if( tq > TORQUE_LIMIT ) {
+  if( tq > TORQUE_LIMIT || tq < -TORQUE_LIMIT ) {
 		ROS_WARN("cJoint::set_goal_torque : over limit %lf|%d", torque, tq);
 		return false;
 	}
 	goal_torque = tq;
-  write( P_TORQUE_ENABLE, 0 );
-  write( P_OPERATING_MODE, MODE_TORQUE_CONTROL);
-  write( P_TORQUE_ENABLE, 1 );
-	write( P_GOAL_TORQUE, goal_torque );
-	change_mode(MODE_TORQUE_CONTROL);
 	b_goal_torque = true;
 	return true;
 }
@@ -282,14 +277,17 @@ int cJoint::get_i_gain() {
   return read( P_VELOCITY_I_GAIN );
 }
 
-double cJoint::get_info() {
+void cJoint::get_info() const {
+/*
   printf("MODEL_NUMBER : %d\n", this->read( P_MODEL_NUMBER ));
   printf("MODEL_INFORMATION : %d\n", this->read( P_MODEL_INFORMATION ));
   printf("FIRMWARE_VERSION : %d\n", this->read( P_FIRMWARE_VERSION ));
   printf("ID : %d\n", this->read( P_ID ));
   printf("BAUD_RATE : %d\n", this->read( P_BAUD_RATE ));
   printf("RETURN_DELAY_TIME : %d\n", this->read( P_RETURN_DELAY_TIME ));
-  printf("OPERATING_MODE : %d\n", this->read( P_OPERATING_MODE ));
+*/
+//  printf("OPERATING_MODE : %d\n", read( P_OPERATING_MODE ));
+/*
   printf("HOMING_OFFSET : %d\n", this->read( P_HOMING_OFFSET ));
   printf("MOVING_THRESHOLD : %d\n", this->read( P_MOVING_THRESHOLD ));
   printf("TEMPERATURE_LIMIT : %d\n", this->read( P_TEMPERATURE_LIMIT ));
@@ -300,9 +298,11 @@ double cJoint::get_info() {
   printf("VELOCITY_LIMIT : %d\n", this->read( P_VELOCITY_LIMIT ));
   printf("MAX_POSITION_LIMIT : %d\n", this->read( P_MAX_POSITION_LIMIT ));
   printf("MIN_POSITION_LIMIT : %d\n", this->read( P_MIN_POSITION_LIMIT ));
-  printf("SHUTDOWN : %d\n", this->read( P_SHUTDOWN ));
+*/
+//  printf("SHUTDOWN : %d\n", read( P_SHUTDOWN ));
+  printf("HARDWARE_ERROR_STATUS : %d\n", read( P_HARDWARE_ERROR_STATUS ));
   
-  return 0.0;
+//  return 0.0;
 }
 
 double cJoint::get_pos() const {
@@ -356,21 +356,21 @@ void cJoint::write(const int param, const int val){
     else if( n_bytes==4 )
       dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, id, addr, val, &dxl_error);
     else {
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %s", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %s", read( P_HARDWARE_ERROR_STATUS ));
+      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
       throw std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
     }
     if (dxl_comm_result != COMM_SUCCESS){
       ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %s", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %s", read( P_HARDWARE_ERROR_STATUS ));
+      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
       //throw packetHandler->getTxRxResult(dxl_comm_result);
       //packetHandler->printTxRxResult(dxl_comm_result);
     }
     else if (dxl_error != 0){
       ROS_ERROR("%s", packetHandler->getRxPacketError(dxl_error));
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %s", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %s", read( P_HARDWARE_ERROR_STATUS ));
+      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
       //throw packetHandler->getRxPacketError(dxl_error);
       //packetHandler->printRxPacketError(dxl_error);
     }
@@ -380,13 +380,13 @@ void cJoint::write(const int param, const int val){
   }
   while(cnt-- >= 0);
   ROS_ERROR("cJoint::write() : id = %d, param = %d, addr = %d, n_bytes = %d, val = %d", id, param, addr, n_bytes, val);
-  ROS_ERROR("cJoint::write --> P_SHUTDOWN : %s", read( P_SHUTDOWN ));
-  ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %s", read( P_HARDWARE_ERROR_STATUS ));
+  ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+  ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
   throw std::string("cJoint::write() : failed");
 }
 
 
-int cJoint::read(const int param){
+int cJoint::read(const int param) const {
 //  ROS_INFO("cJoint::read()");
   int addr = ADDR[param][0];
   int n_bytes = ADDR[param][1];
@@ -746,16 +746,16 @@ void cJoint::sync_torque(){
   ROS_INFO("cJoint::sync_torque()");
   uint8_t data_lh[4];
 
-  for(int i=0;i<joints.size();i++){
+/*  for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
 		if( j.mode != MODE_TORQUE_CONTROL )
 		  j.change_mode(MODE_TORQUE_CONTROL);
 	}
-
+*/
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
     if( j.goal_torque > j.torque_limit ){
-      ROS_WARN("Goal torque exceeded the limit [%d] : %.3lf", i, j.goal_torque );
+      ROS_WARN("Goal torque exceeded the limit [%d] : %d", i, j.goal_torque );
       return;
     }
   }
@@ -764,6 +764,8 @@ void cJoint::sync_torque(){
     bool dxl_addparam_result = false;
     if( !j.b_goal_torque )
       continue;
+		if( j.mode != MODE_TORQUE_CONTROL )
+		  j.change_mode(MODE_TORQUE_CONTROL);   
     j.b_goal_torque = false;
     data_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_torque));
     data_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_torque));
@@ -1055,6 +1057,9 @@ void cJoint::change_mode(int _mode){
 
   write( P_TORQUE_ENABLE, 0 );
   write( P_OPERATING_MODE, _mode);
+  if( P_OPERATING_MODE != MODE_TORQUE_CONTROL )
+    write( P_GOAL_TORQUE, 0 );
+//  write( P_TORQUE_LIMIT, torque_limit );
   write( P_TORQUE_ENABLE, 1 );
 
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);

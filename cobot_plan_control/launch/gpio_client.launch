@@ -1,0 +1,4 @@
+<launch>
+  <node name="gpio_client" pkg="cobot_plan_control" type="gpio_client" respawn="false" output="screen">
+  </node>
+</launch>

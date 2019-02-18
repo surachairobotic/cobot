@@ -88,7 +88,7 @@ private:
 
 private:
   void write(const int param, const int val);
-  int read(const int param);
+  int read(const int param) const;
   void setup();
 /*  void write1b(int addr, int val);
   void write2b(int addr, int val);
@@ -122,7 +122,7 @@ public:
   double get_load() const;    // current / max_current
   double get_voltage() const;
   int get_temperature() const;
-  double get_info();
+  void get_info() const;
   
   static std::vector<cJoint> &init();
 	static void sync_torque();

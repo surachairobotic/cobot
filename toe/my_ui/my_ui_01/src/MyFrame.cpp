@@ -27,6 +27,7 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
 /*	, joint_state_pub(nh_.advertise<sensor_msgs::JointState>("/move_group/fake_controller_joint_states", 1))
 */
 	, joint_debug_publisher_(nh_.advertise<sensor_msgs::JointState>("/my_ui/joint_solution", 1))
+	, trigger_pub(nh_.advertise<std_msgs::Bool>("/cobot/trigger", 1))
 {
 	ROS_WARN("Frame");
   ui_->setupUi(this);
@@ -66,6 +67,8 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
   connect(ui_->btnUpRX, SIGNAL(clicked()), this, SLOT(upRXClicked()));
   connect(ui_->btnUpRY, SIGNAL(clicked()), this, SLOT(upRYClicked()));
   connect(ui_->btnUpRZ, SIGNAL(clicked()), this, SLOT(upRZClicked()));
+
+  connect(ui_->btn_send_signal, SIGNAL(clicked()), this, SLOT(triggerClicked()));	
 
   connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));	
   connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));
@@ -485,7 +488,7 @@ void MyFrame::pubCurrentRobotState(std::vector<double>& vPosition)
 	msgJoint.name = planning_display_->sJointsName;
 	msgJoint.position = vPosition;
 	std::vector<double> velocity;
-	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.7);
+	for(int i=0; i<vPosition.size(); i++)	velocity.push_back(0.5);
 	msgJoint.velocity = velocity;
   joint_state_pub.publish(msgJoint);
 }

@@ -135,7 +135,7 @@ void MyFrame::configureWorkspace()
 void MyFrame::executeButtonClicked()
 {
 	ROS_INFO("executeButtonClicked() !!!");
-  ui_->execute_button->setEnabled(false);
+//  ui_->execute_button->setEnabled(false);
   // execution is done in a separate thread, to not block other background jobs by blocking for synchronous execution
   planning_display_->spawnBackgroundJob(boost::bind(&MyFrame::sendExecuteCommand, this));
 }

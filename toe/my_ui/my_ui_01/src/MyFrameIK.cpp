@@ -135,6 +135,9 @@ void MyFrame::pub_jog_robot_state(geometry_msgs::Pose pose)
 	}
 	ROS_INFO("Check2 : %lf, %lf, %lf, %lf, %lf, %lf", ik_seed_state[0], ik_seed_state[1], ik_seed_state[2], ik_seed_state[3], ik_seed_state[4], ik_seed_state[5]);
 */
+/*  std::vector<geometry_msgs::Pose> fkk = coco.computeFK(solution);
+  ROS_INFO("coco.computeFK : %lf, %lf, %lf | %lf, %lf, %lf, %lf", fkk[0].position.x, fkk[0].position.y, fkk[0].position.z, fkk[0].orientation.x, fkk[0].orientation.y, fkk[0].orientation.z, fkk[0].orientation.w);
+*/
 	pubCurrentRobotState(solution);
 }
 

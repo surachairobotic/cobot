@@ -15,6 +15,8 @@
 
 #include <cstddef>
 
+#include "cobot_plan_control/tcp_client.h"
+
 template <typename Container>
 Container& split(
   Container&                            result,
@@ -41,6 +43,7 @@ Container& split(
   return result;
 }
 
+tcpClient client;
 cControl *p_control = NULL;
 ros::Publisher pub_plan;
 
@@ -94,6 +97,7 @@ int main(int argc, char **argv)
 //      return -1;
     }
 
+    client.init();
     control.init();
     ros::NodeHandle n;
     ros::Subscriber sub_pose = n.subscribe("/cobot/pose", 1000, pose_callback);
@@ -182,6 +186,11 @@ void execute_callback(const std_msgs::Bool exe)
   ROS_INFO("execute_callback");
   if(exe.data)
     move_trajectory(*p_control);
+  std::string str = "+";
+  if(client.tcpWrite(str))
+    ROS_INFO("tcpWrite is true");
+  else
+    ROS_INFO("tcpWrite is false");
 }
 
 void pose_callback(const geometry_msgs::PoseArray& msg) {

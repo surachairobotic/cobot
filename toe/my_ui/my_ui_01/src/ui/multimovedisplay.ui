@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>2</number>
+    <number>3</number>
    </property>
    <property name="documentMode">
     <bool>false</bool>
@@ -753,6 +753,19 @@
     <attribute name="title">
      <string>Program</string>
     </attribute>
+    <widget class="QPushButton" name="btn_send_signal">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>150</y>
+       <width>331</width>
+       <height>211</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>trigger</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QWidget" name="tab_installation">
     <attribute name="title">
@@ -923,7 +936,7 @@
       <item>
        <widget class="QPushButton" name="execute_button">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>&amp;Execute</string>
@@ -1196,7 +1209,7 @@
         <x>10</x>
         <y>30</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
@@ -1272,7 +1285,7 @@
         <x>10</x>
         <y>60</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1327,7 +1340,7 @@
         <x>10</x>
         <y>90</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -1382,7 +1395,7 @@
         <x>10</x>
         <y>120</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -1437,7 +1450,7 @@
         <x>10</x>
         <y>150</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -1492,7 +1505,7 @@
         <x>10</x>
         <y>180</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_7">
@@ -1582,7 +1595,7 @@
         <x>10</x>
         <y>240</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_8">
@@ -1637,7 +1650,7 @@
         <x>10</x>
         <y>270</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -1692,7 +1705,7 @@
         <x>10</x>
         <y>300</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_12">
@@ -1747,7 +1760,7 @@
         <x>10</x>
         <y>330</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_13">
@@ -1802,7 +1815,7 @@
         <x>10</x>
         <y>360</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_14">
@@ -1857,7 +1870,7 @@
         <x>10</x>
         <y>390</y>
         <width>201</width>
-        <height>24</height>
+        <height>27</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_16">
