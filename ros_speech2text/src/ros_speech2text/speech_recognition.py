@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import os
 import io
@@ -192,13 +193,16 @@ class SpeechRecognizer(object):
         event_msg = self.get_event_base_message(event.DECODED, utterance_id)
         event_msg.transcript = transcript_msg
         if self.print_level > 0:
-            rospy.loginfo("{} [confidence: {}]".format(transcription, confidence))
+            print(transcription)
+            print(confidence)
+            #rospy.loginfo("{} [confidence: {}]".format(transcription, confidence))
         self.pub_transcript.publish(transcript_msg)
         self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
-        self.csv_writer.writerow([
-            start_time, end_time, transcript_msg.speech_duration,
-            transcription, confidence])
+#        self.csv_writer.writerow([
+#            start_time, end_time, transcript_msg.speech_duration,
+#            transcription, confidence])
+#        print('9')
 
     def utterance_failed(self, utterance_id, start_time, end_time):
         if self.print_level > 1:
@@ -258,14 +262,22 @@ class SpeechRecognizer(object):
             config = types.RecognitionConfig(
               encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
               sample_rate_hertz=self.sample_rate,
-              language_code='en-US',
+              language_code='th',
               max_alternatives=6,
               speech_contexts=[ types.SpeechContext
                               ( phrases=
-                              ['number', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'number one', 'number two', 'number three', 'number four', 'number five', 'number six', 'number seven', 'number eight', 'number nine', 'number ten'
+                              ['กล่อง', 'หนึ่ง', 'สอง', 'สาม', 'หยิบ', 'เลข', 'กล่องเลข', 'กล่องเลขหนึ่ง', 'กล่องเลขสอง', 'กล่องเลขสาม'
                               ],
                               )
                               ]
+
+
+#              speech_contexts=[ types.SpeechContext
+#                              ( phrases=
+#                              ['number', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'number one', 'number two', 'number three', 'number four', 'number five', 'number six', 'number seven', 'number eight', 'number nine', 'number ten'
+#                              ],
+#                              )
+#                              ]
               )
 #            audio_sample = self.speech_client.sample(
 #                content,
@@ -304,12 +316,33 @@ class SpeechRecognizer(object):
                         rospy.loginfo("operation.results = %d", len(operation.results));
                         for result in operation.results:
                             rospy.loginfo("result.alternatives = %d", len(result.alternatives));
+                            what_number = [0.0]*3
                             for i in range(len(result.alternatives)):
                                 self.utterance_decoded(utterance_id, 
                                                        result.alternatives[i].transcript,
                                                        result.alternatives[i].confidence,
                                                        start_time,
                                                        end_time)
+                                print('aaa')
+                                if result.alternatives[i].transcript.find(u'หนึ่ง') != -1 or result.alternatives[i].transcript.find('1') != -1:
+                                  what_number[0] = what_number[0] + 1
+                                if result.alternatives[i].transcript.find(u'สอง') != -1 or result.alternatives[i].transcript.find('2') != -1:
+                                  what_number[1] = what_number[1] + 1
+                                if result.alternatives[i].transcript.find(u'สาม') != -1 or result.alternatives[i].transcript.find('3') != -1:             
+                                  what_number[2] = what_number[2] + 1
+                                if result.alternatives[i].transcript.find(u'ึ') != -1:
+                                  what_number[0] = what_number[0] + 0.01
+                                if result.alternatives[i].transcript.find(u'า') != -1:
+                                  what_number[2] = what_number[2] + 0.01
+                                print('bbb')
+                            print(what_number)
+                            if (what_number[0]+what_number[1]+what_number[2]) > 0:
+                              if what_number[0] > what_number[1] and what_number[0] > what_number[2]:
+                                rospy.loginfo('Number One');
+                              elif what_number[1] > what_number[0] and what_number[1] > what_number[2]:
+                                rospy.loginfo('Number Two');
+                              elif what_number[2] > what_number[0] and what_number[2] > what_number[1]:
+                                rospy.loginfo('Number Three');
                         self.operation_queue.remove(op)
                     else:
                         try:

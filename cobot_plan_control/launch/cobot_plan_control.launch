@@ -1,4 +1,7 @@
 <launch>
+  <node name="gpio_server" pkg="cobot_plan_control" type="gpio_server" respawn="false" output="screen" launch-prefix="sudo">
+  </node>
+
   <node name="cobot_plan_control" pkg="cobot_plan_control" type="cobot_plan_control" respawn="false" output="screen" launch-prefix="gdb -ex run - -args">
     <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
   </node>
