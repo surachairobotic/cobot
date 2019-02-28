@@ -2,7 +2,7 @@
   <param name="/use_sim_time" value="false"/>
   <arg name="reso_x"              default="1280"/>
   <arg name="reso_y"              default="720"/>
-  <arg name="fps"              default="6"/>
+  <arg name="fps"                 default="6"/>
   
   <arg name="serial_no"           default=""/>
   <arg name="json_file_path"      default=""/>

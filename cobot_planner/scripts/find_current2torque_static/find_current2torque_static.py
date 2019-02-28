@@ -65,7 +65,10 @@ class LSM:
   def fit_a(self,x,y):
     xy = np.sum(x*y)
     xx = np.sum(x*x)
-    a = xy / (2.0*xx)
+    if abs(xx)<0.000001:
+      a = 0.0
+    else:
+      a = xy / (2.0*xx)
     return a,0.0
 
   def get_error(self,x,y,a,b):
@@ -316,7 +319,7 @@ def test_equation(n_joint, ab):
   
 
 if __name__ == "__main__":
-  n_joint = 4
+  n_joint = 0
   fname = 'torque_j' + str(n_joint+1) + '/set_1/torque_j'+str(n_joint+1)+'_all.txt'
   ab = find_equation(fname, n_joint, 100) # find a,b
   test_equation(n_joint, ab) # test a,b with other dataset
