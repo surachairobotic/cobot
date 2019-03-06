@@ -6,7 +6,7 @@
 struct tConfig{
 
   bool load_mode, show_result, save_mode, action_server_mode;
-  std::string save_file_prefix;
+  std::string save_file_prefix, result_save_path;
 
   int chess_num[2], plane_ransac_repeat_time, bruteforce_num, object_type;
   double chess_size[2], chess_pos[4][3], plane_ransac_th_error, bruteforce_range;
@@ -14,6 +14,7 @@ struct tConfig{
   tConfig():
     load_mode(false), show_result(false), save_mode(false), action_server_mode(false)
     , save_file_prefix("/home/tong/catkin_ws/src/cobot/cobot_pick/src/data/calibrate")
+    , result_save_path("/home/tong/catkin_ws/src/cobot/cobot_pick/src/results")
     , plane_ransac_repeat_time(1000), plane_ransac_th_error(0.002)
     , chess_num{0}, chess_size{0.0}
     , chess_pos{{0.0}}

@@ -85,6 +85,7 @@ bool find_corners(const cv::Mat &src, std::vector<cv::Point2f> &corners){
 
   if( config.show_result ){
     cv::drawChessboardCorners(img_pat, chess_num, cv::Mat(corners), true);
+    cv::imwrite(config.result_save_path + "_corners.bmp", img_pat);
     cv::imshow("pat", img_pat);
   }
 
@@ -303,6 +304,8 @@ void find_plane(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
     p1.x *= k;
     p1.y *= k;
     p1.z *= k;
+    
+    printf("corners_3d[%d] : %.3lf %.3lf, %.3lf\n", i, p1.x, p1.y, p1.z);
 
     // check if the point is really on the plane
     {
@@ -653,6 +656,13 @@ int main(int argc, char **argv)
       nh.deleteParam("save_file_prefix");
       config.save_file_prefix = str;
     }
+    if (nh.getParam("result_save_path", str))
+    {
+      nh.deleteParam("result_save_path");
+      config.result_save_path = str;
+    }
+    
+    
     if (nh.getParam("show_result", b))
     {
       nh.deleteParam("show_result");
@@ -715,6 +725,20 @@ int main(int argc, char **argv)
     {
       nh.deleteParam("bruteforce_num");
       config.bruteforce_num = i;
+    }
+    
+    if (nh.getParam("object_type", str))
+    {
+      nh.deleteParam("object_type");
+      if (str == "box")
+        config.object_type = OBJECT_BOX;
+      else if (str == "basket")
+        config.object_type = OBJECT_BASKET;
+      else
+      {
+        ROS_ERROR("Invalid object_type : %s", str.c_str());
+        return false;
+      }
     }
   }
 //  create_chess_pos();

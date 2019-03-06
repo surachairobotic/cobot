@@ -46,7 +46,14 @@ def rz(q):
     [s, c, 0],
     [0, 0, 1],
   ])
-  
+
+
+def get_R(off_bq):
+  Rx = rx( off_bq[0] )
+  Ry = ry( off_bq[1] )
+  return Ry*Rx
+
+
 '''
 def find_err_all_thread(pos, xyz_ref, off_q, off_x, dq, dqmax, dx, dxmax, data, results):
   best_score = 999999999.0
@@ -91,7 +98,7 @@ def find_err_all_thread(pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax
 
   
   cnt = 0
-  n_all = 1.0/float( (thread_range[1]-thread_range[0])*nq**4*nx**3*nbq**3)
+  n_all = 1.0/float( (thread_range[1]-thread_range[0])*nq**4*nx**3*nbq**2)
   param = np.array([0.0]*12)
   bq = param[0:3]
   q = param[3:9]
@@ -103,42 +110,40 @@ def find_err_all_thread(pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax
       for bqy in range(nbq):
         bq[1] = dbq*bqy - dbqmax + off_bq[1]
         Ry = ry( bq[1] )
-        for bqz in range(nbq):
-          bq[2] = dbq*bqz - dbqmax + off_bq[2]
-          Rz = rz( bq[2] )
-          R = Rz*Ry*Rx
-          for q1 in range(thread_range[0], thread_range[1]):
-            q[0] = dq*q1 - dqmax + off_q[0]
-            for q2 in range(nq):
-              q[1] = dq*q2 - dqmax + off_q[1]
-              for q3 in range(nq):
-                q[2] = dq*q3 - dqmax + off_q[2]
-                for q4 in range(nq):
-                  q[3] = dq*q4 - dqmax + off_q[3]
-                  for q5 in range(nq):
-                    q[4] = dq*q5 - dqmax + off_q[4]
-                    for x in range(nx):
-                      xyz[0] = dx*x - dxmax + off_x[0]
-                      for y in range(nx):
-                        xyz[1] = dx*y - dxmax + off_x[1]
-                        for z in range(nx):
-                          xyz[2] = dx*z - dxmax + off_x[2]
-                          cnt+=1
-                          score = 0.0
-                          for i in range(len(pos)):
-                            for p2 in pos[i]:
-                              e = R.dot( get_xyz(p2[0:6]+q) ) + xyz - xyz_ref[i]
-                              for j in range(3):
-                                score+= e[j]**2
-                          score = math.sqrt( score/(len(pos)*len(pos[0])) )
-                          if score < best_score:
-                            best_score = score
-                            best_q = copy.deepcopy(q)
-                            best_xyz = copy.deepcopy(xyz)
-                            best_bq = copy.deepcopy(bq)
-                            s = ('[%d:%d] %.2f : %.3f : ' % (thread_range[0],thread_range[1], cnt*n_all, best_score)) + str(param)
-                            print(s)
-                            f.write( s + '\n' )
+        R = Ry*Rx
+        for q1 in range(thread_range[0], thread_range[1]):
+          q[0] = dq*q1 - dqmax + off_q[0]
+          for q2 in range(nq):
+            q[1] = dq*q2 - dqmax + off_q[1]
+            for q3 in range(nq):
+              q[2] = dq*q3 - dqmax + off_q[2]
+              for q4 in range(nq):
+                q[3] = dq*q4 - dqmax + off_q[3]
+                for q5 in range(nq):
+                  q[4] = dq*q5 - dqmax + off_q[4]
+                  for x in range(nx):
+                    xyz[0] = dx*x - dxmax + off_x[0]
+                    for y in range(nx):
+                      xyz[1] = dx*y - dxmax + off_x[1]
+                      for z in range(nx):
+                        xyz[2] = dx*z - dxmax + off_x[2]
+                        cnt+=1
+                        score = 0.0
+                        for i in range(len(pos)):
+                          for p2 in pos[i]:
+                            e = R.dot( get_xyz(p2[0:6]+q) ) + xyz - xyz_ref[i]
+                            for j in range(3):
+                              score+= e[j]**2
+                        score = math.sqrt( score/(len(pos)*len(pos[0])) )
+                        if score < best_score:
+                          best_score = score
+                          best_q = copy.deepcopy(q)
+                          best_xyz = copy.deepcopy(xyz)
+                          best_bq = copy.deepcopy(bq)
+                          s = ('[%d:%d] %.2f : %.3f : ' % (thread_range[0],thread_range[1], cnt*n_all, best_score)) + str(param)
+                          print(s)
+                          f.write( s + '\n' )
+        print('prog [%d:%d] %.2f' % (thread_range[0],thread_range[1], cnt*n_all))
 #  results.append( [best_q, best_xyz, best_score] )
   print('[%d:%d] end' % (thread_range[0],thread_range[1]))
   results.put([best_q, best_xyz, best_bq, best_score])
@@ -179,14 +184,12 @@ def find_err_all_multithread( pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx,
     th.start()
 #  for th in ths:
 #    th.join()
-  while not b_exit and len(results)!=n_thread:
+  while len(results)!=n_thread:
     for q in queues:
       r = q.get()
       if r:
         results.append(r)
     time.sleep(1.0)
-  if b_exit:
-    return None
   best_r = None
   for r in results:
     print(r)

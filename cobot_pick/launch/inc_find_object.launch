@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.378692 -0.165606 0.474361 0.870266 0.415165 -0.086702 -0.250513" />
+  <arg name="tf_world2camera" default="0.377848 -0.163715 0.474863 0.889316 0.397269 -0.119195 -0.192581" />
   <arg name="mode" default="action" />
   <arg name="object_type" default="box" />
   <arg name="save_file_prefix" default="tmp" />
