@@ -4,7 +4,7 @@
   <arg name="reso_y"              default="720"/>
   <arg name="fps"                 default="6"/>
   
-  <arg name="serial_no"           default=""/>
+  <arg name="serial_no"           default="823112060071"/>
   <arg name="json_file_path"      default=""/>
   <arg name="camera"              default="camera"/>
   <arg name="tf_prefix"           default="$(arg camera)"/>
