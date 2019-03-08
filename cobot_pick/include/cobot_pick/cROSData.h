@@ -6,6 +6,7 @@
 #include "ros/ros.h"
 #include <image_geometry/pinhole_camera_model.h>
 #include <assert.h>
+#include <unistd.h>
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/RegionOfInterest.h"
 #include "sensor_msgs/Image.h"
@@ -15,14 +16,20 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+const std::string file_suffix_img = "_img"
+  , file_suffix_cam_info = "_cam_info"
+  , file_suffix_pc = "_pc"
+  , file_suffix_depth = "_depth"
+  , file_suffix_col = "_col"
+  , file_ext = ".bin";
+
+
 class cROSData{
 protected:
   bool b_saved;
   ros::Subscriber sub;
   std::string name_ext;
   static ros::NodeHandle *p_nh;
-
-  const std::string get_file_name(){ return (config.save_file_prefix+name_ext); }
 
   // write
   template<typename T>
@@ -95,6 +102,7 @@ public:
 
   inline bool is_saved(){ return b_saved; }
   inline void reset_saved(){ b_saved = false; }
+  inline const std::string get_file_name() const { return (config.save_file_prefix+name_ext); }
 
   static inline void set_nh(ros::NodeHandle &nh){ p_nh = &nh; }
   static void save_mode();
@@ -109,7 +117,7 @@ public:
   sensor_msgs::CameraInfo msg;
 
 
-  cROSCameraInfo():cROSData("_cam_info.bin"){}
+  cROSCameraInfo():cROSData(file_suffix_cam_info + file_ext){}
 
   bool save(const sensor_msgs::CameraInfo& msg, const char *fname=NULL){
     FILE *fp;
@@ -181,7 +189,7 @@ public:
   sensor_msgs::Image msg;
 
 
-  cROSImage():cROSData("_img.bin"){}
+  cROSImage():cROSData(file_suffix_img + file_ext){}
   cROSImage(const std::string &_name):cROSData(_name){}
 
   bool save(const sensor_msgs::Image& msg, const char *fname=NULL){
@@ -247,7 +255,7 @@ public:
   sensor_msgs::PointCloud2 msg;
 
 
-  cROSPointCloud():cROSData("_pc.pcd"){}
+  cROSPointCloud():cROSData(file_suffix_pc + file_ext){}
 
   bool save(const sensor_msgs::PointCloud2& msg, const char *fname=NULL){
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
@@ -278,7 +286,8 @@ public:
 };
 
 cROSCameraInfo ros_cam_info;
-cROSImage ros_depth("_depth.bin"), ros_col("_col.bin");
+cROSImage ros_depth(file_suffix_depth + file_ext)
+  , ros_col(file_suffix_col + file_ext);
 cROSPointCloud ros_pc;
 ros::NodeHandle *cROSData::p_nh = NULL;
 
@@ -312,6 +321,38 @@ void cROSData::stop_sub(){
 
 void cROSData::save_mode(){
   ROS_INFO("save mode ...");
+  
+  const std::string *suffix[] = { &file_suffix_img
+  , &file_suffix_cam_info
+  , &file_suffix_pc
+  , &file_suffix_depth
+  , &file_suffix_col };
+  
+  int n = sizeof(suffix) / sizeof(std::string*);
+  int cnt = 1;
+  bool b_exist;
+  char str[256];
+  do{
+    b_exist = false;
+    for(int i=0;i<n;i++){
+      sprintf(str, "%s_%02d%s%s", config.save_file_prefix.c_str()
+        , cnt
+        , suffix[i]->c_str()
+        , file_ext.c_str());
+      printf("file : %s\n", str);
+      if( access( str, F_OK ) != -1 ) {
+        printf("file ex : %s\n", str);
+        b_exist = true;
+        cnt++;
+        break;
+      }
+    }
+    assert( cnt<100 );
+  }
+  while(b_exist);
+  sprintf(str, "%s_%02d", config.save_file_prefix.c_str(), cnt);
+  config.save_file_prefix = str;
+  printf("save prefix : %s\n", config.save_file_prefix.c_str());
   start_sub();
 }
 
