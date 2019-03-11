@@ -17,7 +17,8 @@ import eq
 import set_const
 import copy
 import multiprocessing as mp
-from calibrate_chess import get_xyz
+
+get_xyz = None
 
 
 def rx(q):
@@ -51,7 +52,7 @@ def rz(q):
 def get_R(off_bq):
   Rx = rx( off_bq[0] )
   Ry = ry( off_bq[1] )
-  return Ry*Rx
+  return Ry.dot(Rx)
 
 
 '''
@@ -84,7 +85,7 @@ def find_err_all_thread(pos, xyz_ref, off_q, off_x, dq, dqmax, dx, dxmax, data, 
 '''
 
 def find_err_all_thread(pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax, dbq, dbqmax, thread_range, results):
-  global b_exit
+  global get_xyz
   best_score = 999999999.0
   nq = int(dqmax*2 / dq)
   nbq = int(dbqmax*2 / dbq)
@@ -103,14 +104,14 @@ def find_err_all_thread(pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax
   bq = param[0:3]
   q = param[3:9]
   xyz = param[9:12]
-  with open('calib_result_%d_%d.txt' % (thread_range[0], thread_range[1]), 'at') as f:
+  with open('./results/calib_result_%d_%d.txt' % (thread_range[0], thread_range[1]), 'at') as f:
     for bqx in range(nbq):
       bq[0] = dbq*bqx - dbqmax + off_bq[0]
       Rx = rx( bq[0] )
       for bqy in range(nbq):
         bq[1] = dbq*bqy - dbqmax + off_bq[1]
         Ry = ry( bq[1] )
-        R = Ry*Rx
+        R = Ry.dot(Rx)
         for q1 in range(thread_range[0], thread_range[1]):
           q[0] = dq*q1 - dqmax + off_q[0]
           for q2 in range(nq):
@@ -149,7 +150,10 @@ def find_err_all_thread(pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax
   results.put([best_q, best_xyz, best_bq, best_score])
 
 
-def find_err_all_multithread( pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax, dbq, dbqmax):
+def find_err_all_multithread( _get_xyz, pos, xyz_ref, off_q, off_x, off_bq, dq, dqmax, dx, dxmax, dbq, dbqmax):
+  global get_xyz
+  get_xyz = _get_xyz
+  
   best_score = 999999999.0
   nq = int(dqmax*2 / dq)
   nbq = int(dbqmax*2 / dbq)
