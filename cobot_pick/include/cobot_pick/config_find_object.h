@@ -46,7 +46,8 @@ struct tConfig{
     , plane_ransac_th_error, text_binarize_subtract, text_ransac_th_error
     , min_label_ratio, max_label_ratio, dis_remove_edge, label_multiply_rgb, pc_dis2plane
     , box_size_x, box_size_y, box_size_z, box_label_shift_x
-    , basket_size_x, basket_size_y, basket_size_z;
+    , basket_size_x, basket_size_y, basket_size_z
+    , label_width, label_height, label_size_error;
     
   tf::Transform tf_cam;
 
@@ -94,9 +95,14 @@ struct tConfig{
     , box_size_y(0.07)
     , box_size_z(0.03)
     , box_label_shift_x(0.03)
+    
     , basket_size_x(0.17)
     , basket_size_y(0.11)
     , basket_size_z(0.05)
+
+    , label_width(0.022)
+    , label_height(0.012)
+    , label_size_error(0.004)
     {}
 } config;
 
@@ -327,6 +333,8 @@ bool get_config(){
     nh.deleteParam("box_label_shift_x");
     config.box_label_shift_x = d;
   }
+  
+  
   if (nh.getParam("basket_size_x", d))
   {
     nh.deleteParam("basket_size_x");
@@ -341,6 +349,21 @@ bool get_config(){
   {
     nh.deleteParam("basket_size_z");
     config.basket_size_z = d;
+  }
+  if (nh.getParam("label_width", d))
+  {
+    nh.deleteParam("label_width");
+    config.label_width = d;
+  }
+  if (nh.getParam("label_height", d))
+  {
+    nh.deleteParam("label_height");
+    config.label_height = d;
+  }
+  if (nh.getParam("label_size_error", d))
+  {
+    nh.deleteParam("label_size_error");
+    config.label_size_error = d;
   }
   
   if (nh.getParam("tf_world2camera", str))
@@ -463,6 +486,9 @@ bool get_config(){
   ROS_INFO("basket_size_x : %.3lf", config.basket_size_x);
   ROS_INFO("basket_size_y : %.3lf", config.basket_size_y);
   ROS_INFO("basket_size_z : %.3lf", config.basket_size_z);
+  ROS_INFO("label_width : %.3lf", config.label_width);
+  ROS_INFO("label_height : %.3lf", config.label_height);
+  ROS_INFO("label_size_error : %.3lf", config.label_size_error);
 
   
   {

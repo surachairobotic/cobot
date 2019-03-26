@@ -43,6 +43,9 @@
     <param name="basket_size_x" value="0.17"/>
     <param name="basket_size_y" value="0.11"/>
     <param name="basket_size_z" value="0.05"/>
+    <param name="label_width" value="0.045"/>
+    <param name="label_height" value="0.03"/>
+    <param name="label_size_error" value="0.005"/>
     
     
 <!--    <param name="plane_reg_min" value="6000"/>

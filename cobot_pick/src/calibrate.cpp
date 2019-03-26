@@ -794,6 +794,7 @@ int main(int argc, char **argv)
   if( config.show_result ){
     pcl::toROSMsg(cloud_rgb, ros_pc.msg);
     ros_pc.msg.header.frame_id = FRAME_CAMERA;
+    cv::imwrite(config.result_save_path + "_calib.bmp", p_img_col->image);
   }
 
   std::vector<cv::Point2f> corners;
@@ -812,7 +813,7 @@ int main(int argc, char **argv)
   tf2_ros::StaticTransformBroadcaster br;
 
   transform.header.stamp = ros::Time::now();
-  transform.header.frame_id = FRAME_CAMERA;
+  transform.header.frame_id = FRAME_WORLD;
   transform.child_frame_id = FRAME_CAMERA;
   br.sendTransform(transform);
   while (ros::ok())

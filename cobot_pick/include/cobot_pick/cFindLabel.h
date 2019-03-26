@@ -112,7 +112,7 @@ private:
     return best_cnt>0;
   }
 
-  void ransac_3d(const tRegInfo &r
+  bool ransac_3d(const tRegInfo &r
         , const pcl::PointCloud<pcl::PointXYZRGB> &cloud
         , cPlane &best_plane ){
 
@@ -174,9 +174,24 @@ private:
             } while (!b_ok && --cnt >= 0);
             if (!b_ok)
             {
-              assert(cnt2 >= 0);
+              if( --cnt2>=0 ){
+                b_ok2 = false;
+                break;
+              }
+              else
+                return false;
+              /*
+              cv::Mat img( h, w, CV_8UC1 );
+              for(int i=h-1;i>=0;i--){
+                unsigned char *p = img.data + img.step * i;
+                for(int j=w-1;j>=0;j--){
+                  p[j] = IS_VALID_POINT(pnts[i*w + j]) ? 255 : 0;
+                }
+              }
+              cv:imwrite(config.result_save_path + "valid_pc.bmp", img);
+              assert(--cnt2 >= 0);
               b_ok2 = false;
-              break;
+              break;*/
             }
           }
         } while (!b_ok2);
@@ -225,6 +240,7 @@ private:
         }
       }
     }
+    return true;
   }
 public:
   std::vector<visualization_msgs::Marker> pick_markers, frame_markers
@@ -504,19 +520,29 @@ public:
         cv::flip( img_text, img_flip, -1);
         cv::Mat *pi[2] = {&img_text, &img_flip};
         cv::Mat img_gray = cv::Mat( img_text.size(), CV_8UC1)
+          , img_gray2 = cv::Mat( img_text.size(), CV_8UC1)
           , img_gray_resize;
         int n_label = 0;
         const int MEAN = config.label_mean_rgb;
         for(int k=1;k>=0;k--){
-          cv::cvtColor( *pi[k], img_gray, cv::COLOR_BGR2GRAY);
-          for(int i=img_gray.rows-1;i>=0;i--){
+          cv::cvtColor( *pi[k], img_gray2, cv::COLOR_BGR2GRAY);          
+          cv::threshold(img_gray2, img_gray, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+          /*for(int i=img_gray.rows-1;i>=0;i--){
             unsigned char *p = img_gray.data + i*img_gray.step;
             for(int j=img_gray.cols-1;j>=0;j--){
               int v = config.label_multiply_rgb*(p[j]-MEAN) + MEAN;
               p[j] = v<0 ? 0 : (v>255 ? 255 : v);
             }
+          }*/
+          {
+            // resize label
+            const int label_h = 30
+              , label_w = config.label_width * label_h / config.label_height;
+            
+            cv::resize(img_gray, img_gray_resize
+              , cv::Size( label_w, label_h ));
           }
-          cv::resize(img_gray, img_gray_resize, cv::Size( 55, 30 ));
+//          cv::resize(img_gray, img_gray_resize, cv::Size( 55, 30 ));
           ocr.get_text(img_gray_resize);
 
           for(int i=0;i<ocr.confs.size();i++){
@@ -572,10 +598,28 @@ public:
 
           if( n_label>0 ){
             cPlane plane(&r);
-            ransac_3d( r, cloud, plane );
+            if( !ransac_3d( r, cloud, plane ) ){
+              printf("Label too few valid points [%d]\n", ir);
+              continue;
+            }
             plane.set_flip( k==1 );
             plane.find_center_frames( warp_src);
             plane.set_label( n_label );
+            
+            //  label size
+            {
+              double dis[2];
+              for(int i=0;i<2;i++){
+                dis[i] = sqrt( DIS2( plane.frames[i+1], plane.frames[i] ));
+              }
+              printf("** label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
+              if( fabs(dis[0] - config.label_width) > config.label_size_error
+                || fabs(dis[1] - config.label_height) > config.label_size_error){
+                printf("invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
+                continue;
+              }
+            }
+            
             if( config.object_type==OBJECT_BOX ){
               plane.find_max_height(cloud, warp_src
                 , config.pc_dis2plane, config.find_plane_radius);

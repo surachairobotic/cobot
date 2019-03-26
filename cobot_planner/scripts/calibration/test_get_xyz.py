@@ -11,8 +11,9 @@ import eq
 import set_const
 import numpy as np
 
-off_q = np.array([-0.038397, 0.010472, -0.012218, -0.008727, 0.008727, 0.000000])
-off_bq = np.array([0.003491, 0.013963, 0.000000])
+off_q = np.array([-0.042760, 0.014835, -0.012218, -0.008727, 0.008727, 0.000000])
+off_x = np.array([0.000000, 0.000500, -0.001000])
+off_bq = np.array([0.001309, 0.007854, 0.000000])
 off_R = None
 L6 = np.array( set_const.L[6]+[1.0] )
 

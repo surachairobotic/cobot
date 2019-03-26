@@ -52,6 +52,9 @@
     <param name="text_ransac_th_error" value="0.5"/>
 
     <param name="th_region_color" value="2000"/>
+    <param name="label_width" value="0.022"/>
+    <param name="label_height" value="0.012"/>
+    <param name="label_size_error" value="0.004"/>
 
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
 
