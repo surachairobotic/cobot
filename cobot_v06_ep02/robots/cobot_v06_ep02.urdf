@@ -94,8 +94,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-1.5"
-      upper="1.5"
+      lower="-2.36"
+      upper="2.36"
       velocity="0" />
   </joint>
   <link
@@ -432,7 +432,7 @@
     name="J_tool"
     type="fixed">
     <origin
-      xyz="0 0 0.05"
+      xyz="0 0 0.081"
       rpy="0 0 0" />
     <parent
       link="L6" />

@@ -33,9 +33,10 @@ ros::Time t, t_callback, t_push;
 double timestamp = 0.0;
 FILE *_log;
 FILE *_cmd;
-std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
-std::vector<double> offset_2{-0.04363323,  0.038048,-0.00384,-0.036303,0.011519,0.0};
-//std::vector<double> offset{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+//std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
+//std::vector<double> offset_2{-0.04363323,  0.038048,-0.00384,-0.036303,0.011519,0.0};
+std::vector<double> offset_2{0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000};
+std::vector<double> offset{-0.042760, 0.014835, -0.012218, -0.008727, 0.008727, 0.000000};
 bool debug = false;
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg);
@@ -162,10 +163,41 @@ int main(int argc, char **argv)
     joint_state.effort.resize(joint_num);
 
     int seq = 0;
+
+/*
+    while(ros::ok()){
+      t = ros::Time::now();
+      dt = (t-t_prev).toSec();
+      if(dt > 3.0) break;
+    }
+
+    while(ros::ok()){
+      t = ros::Time::now();
+      dt = (t-t_prev).toSec();
+      if(dt > 2.5) {
+        for(int i=0; i<6; i++) {
+          //cJoint &j = joints[i];
+          ROS_INFO("ID[%d] : %s : 1", i, joints[i].get_name().c_str());
+          joints[i].write(22, 0);
+          ROS_INFO("ID[%d] : %s : 2", i, joints[i].get_name().c_str());
+          joints[i].write(6, 1);
+          ROS_INFO("ID[%d] : %s : 3", i, joints[i].get_name().c_str());
+          joints[i].write(31, 0);
+          ROS_INFO("ID[%d] : %s : 4", i, joints[i].get_name().c_str());
+          joints[i].write(22, 1);
+          joints[i].write(22, 1);
+        }
+        t_prev = ros::Time::now();
+      }
+    }
+*/
+
     while (ros::ok()){
       t = ros::Time::now();
       seq++;
+
       if( cJoint::sync_read() ){
+//      if( 0 ){
         dt = (t-t_prev).toSec();
 /*
         if( dt > 0.05 )
@@ -251,7 +283,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
   if(b_write)
     fprintf(_cmd, "%lf,", timestamp);
 
-  ROS_INFO("void control_callback frame_id : %s", msg->header.frame_id.c_str());
+//  ROS_INFO("void control_callback frame_id : %s", msg->header.frame_id.c_str());
 //	if(msg->position.size() == 6)
 //		ROS_INFO("Call1 : %lf, %lf, %lf, %lf, %lf, %lf", msg->position[0], msg->position[1], msg->position[2], msg->position[3], msg->position[4], msg->position[5]);
 	double pos[6];
@@ -469,7 +501,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& msg) {
 
   pub_return.publish(msg);
 //	debug = true;
-  ROS_INFO("end - control_callback");
+//  ROS_INFO("end - control_callback");
 //  ros::Time t2 = ros::Time::now();
 //  ROS_ERROR("Callback rate : %lf sec", (t2-t1).toSec());        
 }

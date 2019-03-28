@@ -1,2 +1,0 @@
-[TxRxResult] There is no status packet!
- /home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/src/cJoint_pro.cpp:413

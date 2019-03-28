@@ -10,7 +10,8 @@ public:
 
 std::vector<double> a, alpha, d, dh_theta, theta;
 double H_PI;
-std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.161};
+//std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.161};
+std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.111+0.081};
 
 CobotKinematic();
 std::vector<geometry_msgs::Pose> computeFK(std::vector<double> theta);

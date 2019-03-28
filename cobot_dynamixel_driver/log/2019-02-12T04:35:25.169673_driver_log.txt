@@ -1,1 +1,0 @@
-catch(int err) is 0

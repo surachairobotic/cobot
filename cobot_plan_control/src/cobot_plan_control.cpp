@@ -222,166 +222,6 @@ const moveit_msgs::RobotTrajectory& plan_line_two_pose(const geometry_msgs::Pose
 /////////////////////////////////////////////////////////////////////////////////////////
 bool move_trajectory(cControl &control) {
   printf("move_trajectory\n");
-//  FILE *fp1 = fopen( (result_dir + "move_cartesian.txt").c_str() , "wt");
-//  FILE *fp2 = fopen( (result_dir + "move_joint.txt").c_str() , "wt");
-  const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
-
-  char target_str[512];
-
-  ros::Rate r(100);
-  ros::Time t_start = ros::Time::now(), t_print = t_start, start_time, read_time, run_time;
-  
-  // set acc to 3.14 rad/sec^2
-  std::vector<double> acc(6);
-  for(int i=0;i<acc.size();i++)
-    acc[i] = M_PI;
-  control.set_acc(acc);
-
-	bool first_time = true;
-  sensor_msgs::JointState joint_state, j_state;
-  int i = 1;
-  trajectory_msgs::JointTrajectoryPoint p = traj.points[i];
-  geometry_msgs::Pose wp_pose, current_pose, ex_pose, pose, tmp_pose;
-	std::vector<double> wp_velo, mv_velo, wp_j_velo;
-  ros::Time t = ros::Time::now();
-
-	wp_j_velo.clear();
-	for(int i=0; i<p.velocities.size(); i++)
-		wp_j_velo.push_back(p.velocities[i]);
-
-  if( !control.wait_new_joint_state(&joint_state, 1.0) ) return false; // exit program if the new state does not come
-  control.get_cartesian_position(joint_state.position, current_pose);
-  control.get_cartesian_position(p.positions, wp_pose);
-  control.get_cartesian_velocity(p.positions, p.velocities, wp_velo);
-  control.get_cartesian_velocity(joint_state.position, joint_state.velocity, mv_velo);
-  std::vector<double> current_joint = control.get_current_joints();
-
-/////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////// Loop  ////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-  bool stop = false, b_jnt_state = false;
-	double dis_min, dt, limit_vel = M_PI / 2.0, sum, d_lab, d_time_move;
-	int j, k;
-  while( !stop && ros::ok() ) {
-    if( !control.wait_new_joint_state(&joint_state, 1.0) ) {
-			b_jnt_state = true;
-			goto LB_EXIT_MOVE; // exit program if the new state does not come
-		}
-
-		run_time = read_time;
-		read_time = ros::Time::now();
-		if(first_time) start_time = read_time;
-		d_lab = (read_time-run_time).toSec()*1000;
-		d_time_move = (read_time-start_time).toSec();
-		if(d_lab >= 42.5)
-			ROS_WARN("[%.2lf s.][%.2lf s.] : %.2lf ms.", p.time_from_start.toSec(), d_time_move, d_lab);
-		else
-			ROS_INFO("[%.2lf s.][%.2lf s.] : %.2lf ms.", p.time_from_start.toSec(), d_time_move, d_lab);
-
-    control.get_cartesian_position(joint_state.position, current_pose);
-	  control.get_cartesian_velocity(joint_state.position, joint_state.velocity, mv_velo);
-//		print_move_cartesian(fp1, p.time_from_start.toSec(), wp_pose.position, wp_velo, d_time_move, current_pose.position, mv_velo);
-
-		dis_min = 999.999;
-		dt = p.time_from_start.toSec() - d_time_move;
-		//ROS_INFO("dt, p.time, read-start | %lf, %lf, %lf", dt, p.time_from_start.toSec(), (read_time - start_time).toSec());
-		if(dt < 0.02) {
-			ROS_WARN("dt : %lf", dt);
-			dt = 0.02;
-		}
-
-		for(int i=0; i<p.accelerations.size(); i++)
-		  acc[i] = ( p.velocities[i]-joint_state.velocity[i] ) / dt;
-//		control.set_acc(acc);
-
-		for(int i=0; i<p.velocities.size(); i++) {
-			if( p.positions[i] > joint_state.position[i] )
-				p.velocities[i] = p.velocities[i] >= 0.0 ? p.velocities[i] : -p.velocities[i];
-			else
-				p.velocities[i] = p.velocities[i] >= 0.0 ? -p.velocities[i] : p.velocities[i];
-		}
-
-/*		for(int i=0; i<p.positions.size(); i++) {
-			ROS_INFO("distance[%d] : %lf", i, fabs(p.positions[i]-joint_state.position[i]) );
-			if( fabs(p.positions[i]-joint_state.position[i]) <= 0.001 )
-				p.velocities[i] = 0.0;
-		}
-*/
-//		print_move_joint_1(fp2, d_time_move, p.positions, wp_j_velo, joint_state.position, joint_state.velocity);
-
-//		print_move_joint_2(fp2, p.velocities);
-
-/*		for(int i=0; i<p.velocities.size(); i++)
-			p.velocities[i] = 0.0;
-		p.velocities[p.velocities.size()-1] = 0.5;
-		for(int i=0; i<p.accelerations.size(); i++)
-			p.accelerations[i] = M_PI;
-
-		ROS_INFO("vel : %lf, %lf, %lf, %lf, %lf, %lf", p.velocities[0], p.velocities[1], p.velocities[2], p.velocities[3], p.velocities[4], p.velocities[5]);
-		ROS_INFO("acc : %lf, %lf, %lf, %lf, %lf, %lf", p.accelerations[0], p.accelerations[1], p.accelerations[2], p.accelerations[3], p.accelerations[4], p.accelerations[5]);
-*/
-    control.move_velo_acc(p.velocities, acc);
-//    control.move_velo(p.velocities);
-
-/*		sum = 0.0;
-		do {
-		  if( !control.wait_new_joint_state(&j_state, 1.0) ) {
-				b_jnt_state = true;
-				goto LB_EXIT_MOVE; // exit program if the new state does not come
-			}
-			for(k=0; k<joint_state.position.size(); k++)
-				sum += fabs( joint_state.position[k] - j_state.position[k] );
-		} while(sum < 0.0001);
-*/
-		if(first_time) {
-			start_time = ros::Time::now();
-			first_time = false;
-		}
-
-		ROS_INFO("xyz[%.2lf %.2lf %.2lf]:[%.2lf %.2lf %.2lf]", wp_pose.position.x, wp_pose.position.y, wp_pose.position.z, current_pose.position.x, current_pose.position.y, current_pose.position.z);
-		ROS_INFO("dist : %lf", distance_point(current_pose, wp_pose));
-    if( distance_point(current_pose, wp_pose) < 0.015 ) {
-      if( i < traj.points.size()-1 ) {
-        i++;
-        p = traj.points[i];
-				wp_j_velo.clear();
-				for(int i=0; i<p.velocities.size(); i++)
-					wp_j_velo.push_back(p.velocities[i]);
-        control.get_cartesian_position(p.positions, wp_pose);
-				wp_velo.clear();
-			  control.get_cartesian_velocity(p.positions, p.velocities, wp_velo);
-      }
-      else
-        stop = true;
-    }
-  }
-
-LB_EXIT_MOVE:
-	if(!b_jnt_state) {
-		for(j=0; j<p.velocities.size(); j++)
-		  p.velocities[j] = 0.0;
-		control.move_velo(p.velocities);
-	}
-/*  if( fp1 )
-    fclose(fp1);
-  if( fp2 )
-    fclose(fp2);
-*/
-  printf("move_traj end\n");
-
-	return !b_jnt_state;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-/////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////// move_trajectory //////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-bool move_trajectory(cControl &control) {
-  printf("move_trajectory\n");
   const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
   int i=0;
   trajectory_msgs::JointTrajectoryPoint p = traj.points[i];
@@ -403,7 +243,7 @@ bool move_trajectory(cControl &control) {
   control.get_cartesian_velocity(p.positions, p.velocities, wp_vel);
 
   for(int i=0; i<6; i++)
-    wp_vel[i] = 0.1;
+    wp_vel[i] = 0.25;
   control.move_pos_velo(p.positions, wp_vel);
   ros::Time t = ros::Time::now();
 
@@ -436,7 +276,6 @@ LB_EXIT_MOVE:
 
 	return true;
 }
-*/
 
 double distance_point(geometry_msgs::Pose &p1, geometry_msgs::Pose &p2) {
   return sqrt((p1.position.x-p2.position.x)*(p1.position.x-p2.position.x)

@@ -87,7 +87,7 @@ private:
   static bool b_set_home;
 
 private:
-  void write(const int param, const int val);
+//  void write(const int param, const int val);
   int read(const int param) const;
   void setup();
 /*  void write1b(int addr, int val);
@@ -98,6 +98,7 @@ private:
   static void load_settings(const std::string &xml_file);
 
 public:
+  void write(const int param, const int val);
   cJoint();
   cJoint(int _id);
 	bool set_goal_torque(double torque);

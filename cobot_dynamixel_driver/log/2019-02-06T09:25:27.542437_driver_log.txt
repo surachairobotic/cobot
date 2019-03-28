@@ -1,2 +1,0 @@
-[RxPacketError] Hardware error occurred. Check the error at Control Table (Hardware Error Status)!
- /home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/src/cJoint_pro.cpp:672

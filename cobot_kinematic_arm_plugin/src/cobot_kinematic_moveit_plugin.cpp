@@ -165,7 +165,8 @@ class CobotKinematic : public kinematics::KinematicsBase
 
 public:
 
-	std::vector<double> L{0.184, 0.27203, 0.25, 0.0, 0.161};
+//	std::vector<double> L{0.184, 0.27203, 0.25, 0.0, 0.161};
+	std::vector<double> L{0.184, 0.27203, 0.25, 0.0, 0.111+0.081};
 	//std::vector<double> L{0.184, 0.27203, 0.25, 0.109, 0.12136};
 	std::vector<double> a, alpha, d, theta;
 	double H_PI;

@@ -3,7 +3,7 @@
 #include <cstring>
 
 bool tcpClient::init() {
-  portno = 2345;
+  portno = 2222;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) 
     printf("tcpClient::tcpClient() : ERROR opening socket\n");

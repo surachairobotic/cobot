@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
   struct hostent *server;
 
   char buffer[256];
-  portno = 2345;
+  portno = 2222;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) 
     error("ERROR opening socket");

@@ -212,8 +212,8 @@ if __name__ == '__main__':
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
 
-  mmin = [math.radians(-10), math.radians(-10), math.radians(-10), math.radians(-10), math.radians(-135), math.radians(-10)]
-  mmax = [math.radians(10), math.radians(10), math.radians(10), math.radians(10), math.radians(-105), math.radians(10)]
+  mmin = [math.radians(30), math.radians(-10), math.radians(-10), math.radians(-10), math.radians(-135), math.radians(-10)]
+  mmax = [math.radians(60), math.radians(10), math.radians(10), math.radians(10), math.radians(-105), math.radians(10)]
   speed = [math.radians(10), math.radians(10), math.radians(15), math.radians(15), math.radians(30), math.radians(0)]
   
   jntHome = JointState()
@@ -230,10 +230,16 @@ if __name__ == '__main__':
   rate = rospy.Rate(50) # 100hz
   stop = rospy.Rate(1) # 100hz
 
-  set_jnt(jntHome, pub)
+  jj = JointState()
+  jj.name = ['J6']
+  jj.position = []
+  jj.velocity = [1.0]
+  jj.effort = []
+  set_jnt(jj, pub)
   t_start = time.time()
-  while (time.time()-t_start) < 1.0 and not rospy.is_shutdown():
-    a=0
+#  while (time.time()-t_start) < 2.5 and not rospy.is_shutdown():
+  while not rospy.is_shutdown():
+    set_jnt(jj, pub)
     rate.sleep()
     
   jntGo = jntHome

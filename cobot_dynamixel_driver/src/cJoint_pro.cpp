@@ -162,7 +162,7 @@ bool cJoint::set_goal_torque(double torque) {
 }
 
 bool cJoint::set_goal_velo(double rad_per_sec){
-  ROS_INFO("cJoint::set_goal_velo()");
+//  ROS_INFO("cJoint::set_goal_velo()");
   int v = rad_per_sec * velo2val;
   b_goal_velo_acc = b_goal_pos_velo = b_goal_pos_velo_acc = b_goal_torque = false;
   if( v<-this->velocity_limit || v>this->velocity_limit){
@@ -790,7 +790,7 @@ void cJoint::sync_torque(){
 
 
 void cJoint::sync_velo(){
-  ROS_INFO("cJoint::sync_velo()");
+//  ROS_INFO("cJoint::sync_velo()");
   uint8_t velo_lh[4];
 
   for(int i=0;i<joints.size();i++) {
