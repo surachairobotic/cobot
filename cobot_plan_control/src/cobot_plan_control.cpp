@@ -308,6 +308,7 @@ void print_move_joint_1(FILE *fp, double t, const std::vector<double> &p_wp, con
 		fprintf(fp, " %lf", v_jnt[i]);
 	return ;
 }
+
 void print_move_joint_2(FILE *fp, const std::vector<double> &v_cal)
 {
 	for(int i=0; i<v_cal.size(); i++)
