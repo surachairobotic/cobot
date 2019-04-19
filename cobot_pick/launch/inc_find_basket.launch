@@ -2,6 +2,7 @@
   <arg name="tf_world2camera" default="0.434582 -0.319829 0.374980 0.652085 0.668506 -0.229838 -0.273970" />
   <arg name="mode" default="action" />
   <arg name="object_type" default="basket" />
+  <arg name="camera_frame_id" default="camera_basket" />
   <arg name="save_file_prefix" default="tmp" />
   <arg name="show_result" default="false" />
   <arg name="save_result" default="false" />
@@ -69,5 +70,5 @@
 
   </node>
   <node name="tf_realsense_basket" pkg="tf" type="static_transform_publisher" 
-    args="$(arg tf_world2camera) world camera 100" respawn="false" output="screen" />
+    args="$(arg tf_world2camera) world camera_basket 100" respawn="false" output="screen" />
 </launch>

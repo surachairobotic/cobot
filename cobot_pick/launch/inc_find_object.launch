@@ -1,6 +1,7 @@
 <launch>
   <arg name="tf_world2camera" default="0.377848 -0.163715 0.474863 0.889316 0.397269 -0.119195 -0.192581" />
   <arg name="mode" default="action" />
+  <arg name="camera_frame_id" default="camera_object" />
   <arg name="object_type" default="box" />
   <arg name="save_file_prefix" default="tmp" />
   <arg name="show_result" default="false" />
@@ -59,6 +60,6 @@
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
 
   </node>
-  <node name="tf_realsense" pkg="tf" type="static_transform_publisher" 
-    args="$(arg tf_world2camera) world camera 100" respawn="false" output="screen" />
+  <node name="tf_realsense_object" pkg="tf" type="static_transform_publisher" 
+    args="$(arg tf_world2camera) world camera_object 100" respawn="false" output="screen" />
 </launch>

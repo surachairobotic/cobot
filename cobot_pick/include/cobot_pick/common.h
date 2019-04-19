@@ -1,7 +1,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-const char FRAME_CAMERA[] = "camera"
+char FRAME_CAMERA[64] = "camera"
   , FRAME_WORLD[] = "world"
   , NS_PICK_ARROW[] = "pick_arrow"
   , NS_LABEL_FRAME[] = "label_frame";

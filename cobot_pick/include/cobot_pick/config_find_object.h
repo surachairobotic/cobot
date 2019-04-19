@@ -141,6 +141,17 @@ bool get_config(){
       return false;
     }
   }
+  if (nh.getParam("camera_frame_id", str))
+  {
+    nh.deleteParam("camera_frame_id");
+    if( sizeof(FRAME_CAMERA)<=str.length() ){
+      ROS_ERROR("Too long FRAME_CAMERA : %s", str.c_str());
+    }
+    else
+    {
+      strcpy( FRAME_CAMERA, str.c_str() );
+    }
+  }
   if (nh.getParam("save_file_prefix", str))
   {
     nh.deleteParam("save_file_prefix");
@@ -437,6 +448,8 @@ bool get_config(){
   }
 
   ROS_INFO("object_type : %d", (int)config.object_type);
+  ROS_INFO("camera_frame_id : %s", FRAME_CAMERA);
+  
   ROS_INFO("save : %d", (int)config.save_mode);
   ROS_INFO("load : %d", (int)config.load_mode);
   ROS_INFO("action_server : %d", (int)config.action_server_mode);
