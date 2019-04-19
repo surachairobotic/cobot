@@ -11,6 +11,7 @@
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
          output="screen" launch-prefix="$(arg launch_prefix)">
     <param name="mode" value="$(arg mode)"/>
+    <param name="camera_frame_id" value="$(arg camera_frame_id)" />
     <param name="data_save_path"
       value="$(find cobot_pick)/data/"/>
     <param name="save_file_prefix" value="$(arg save_file_prefix)"/>
