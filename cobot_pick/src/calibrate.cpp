@@ -355,8 +355,8 @@ void find_plane(const pcl::PointCloud<pcl::PointXYZRGB> &cloud
           , &p1 = corners_3d[i*config.chess_num[0]+j+1]
           , &p2 = corners_3d[(i+1)*config.chess_num[0]+j];
         const double d1 = sqrt(DIS2(p0, p1)), d2 = sqrt(DIS2(p0, p2));
-        assert( fabs(d1 - config.chess_size[0])<0.002 );
-        assert( fabs(d2 - config.chess_size[0])<0.002 );
+        assert( fabs(d1 - config.chess_size[0])<0.008 );
+        assert( fabs(d2 - config.chess_size[0])<0.008 );
       }
     }
   }
