@@ -1,7 +1,7 @@
 <launch>
   <include file="$(find cobot_pick)/launch/inc_find_object.launch" >
     <arg name="mode" default="load" />
-    <arg name="save_file_prefix" default="smile_01" />
+    <arg name="save_file_prefix" default="fail/calib_01" />
     <arg name="show_result" default="true" />
     <arg name="save_result" default="true" />
     <arg name="launch_prefix" default="gdb -ex run --args" />
