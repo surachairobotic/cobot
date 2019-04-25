@@ -17,7 +17,7 @@
 
 
 void print_reg(const tRegInfo &r){
-  printf("reg : (%d, %d), (%d, %d)\n", r.x1, r.y1, r.x2, r.y2);
+//  printf("reg : (%d, %d), (%d, %d)\n", r.x1, r.y1, r.x2, r.y2);
 }
 
 
@@ -259,25 +259,27 @@ public:
       , &place_markers, &basket_markers};
     const double d = 1.0/255.0;
     for(int j=0;j<4;j++){
-      std::string ns;
+      std::string ns, frame_id;
       int type;
       if( j%2==0 ){
         ns = NS_PICK_ARROW;
         type = visualization_msgs::Marker::ARROW;
+        frame_id = FRAME_WORLD;
       }
       else{
         ns = NS_LABEL_FRAME;
         type = visualization_msgs::Marker::LINE_STRIP;
+        frame_id = FRAME_CAMERA;
       }
       for(int i=0;i<n;i++){
         visualization_msgs::Marker &m = (*ms[j])[i];
         m.id = i;
-        m.header.frame_id = FRAME_WORLD;
+        m.header.frame_id = frame_id;
         m.ns = ns;
         m.type = type;
-        m.color.r = cols[i][0] * d;
+/*        m.color.r = cols[i][0] * d;
         m.color.g = cols[i][1] * d;
-        m.color.b = cols[i][2] * d;
+        m.color.b = cols[i][2] * d; */
         m.color.a = 1.0;
         if( j%2==0 ){
           m.scale.x = 0.005;
@@ -292,6 +294,17 @@ public:
       }
     }
   }
+  
+  
+  void set_frame_id_camera(const std::string &frame_id){
+    std::vector<visualization_msgs::Marker>* ms[4] = { &frame_markers, &basket_markers};
+    for(int j=0;j<2;j++){
+      for(int i=0;i<frame_markers.size();i++){
+        visualization_msgs::Marker &m = (*ms[j])[i];
+        m.header.frame_id = frame_id;
+      }
+    }
+  }
 
   void run(const cv::Mat &img_col, const pcl::PointCloud<pcl::PointXYZRGB> &cloud){
     cLabeling label;
@@ -299,6 +312,7 @@ public:
     int cnt_sample = 0;
     double max_plane_z = 0.0;
     int pick_plane_id = -1;
+    int n_pick_marker = 0;
 
     planes.clear();
     binarize( img_col, img_bin, config.text_binarize_win_size
@@ -314,9 +328,10 @@ public:
 
     for(int ir=label.reg_info.size()-1;ir>=0;ir--){
       const tRegInfo &r = label.reg_info[ir];
+      printf("reg [%d]: (%d, %d), (%d, %d)\n", ir, r.x1, r.y1, r.x2, r.y2);
       if( r.pix_num<config.min_label_pix_num || r.pix_num>config.max_label_pix_num ){
         if( r.pix_num>100 ){
-          printf("invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
+          printf("* invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
           print_reg(r);
         }
         continue;
@@ -325,7 +340,7 @@ public:
       if( ratio<1.0 )
         ratio = 1.0/ratio;
       if( ratio>config.max_label_ratio || ratio<config.min_label_ratio ){
-        printf("invalid text reg [%d] : ratio = %.3lf\n", ir, ratio);
+        printf("* invalid text reg [%d] : ratio = %.3lf\n", ir, ratio);
         print_reg(r);
         continue;
       }
@@ -344,7 +359,7 @@ public:
         }
         double c = double(sum)/r.pix_num;
         if( c>config.th_region_color ){
-          printf("invalid reg color [%d]: %.3lf\n", ir, c );
+          printf("* invalid reg color [%d]: %.3lf\n", ir, c );
           print_reg(r);
           continue;
         }
@@ -420,13 +435,14 @@ public:
         
         // ransac
         cv::Point2d best_v[4], best_p[4];
+        std::vector<cv::Point2i> edges_backup = edges;
         std::vector<cv::Point2i> new_edges, *p_edges[2] = {&edges, &new_edges};
         {
           bool b_ok = true;
           for(int i=0;i<4;i++){
             if( !ransac_2d( *p_edges[i%2], best_p[i], best_v[i]) ){
               b_ok = false;
-              printf("ransac2d failed [%d]\n", ir);
+              printf("* ransac2d failed [%d]\n", ir);
               break;
             }
             if( i<3 ){
@@ -434,7 +450,7 @@ public:
                 , best_p[i], best_v[i], config.dis_remove_edge );
               if( p_edges[(i+1)%2]->size()<4 ){
                 b_ok = false;
-                printf("too few edges [%d]\n", ir);
+                printf("* too few edges [%d]\n", ir);
                 break;
               }
             }
@@ -457,12 +473,29 @@ public:
               , best_p[n[i][1]], best_v[n[i][1]]
               , warp_src[i] ) ){
               
-              printf("invalid line %d (%d,%d) : %.3lf, %.3lf / %.3lf, %.3lf\n"
+              printf("* invalid line %d (%d,%d) : %.3lf, %.3lf / %.3lf, %.3lf\n"
                 , ir, n[i][0], n[i][1]
                 , best_v[n[i][0]].x, best_v[n[i][0]].y
                 , best_v[n[i][1]].x, best_v[n[i][1]].y );
+              assert( ir!=256 );
               b_ok = false;
+              
+              if( config.save_result ){
+                char str[32];
+                sprintf(str, "line_filter_%d.bmp", ir);
+                cv::imwrite(config.result_save_path + str, img_filter);
+                
+                memset( img_filter.data, 0, img_filter.rows * img_filter.cols );
+                for(int i=edges_backup.size()-1;i>=0;i--){
+                  const cv::Point2i &e = edges_backup[i];
+                  img_filter.data[ int(e.y+0.5) * img_filter.cols 
+                    + int(e.x + 0.5)] = 255;
+                }
+                sprintf(str, "line_edges_%d.bmp", ir);
+                cv::imwrite(config.result_save_path + str, img_filter);
+              }
               break;
+              
             }
           }
           if( !b_ok )
@@ -471,7 +504,7 @@ public:
             double x = sqrt( DIS2_2D(warp_src[0], warp_src[1]))
               , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]));
             if( x<config.min_label_size_x || y<config.min_label_size_y ){
-              printf("invalid label size [%d] : %.3lf, %.3lf\n"
+              printf("* invalid label size [%d] : %.3lf, %.3lf\n"
                 , ir, x, y);
               for(int i=0;i<4;i++){
                 printf("warp src[%d]: %.3f, %.3f\n"
@@ -571,7 +604,7 @@ public:
                   n_label = 3;
                   break;
                 default:
-                  printf("Unknown M : %c\n", str2[0]);
+                  printf("* Unknown M : %c\n", str2[0]);
               }
             }
           }
@@ -599,7 +632,7 @@ public:
           if( n_label>0 ){
             cPlane plane(&r);
             if( !ransac_3d( r, cloud, plane ) ){
-              printf("Label too few valid points [%d]\n", ir);
+              printf("* Label too few valid points [%d]\n", ir);
               continue;
             }
             plane.set_flip( k==1 );
@@ -612,7 +645,7 @@ public:
               for(int i=0;i<2;i++){
                 dis[i] = sqrt( DIS2( plane.frames[i+1], plane.frames[i] ));
               }
-              printf("** label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
+              printf("* label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
               if( fabs(dis[0] - config.label_width) > config.label_size_error
                 || fabs(dis[1] - config.label_height) > config.label_size_error){
                 printf("invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
@@ -627,11 +660,12 @@ public:
             else if( config.object_type==OBJECT_BASKET ){
               
             }
+            printf("** label : M%d\n", n_label);
             planes.push_back(plane);
             break;
           }
           else{
-            printf("invalid label text [%d]\n", ir);
+            printf("* invalid label text [%d]\n", ir);
           }
         }
       }
@@ -691,13 +725,19 @@ public:
         const double d = 1.0/255.0;
         geometry_msgs::Point p1, p2;
         for(int i=0;i<planes.size();i++){
+          if( i>=pick_markers.size() )
+            break;
           cPlane &plane = planes[i];//[pick_plane_id];
           plane.get_pick_pose();
           //plane.get_pick_pose( pick_pose );
           const int n_label = plane.label;
           const double arrow_size = plane.order==0 ? 0.1 : 0.03;
-          visualization_msgs::Marker &marker = pick_markers[n_label-1]
-            , marker_frame = frame_markers[n_label-1];
+          visualization_msgs::Marker &marker = pick_markers[n_pick_marker]//[n_label-1]
+            , &marker_frame = frame_markers[n_pick_marker++];
+          
+          marker.color.r = marker_frame.color.r = cols[n_label-1][0]/255.0;
+          marker.color.g = marker_frame.color.g = cols[n_label-1][1]/255.0;
+          marker.color.b = marker_frame.color.b = cols[n_label-1][2]/255.0;
           
           // arrow
           marker.action = marker.ADD;
@@ -745,8 +785,13 @@ public:
         plane.get_place_pose();
         const int n_label = plane.label;
         const double arrow_size = 0.05;
-        visualization_msgs::Marker &marker = place_markers[n_label-1]
-          , &marker_frame = basket_markers[n_label-1];
+        visualization_msgs::Marker &marker = place_markers[n_pick_marker]
+          , &marker_frame = basket_markers[n_pick_marker++];
+          
+          
+        marker.color.r = marker_frame.color.r = cols[n_label-1][0]/255.0;
+        marker.color.g = marker_frame.color.g = cols[n_label-1][1]/255.0;
+        marker.color.b = marker_frame.color.b = cols[n_label-1][2]/255.0;
         
         // arrow
         marker.action = marker.ADD;

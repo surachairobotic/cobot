@@ -138,6 +138,7 @@ int main(int argc, char **argv)
   
   if( !get_config() )
     return -1;
+  find_label.set_frame_id_camera(FRAME_CAMERA);
 
   if (config.save_mode)
   {
