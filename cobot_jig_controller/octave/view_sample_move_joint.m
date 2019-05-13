@@ -1,7 +1,7 @@
 clear all;
 close all;
 
-s = load('../results/move_joint_indv.txt');
+s = load('../results/2019-04-19T10:22:36.480343move_joint.txt');
 
 t = s(:,1);
 p_wp = s(:,2:7);

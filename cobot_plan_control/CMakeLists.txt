@@ -198,6 +198,7 @@ add_executable(gpio_client src/gpio_client.c)
 target_link_libraries(gpio_client
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  libmatrix_dio.so
 )
 #############
 ## Install ##

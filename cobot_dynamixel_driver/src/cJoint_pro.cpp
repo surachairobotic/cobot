@@ -56,7 +56,7 @@
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
-#define BAUDRATE                        3000000
+#define BAUDRATE                        1000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0"
 #define DXL_MINIMUM_POSITION_VALUE      -150000             // Dynamixel will rotate between this value
@@ -208,9 +208,13 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
       , this->ccw_angle_limit / rad2val, this->ccw_angle_limit);
     return false;
   }
-  else if( v<-this->velocity_limit || v>this->velocity_limit || v==0){
+  else if( v<-this->velocity_limit || v>this->velocity_limit ){
     ROS_WARN("[%d] set_goal_pos_velo() : invalid velo : %lf\n", id, _velo);
     return false;
+  }
+  else if( v==0 ){
+    p = pos * rad2val;
+    v = velo * velo2val;
   }
 //  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
   goal_pos = p;
@@ -349,6 +353,7 @@ void cJoint::write(const int param, const int val){
   do{
     uint8_t dxl_error = 0;
     int dxl_comm_result;
+    usleep(5000);
     if( n_bytes==1 )
       dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, id, addr, val, &dxl_error);
     else if( n_bytes==2 )
@@ -356,21 +361,22 @@ void cJoint::write(const int param, const int val){
     else if( n_bytes==4 )
       dxl_comm_result = packetHandler->write4ByteTxRx(portHandler, id, addr, val, &dxl_error);
     else {
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
-      throw std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
+//      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+//      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
+      std::string("cJoint::write() : wrong n_bytes : param = ") + tostr(param);
+      continue;
     }
     if (dxl_comm_result != COMM_SUCCESS){
       ROS_ERROR("%s", packetHandler->getTxRxResult(dxl_comm_result));
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
+//      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+//      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
       //throw packetHandler->getTxRxResult(dxl_comm_result);
       //packetHandler->printTxRxResult(dxl_comm_result);
     }
     else if (dxl_error != 0){
       ROS_ERROR("%s", packetHandler->getRxPacketError(dxl_error));
-      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
-      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
+//      ROS_ERROR("cJoint::write --> P_SHUTDOWN : %d", read( P_SHUTDOWN ));
+//      ROS_ERROR("cJoint::write --> P_HARDWARE_ERROR_STATUS : %d", read( P_HARDWARE_ERROR_STATUS ));
       //throw packetHandler->getRxPacketError(dxl_error);
       //packetHandler->printRxPacketError(dxl_error);
     }
@@ -409,18 +415,21 @@ int cJoint::read(const int param) const {
     val = val2;
   }
   else{
-    throw std::string("cJoint::read() : invalid n_bytes : param = ") + tostr(param);
+    return -1;
+    //throw std::string("cJoint::read() : invalid n_bytes : param = ") + tostr(param);
   }
 
   if (dxl_comm_result != COMM_SUCCESS){
     ROS_ERROR("cJoint::read() : id = %d, param = %d, addr = %d, n_bytes = %d", id, param, addr, n_bytes);
     //packetHandler->printTxRxResult(dxl_comm_result);
-    mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+    //mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+    return -2;
   }
   else if (dxl_error != 0){
     //packetHandler->printRxPacketError(dxl_error);
     //throw 1;
-    mythrow(packetHandler->getRxPacketError(dxl_error));
+    //mythrow(packetHandler->getRxPacketError(dxl_error));
+    return -3;
   }
   return val;
 }
@@ -713,7 +722,18 @@ std::vector<cJoint> &cJoint::init(){
 
 //  mode = MODE_VELOCITY_CONTROL;
   ROS_INFO("motor num used : %d\n", (int)joints.size());
-
+/*
+  for(int i=0;i<joints.size();i++) {
+    ROS_INFO("motor a : %d", i);
+    joints[i].write( P_TORQUE_ENABLE, 0 );
+    ROS_INFO("motor b : %d", i);
+    joints[i].write( P_BAUD_RATE, 3 );
+    ROS_INFO("motor c : %d", i);
+    joints[i].write( P_TORQUE_ENABLE, 1 );
+    ROS_INFO("motor d : %d", i);
+  }
+  throw std::string("ABC");
+*/
   return joints;
 }
 
@@ -1047,7 +1067,6 @@ bool cJoint::sync_read(){
   return true;
 }
 
-
 void cJoint::change_mode(int _mode){
   ROS_INFO("cJoint::change_mode()");
   if( mode == _mode ) {
@@ -1055,12 +1074,41 @@ void cJoint::change_mode(int _mode){
     return;
   }
 
+  ROS_INFO("cJoint::change_mode A");
   write( P_TORQUE_ENABLE, 0 );
+  ROS_INFO("cJoint::change_mode B");
   write( P_OPERATING_MODE, _mode);
+  ROS_INFO("cJoint::change_mode C");
   if( P_OPERATING_MODE != MODE_TORQUE_CONTROL )
     write( P_GOAL_TORQUE, 0 );
 //  write( P_TORQUE_LIMIT, torque_limit );
+  ROS_INFO("cJoint::change_mode D");
   write( P_TORQUE_ENABLE, 1 );
+  ROS_INFO("cJoint::change_mode E");
+
+  ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
+  mode = _mode;
+}
+
+void cJoint::change_mode_2(int _mode){
+  ROS_INFO("cJoint::change_mode_2()");
+
+  ROS_INFO("cJoint::change_mode A");
+  write( P_TORQUE_ENABLE, 0 );
+  usleep(5000);
+  ROS_INFO("cJoint::change_mode B");
+  write( P_OPERATING_MODE, _mode);
+  usleep(5000);
+  ROS_INFO("cJoint::change_mode C");
+  if( P_OPERATING_MODE != MODE_TORQUE_CONTROL ) {
+    write( P_GOAL_TORQUE, 0 );
+    usleep(5000);
+  }
+//  write( P_TORQUE_LIMIT, torque_limit );
+  ROS_INFO("cJoint::change_mode D");
+  write( P_TORQUE_ENABLE, 1 );
+  usleep(5000);
+  ROS_INFO("cJoint::change_mode E");
 
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;

@@ -1,0 +1,6 @@
+<launch>
+
+  <node name="cobot_showcase" pkg="cobot_showcase" type="showcase.py" output="screen">
+  </node>
+
+</launch>

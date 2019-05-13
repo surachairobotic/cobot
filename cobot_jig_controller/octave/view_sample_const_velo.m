@@ -1,6 +1,7 @@
+close all;
 clear all;
-
-for k=1:2
+k=1
+#for k=1:2
   if k==1
     file = '../results/traj_original.txt';
   else
@@ -21,12 +22,12 @@ for k=1:2
   grid on;
   ylabel('angle(rad)');
   xlabel('time(s)');
-  legend("qt1","qt2","qt3","qt4","qt5","qt6");
+#  legend("qt1","qt2","qt3","qt4","qt5","qt6");
   figure(k*2-1),subplot(3,1,2),plot(t,dq(:,1),'*-',t,dq(:,2),'*-',t,dq(:,3),'*-',t,dq(:,4),'*-',t,dq(:,5),'*-',t,dq(:,6),'*-');
   grid on;
   ylabel('ang velo(rad/s)');
   xlabel('time(s)');
-  legend("qt1","qt2","qt3","qt4","qt5","qt6");
+#  legend("qt1","qt2","qt3","qt4","qt5","qt6");
   figure(k*2-1),subplot(3,1,3),plot(t,ddq(:,1),'*-',t,ddq(:,2),'*-',t,ddq(:,3),'*-',t,ddq(:,4),'*-',t,ddq(:,5),'*-',t,ddq(:,6),'*-');
   grid on;
   ylabel('ang acc(rad/s2)');
@@ -47,5 +48,5 @@ for k=1:2
   grid on;
   ylabel('quaternion');
   xlabel('time(s)');
-end
+#end
 

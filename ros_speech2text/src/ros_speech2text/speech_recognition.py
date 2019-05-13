@@ -10,7 +10,7 @@ from threading import Thread
 
 import wave
 import pyaudio
-from google.cloud import speech
+from google.cloud import speech_v1
 from google.cloud.speech import types
 from google.cloud.speech import enums
 from google.gax.errors import RetryError
@@ -21,9 +21,9 @@ from ros_speech2text.msg import transcript, event
 
 from .speech_detection import SpeechDetector
 
+import time
 
 FORMAT = pyaudio.paInt16
-
 
 def list_audio_devices(pyaudio_handler):
     device_list = [pyaudio_handler.get_device_info_by_index(i)['name']
@@ -36,7 +36,7 @@ def list_audio_devices(pyaudio_handler):
 
 class SpeechRecognizer(object):
 
-    TOPIC_BASE = '/speech_to_text'
+    TOPIC_BASE = '/cobot/speech'
 
     class InvalidDevice(ValueError):
         pass
@@ -79,7 +79,7 @@ class SpeechRecognizer(object):
 
         self._init_stream()
         self._init_csv()
-        self.speech_client = speech.SpeechClient()
+        self.speech_client = speech_v1.SpeechClient()
         self.run()
 
     def _init_history_directory(self):
@@ -134,23 +134,33 @@ class SpeechRecognizer(object):
             thread = Thread(target=self.check_operation)
             thread.start()
         while not rospy.is_shutdown():
+            t = time.time()
+            rospy.loginfo("A: %lf" , (time.time()-t))
             aud_data, start_time, end_time = self.speech_detector.get_next_utter(
                 self.stream, *self.get_utterance_start_end_callbacks(sn))
+            rospy.loginfo("B: %lf" , (time.time()-t))
             if aud_data is None:
                 rospy.loginfo("No more data, exiting...")
                 break
+            rospy.loginfo("C: %lf" , (time.time()-t))
             self.record_to_file(aud_data, sn)
+            rospy.loginfo("D: %lf" , (time.time()-t))
             if self.async:
+                rospy.loginfo("E: %lf" , (time.time()-t))
                 operation = self.recog(sn)
+                rospy.loginfo("F: %lf" , (time.time()-t))
                 if operation is not None:  # TODO: Improve
                     self.operation_queue.append([sn, operation, start_time, end_time])
             else:
                 # Send only that you received speech if you don't want transcriptions.
+                rospy.loginfo("E: %lf" , (time.time()-t))
                 if not self.do_transcription:
                     transc, confidence = ("dummy_transcript with no confidence", 0.0)
                 else:
                     transc, confidence = self.recog(sn)
+                rospy.loginfo("F: %lf" , (time.time()-t))
                 self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+            rospy.loginfo("Z: %lf" , (time.time()-t))
             sn += 1
         self.terminate()
 
@@ -193,11 +203,10 @@ class SpeechRecognizer(object):
         event_msg = self.get_event_base_message(event.DECODED, utterance_id)
         event_msg.transcript = transcript_msg
         if self.print_level > 0:
-            print(transcription)
-            print(confidence)
+            print("%lf : %s" % (confidence, transcription))
             #rospy.loginfo("{} [confidence: {}]".format(transcription, confidence))
         self.pub_transcript.publish(transcript_msg)
-        self.pub_text.publish(transcription)
+#        self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
 #        self.csv_writer.writerow([
 #            start_time, end_time, transcript_msg.speech_duration,
@@ -253,6 +262,7 @@ class SpeechRecognizer(object):
         Constructs a recog operation with the audio file specified by sn
         The operation is an asynchronous api call
         """
+        tt = time.time()
         context = rospy.get_param(self.node_name + '/speech_context', [])
         path = self.utterance_file(utterance_id)
 
@@ -295,10 +305,15 @@ class SpeechRecognizer(object):
                 rospy.logerr(e)
                 rospy.logerr("Audio Segment too long. Unable to recognize")
         else:
-            alternatives = self.speech_client.speech_api.sync_recognize(
-                sample=audio_sample, speech_context=context)
-            for alternative in alternatives:
-                return alternative.transcript, alternative.confidence
+#            alternatives = self.speech_client.speech_api.sync_recognize(
+#                sample=audio_sample, speech_context=context)
+            requests = [speech_v1.types.StreamingRecognizeRequest(audio_content=content,)]
+            sconfig = speech_v1.types.StreamingRecognitionConfig(config=config, interim_results=True)
+            results = self.speech_client.streaming_recognize(sconfig, requests)
+            print(results)
+#            for result in results.results:
+#              for alternative in result.alternatives:
+#                return alternative.transcript, alternative.confidence
 
     def check_operation(self):
         """
@@ -307,6 +322,7 @@ class SpeechRecognizer(object):
         The transcript returned is then published on screen of baxter and sent
         to the ros topic with the custom message type 'transcript'.
         """
+        plus_one = [[u'หนึ่ง','1'], [u'สอง','2'], [u'สาม','3'], [u'สี่',u'ห้า',u'หก',u'เจ็ด',u'แปด',u'เก้า',u'สิบ','4','5','6','7','8','9','10']]
         while not rospy.is_shutdown():
             try:
                 for op in self.operation_queue[:]:
@@ -316,33 +332,55 @@ class SpeechRecognizer(object):
                         rospy.loginfo("operation.results = %d", len(operation.results));
                         for result in operation.results:
                             rospy.loginfo("result.alternatives = %d", len(result.alternatives));
-                            what_number = [0.0]*3
+                            what_number = [0.0]*4
                             for i in range(len(result.alternatives)):
                                 self.utterance_decoded(utterance_id, 
                                                        result.alternatives[i].transcript,
                                                        result.alternatives[i].confidence,
                                                        start_time,
                                                        end_time)
-                                print('aaa')
-                                if result.alternatives[i].transcript.find(u'หนึ่ง') != -1 or result.alternatives[i].transcript.find('1') != -1:
-                                  what_number[0] = what_number[0] + 1
-                                if result.alternatives[i].transcript.find(u'สอง') != -1 or result.alternatives[i].transcript.find('2') != -1:
-                                  what_number[1] = what_number[1] + 1
-                                if result.alternatives[i].transcript.find(u'สาม') != -1 or result.alternatives[i].transcript.find('3') != -1:             
-                                  what_number[2] = what_number[2] + 1
+                                for num in range(len(plus_one)):
+                                  for k in range(len(plus_one[num])):
+                                    if result.alternatives[i].transcript.find(plus_one[num][k]) != -1:
+                                      what_number[num] = what_number[num] + 1
+                                      break
+                                #if result.alternatives[i].transcript.find(u'หนึ่ง') != -1 or result.alternatives[i].transcript.find('1') != -1:
+                                #  what_number[0] = what_number[0] + 1
+                                #if result.alternatives[i].transcript.find(u'สอง') != -1 or result.alternatives[i].transcript.find('2') != -1:
+                                #  what_number[1] = what_number[1] + 1
+                                #if result.alternatives[i].transcript.find(u'สาม') != -1 or result.alternatives[i].transcript.find('3') != -1:             
+                                #  what_number[2] = what_number[2] + 1
                                 if result.alternatives[i].transcript.find(u'ึ') != -1:
                                   what_number[0] = what_number[0] + 0.01
+                                if result.alternatives[i].transcript.find(u'อ') != -1:
+                                  what_number[1] = what_number[1] + 0.01
                                 if result.alternatives[i].transcript.find(u'า') != -1:
                                   what_number[2] = what_number[2] + 0.01
-                                print('bbb')
                             print(what_number)
                             if (what_number[0]+what_number[1]+what_number[2]) > 0:
-                              if what_number[0] > what_number[1] and what_number[0] > what_number[2]:
-                                rospy.loginfo('Number One');
-                              elif what_number[1] > what_number[0] and what_number[1] > what_number[2]:
-                                rospy.loginfo('Number Two');
-                              elif what_number[2] > what_number[0] and what_number[2] > what_number[1]:
-                                rospy.loginfo('Number Three');
+                              b_other = True
+                              for i in range(len(what_number)-1):
+                                if what_number[3] < what_number[i]:
+                                  b_other = False
+                                  break
+                              cmd = '~/catkin_ws/src/cobot/ros_speech2text/speech.sh '
+                              if not b_other:
+                                if what_number[0] > what_number[1] and what_number[0] > what_number[2]:
+                                  c = 'กล่องที่หนึ่ง'
+                                  rospy.loginfo('Number One');
+                                  self.pub_text.publish(String('M1'))
+                                elif what_number[1] > what_number[0] and what_number[1] > what_number[2]:
+                                  c = 'กล่องที่สอง'
+                                  rospy.loginfo('Number Two');
+                                  self.pub_text.publish(String('M2'))
+                                elif what_number[2] > what_number[0] and what_number[2] > what_number[1]:
+                                  c = 'กล่องที่สาม'
+                                  rospy.loginfo('Number Three');
+                                  self.pub_text.publish(String('M3'))
+                              else:
+                                c = 'อะไรนะคะ'
+                                rospy.loginfo('Other');
+                              os.system(cmd+c)
                         self.operation_queue.remove(op)
                     else:
                         try:

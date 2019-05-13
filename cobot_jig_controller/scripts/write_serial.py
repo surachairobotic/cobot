@@ -42,6 +42,7 @@ if com.isOpen():
     msgs.append(bytearray([255, 255, 253, 0, 6, 6, 0, 3, 11, 0, 1, 52, 228]))
     msgs.append(bytearray([255, 255, 253, 0, 6, 7, 0, 3, 92, 2, 0, 0, 123, 157]))
     msgs.append(bytearray([255, 255, 253, 0, 6, 6, 0, 3, 50, 2, 1, 67, 107]))
+    msgs.append(bytearray([255, 255, 253, 0, 7, 6, 0, 3, 50, 2, 1, 67, 107]))
 
 #    while True:
 #      ret = com.read()

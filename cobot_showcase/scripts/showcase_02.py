@@ -22,12 +22,9 @@ target = []
 
 def tg_callback(msg):
   global state
-  if state == 0:
-    if msg.data is True:
-      rospy.loginfo("tg_callback is True")
-      state = 1
-  else:
-    state = 0
+  if state == 0 and msg.data is True:
+    rospy.loginfo("tg_callback is True")
+    state = 1
 
 def done_cb(_state, result):
   global state
@@ -54,16 +51,14 @@ def msgs_callback(msg):
     indx = indx+1
     if indx is len(target):
       indx = 0
-      state = 0
+      state = 1
     else:
       state = 1
 
-def torque_callback(msg):
-  global state
-  if msg.data:
-    state = -1
-  elif state is -1:
-    state = 1
+#def torque_callback(msg):
+#  global state
+#  if msg.data:
+#    state = 0
 
 def current_to_target(target):
   rospy.loginfo('get Fk form robot_state')
@@ -83,7 +78,7 @@ if __name__ == "__main__":
     sub_js = rospy.Subscriber("/joint_states", JointState, js_callback)
     sub_tj = rospy.Subscriber("/move_group/display_planned_path", DisplayTrajectory, tj_callback)
     sub_ms = rospy.Subscriber("/cobot/message", Bool, msgs_callback)
-    sub_tq = rospy.Subscriber("/cobot/torque_detection", Bool, torque_callback)
+#    sub_tq = rospy.Subscriber("/cobot/torque_detection", Bool, torque_callback)
 
     rospy.loginfo('waiting GetPositionFK server')
     rospy.wait_for_service('compute_fk')
@@ -144,9 +139,6 @@ if __name__ == "__main__":
           s.data = True
           pub_exe.publish(s)
           state = 4
-        elif state is 4:
-          state = 1
-          indx = 0
 
       rospy.sleep(0.01)
   finally:

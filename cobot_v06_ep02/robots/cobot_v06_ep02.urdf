@@ -152,8 +152,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-1.2214"
-      upper="2.25"
+      lower="-1.05"
+      upper="0.52"
       velocity="0" />
   </joint>
   <link
@@ -210,8 +210,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-3.45"
-      upper="1.25"
+      lower="-2.36"
+      upper="0.79"
       velocity="0" />
   </joint>
   <link
@@ -268,8 +268,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-3.15"
-      upper="3.15"
+      lower="-2.36"
+      upper="2.36"
       velocity="0" />
   </joint>
   <link
@@ -326,8 +326,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-3.15"
-      upper="0.35"
+      lower="-3.59"
+      upper="0.4499999864"
       velocity="0" />
   </joint>
   <link
@@ -384,8 +384,6 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-3.15"
-      upper="3.15"
       velocity="0" />
   </joint>
   <link

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(cobot_showcase)
+project(cobot_speech)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -7,9 +7,7 @@ project(cobot_showcase)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin
-REQUIRED
-COMPONENTS
+find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
@@ -22,7 +20,7 @@ COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+# catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -106,8 +104,8 @@ catkin_python_setup()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES cobot_showcase
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  LIBRARIES cobot_speech
+  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -124,7 +122,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/cobot_showcase.cpp
+#   src/${PROJECT_NAME}/cobot_speech.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/cobot_showcase_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/cobot_speech_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -192,7 +190,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_cobot_showcase.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_cobot_speech.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

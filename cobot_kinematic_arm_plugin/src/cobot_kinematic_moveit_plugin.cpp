@@ -38,7 +38,7 @@
 
 
 // Need a floating point tolerance when checking joint limits, in case the joint starts at limit
-const double LIMIT_TOLERANCE = 0.0000001;
+const double LIMIT_TOLERANCE = 0.01;
 /// \brief Search modes for searchPositionIK(), see there
 enum SEARCH_MODE
 {
@@ -1136,11 +1136,10 @@ bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
         {
           if (joint_has_limits_vector_[i] && (sol[i] < joint_min_vector_[i] || sol[i] > joint_max_vector_[i]))
           {
+            ROS_INFO_STREAM_NAMED(name_,"Num " << i << " value " << sol[i] << " has limits " << joint_has_limits_vector_[i] << " " << joint_min_vector_[i] << " " << joint_max_vector_[i]);
             obeys_limits = false;
             break;
           }
-          // ROS_INFO_STREAM_NAMED(name_,"Num " << i << " value " << sol[i] << " has limits " <<
-          // joint_has_limits_vector_[i] << " " << joint_min_vector_[i] << " " << joint_max_vector_[i]);
         }
         if (obeys_limits)
         {
@@ -1328,11 +1327,6 @@ bool CobotKinematic::getPositionIK(const std::vector<geometry_msgs::Pose>& ik_po
                                            const kinematics::KinematicsQueryOptions& options) const
 {
   ROS_INFO("getPositionIK with multiple solutions");
-	ROS_INFO("joint_has_limits_vector_ | joint_min_vector_ | joint_max_vector_");
-	for(int i=0; i<joint_has_limits_vector_.size(); i++)
-	{
-		ROS_INFO("%d, %lf, %lf", joint_has_limits_vector_[i], joint_min_vector_[i], joint_max_vector_[i]);
-	}
 
   if (!active_)
   {

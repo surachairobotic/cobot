@@ -3,7 +3,7 @@ from time import sleep
 
 
 com = serial.Serial('/dev/ttyUSB1',
-                     baudrate=3000000,
+                     baudrate=1000000,
                      bytesize=serial.EIGHTBITS,
                      parity=serial.PARITY_NONE,
                      stopbits=serial.STOPBITS_ONE,

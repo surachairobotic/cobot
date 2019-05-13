@@ -72,19 +72,19 @@ void cControl::init() {
 }
 
 void cControl::joint_states_callback(const sensor_msgs::JointState::ConstPtr& msg){
-  mutex_joint_state.lock();
+//  mutex_joint_state.lock();
   joint_state = *msg;
   b_start_sub = b_new_joint_state = true;
-  mutex_joint_state.unlock();
+//  mutex_joint_state.unlock();
 }
 
 
 bool cControl::get_last_joint_state(sensor_msgs::JointState *p_joint_state){
   if( b_start_sub ){
     sensor_msgs::JointState j;
-    mutex_joint_state.lock();
+//    mutex_joint_state.lock();
     *p_joint_state = joint_state;
-    mutex_joint_state.unlock();
+//    mutex_joint_state.unlock();
     return true;
   }
   else
@@ -93,10 +93,10 @@ bool cControl::get_last_joint_state(sensor_msgs::JointState *p_joint_state){
 bool cControl::get_new_joint_state(sensor_msgs::JointState *p_joint_state){
   if( b_new_joint_state ){
     sensor_msgs::JointState j;
-    mutex_joint_state.lock();
+//    mutex_joint_state.lock();
     *p_joint_state = joint_state;
     b_new_joint_state = false;
-    mutex_joint_state.unlock();
+//    mutex_joint_state.unlock();
     return true;
   }
   else
@@ -113,6 +113,7 @@ bool cControl::wait_new_joint_state(sensor_msgs::JointState *p_joint_state, doub
       ROS_WARN("cControl::wait_new_joint_state() : timeout");
       return false;
     }
+    ros::spinOnce();
     r.sleep();
   }
 }
@@ -191,11 +192,15 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
 
 
 bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step){
-  ROS_INFO("cControl::plan_line : A");
+  ROS_INFO("cControl::plan_line : A0");
   std::vector< geometry_msgs::Pose > wp;
+  ROS_INFO("cControl::plan_line : A1");
   wp.push_back(p2);
+  ROS_INFO("cControl::plan_line : A2");
   move_group.setStartState(*get_robot_state(p2));
+  ROS_INFO("cControl::plan_line : A3");
   move_group.setStartState(*get_robot_state(p1));
+  ROS_INFO("cControl::plan_line : A4");
   return plan_line(wp, step);
 
 /*  //move_group.setStartState(*move_group.getCurrentState());
@@ -380,12 +385,21 @@ void cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
                              reference_point_position,
                              jacobian);
   Eigen::VectorXd dq(joint_velo.size()), dx;
-  for(int i=dq.size()-1;i>=0;i--)
-    dq(i) = joint_velo[i];
-  dx = jacobian * dq;
-  xyz_velo.resize(dx.size());
-  for(int i=xyz_velo.size()-1;i>=0;i--)
-    xyz_velo[i] = dx(i);
+  try{
+    for(int i=dq.size()-1;i>=0;i--)
+      dq(i) = joint_velo[i];
+    dx = jacobian * dq;
+    xyz_velo.resize(dx.size());
+    for(int i=xyz_velo.size()-1;i>=0;i--)
+      xyz_velo[i] = dx(i);
+  }
+  catch(...) {
+    ROS_ERROR("cControl::get_cartesian_velocity");
+    ROS_ERROR("joint_velo.size() = ", joint_velo.size());
+    ROS_ERROR("dq.size() = ", dq.size());
+    ROS_ERROR("dx.size() = ", dx.size());
+    ROS_ERROR("xyz_velo.size() = ", xyz_velo.size());
+  }
 }
 
 void cControl::replan_velocity(double velo, double acc){
@@ -516,12 +530,19 @@ const robot_state::RobotStatePtr cControl::get_robot_state(const geometry_msgs::
   
 //  robot_state::RobotState robot_state(*move_group.getCurrentState());
 //  robot_state.setToDefaultValues();
+	ROS_INFO("cControl::get_robot_state 0");
   robot_state::RobotStatePtr robot_state_tmp = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
-  const robot_state::JointModelGroup *joint_model_group = move_group.getCurrentState()->getJointModelGroup(group_name);
+	ROS_INFO("cControl::get_robot_state 1");
+  robot_state::RobotStatePtr robot_state_1 = move_group.getCurrentState();
+	ROS_INFO("cControl::get_robot_state 1.1");
+  const robot_state::JointModelGroup *joint_model_group = robot_state_1->getJointModelGroup(group_name);
+	ROS_INFO("cControl::get_robot_state 2");
   if( !robot_state_tmp->setFromIK( joint_model_group
     , pose, end_effector_name, 5, 0.1) ){
+  	ROS_INFO("cControl::get_robot_state 2.1");
     mythrow("cControl::get_robot_state : setFromIK failed\n");
   }
+	ROS_INFO("cControl::get_robot_state 3");
   return robot_state_tmp;
 }
 

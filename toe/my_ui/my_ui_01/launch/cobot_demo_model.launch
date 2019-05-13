@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="debug" default="true" />
+  <arg name="debug" default="false" />
   <arg name="use_gui" default="false" />
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
@@ -35,11 +35,4 @@
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
   </include>
-
-  <!-- launch multi_state_planning
-  <node name="multi_move_group_interface" pkg="my_move" type="multi_move_group_interface" respawn="false" output="screen">
-    <rosparam command="load" file="$(find test_abb_moveit_config)/config/kinematics.yaml"/>
-  </node>
--->
-
 </launch>

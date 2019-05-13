@@ -1,84 +1,36 @@
-#!/usr/bin/env python
+import numpy as np
+import matplotlib.pyplot as plt
 
-import sys
-import os
-import math
-import rospy
-import copy
-import time
-from sensor_msgs.msg import JointState
-from cobot_dynamixel_driver.srv import *
+fig, ax = plt.subplots(4,1)
+fig2, bx = plt.subplots()
 
-def callback_return(msg):
-  rospy.loginfo("recv : position %lf", msg.position[0])
+for x in ax:
+  x.axis([0, 100, 0, 1])
+bx.axis([0, 100, 0, 1])
 
-if __name__ == '__main__':
-  pub = rospy.Publisher("/cobot/goal", JointState, queue_size=1000)
-  rospy.init_node('tester2_python', anonymous=True)
-#  sub = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
+y = [0]*4
+lines = [0]*4
+for i in range(4):
+  y[i] = np.random.rand(100)
+  lines[i] = ax[i].plot(y[i])
+line_b = [0]*3
+line_b[0] = bx.plot(y[0])
+line_b[1] = bx.plot(y[1])
+line_b[2] = bx.plot(y[2])
 
-  print('A')
-#  rospy.wait_for_service('cobot_dynamixel_driver/set_acc')  
-  rospy.wait_for_service('cobot_dynamixel_driver/up_one')
-  try:
-    up = rospy.ServiceProxy('cobot_dynamixel_driver/up_one', up_one)
-    resp1 = up(5)
-    print('out = %d' % resp1.out)
-  except rospy.ServiceException, e:
-    print "Service call failed: %s"%e
-  print('B')
+fig.canvas.manager.show() 
+fig2.canvas.manager.show() 
 
-  jnt = JointState()
-  jnt.name = []
-  jnt.position = []
-  jnt.velocity = []
-  jnt.effort = []
+while 1:
+  for i in range(4):
+    y[i] = np.random.rand(100)
+    lines[i][0].set_ydata(y[i])
+  line_b[0][0].set_ydata(y[0])
+  line_b[1][0].set_ydata(y[1])
+  line_b[2][0].set_ydata(y[2])
 
-  rate = rospy.Rate(20)
-  i = 0
-  while True:
-    rospy.loginfo("i = %d", i)
-    jnt.header.frame_id = str(i)
-    i = i+1
-    pub.publish(jnt)
-    rate.sleep()
-    if i>=10:
-      break
-  
-  rate = rospy.Rate(1)
-
-#  for i in range():
-  rate.sleep()
-  
-#  jnt.position.resize(1)
-  rate = rospy.Rate(20)
-  i = 10
-  while True:
-    rospy.loginfo("i = %d", i)
-    jnt.header.frame_id = str(i)
-    i = i+1
-    pub.publish(jnt)
-    rate.sleep()
-    if i>20:
-      break
-
-  rate = rospy.Rate(1)
-  for i in range(5):
-    rate.sleep()
-
-  rate = rospy.Rate(20)
-  i = 100
-  while True:
-    rospy.loginfo("i = %d", i)
-    jnt.header.frame_id = str(i)
-    i = i+1
-    pub.publish(jnt)
-    rate.sleep()
-    if i>120:
-      break
-
-  print("OK !!!")
-  # spin() simply keeps python from exiting until this node is stopped
-  rospy.spin()
-  pub.unregister()
-  
+#  print(y[0].shape)
+  fig.canvas.draw()
+  fig.canvas.flush_events()
+  fig2.canvas.draw()
+  fig2.canvas.flush_events()

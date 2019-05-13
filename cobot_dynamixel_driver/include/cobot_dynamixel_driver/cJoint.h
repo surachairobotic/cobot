@@ -114,6 +114,7 @@ public:
 	bool send_p_gain(int _p_gain);
   void print_data() const;
   void change_mode(int _mode);
+  void change_mode_2(int _mode);
 
   inline int get_id() const { return id; }
   inline const std::string& get_name() const { return name; }

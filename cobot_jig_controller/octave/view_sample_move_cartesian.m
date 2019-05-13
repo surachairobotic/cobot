@@ -1,7 +1,7 @@
 clear all;
 #close all;
 
-s = load('../results/move_cartesian_indv.txt');
+s = load('../results/2019-04-19T10:22:36.480343move_cartesian.txt');
 
 t_wp = s(:,1);
 t_mv = s(:,2);

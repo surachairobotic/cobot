@@ -207,10 +207,18 @@ if __name__ == '__main__':
           [ 241.0,   22.0,   58.0],
           [   0.0,    0.0,    0.0] ]
 
+  pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
+  jj = JointState()
+  jj.name = ['J6']
+  jj.position = []
+  jj.velocity = [0.5]
+  jj.effort = []
+  while not rospy.is_shutdown():
+    set_jnt(jj, pub)
+  exit()
 
   sub = rospy.Subscriber("/joint_states", JointState, callback)
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
-  pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
 
   mmin = [math.radians(30), math.radians(-10), math.radians(-10), math.radians(-10), math.radians(-135), math.radians(-10)]
   mmax = [math.radians(60), math.radians(10), math.radians(10), math.radians(10), math.radians(-105), math.radians(10)]
@@ -230,18 +238,9 @@ if __name__ == '__main__':
   rate = rospy.Rate(50) # 100hz
   stop = rospy.Rate(1) # 100hz
 
-  jj = JointState()
-  jj.name = ['J6']
-  jj.position = []
-  jj.velocity = [1.0]
-  jj.effort = []
   set_jnt(jj, pub)
   t_start = time.time()
-#  while (time.time()-t_start) < 2.5 and not rospy.is_shutdown():
-  while not rospy.is_shutdown():
-    set_jnt(jj, pub)
-    rate.sleep()
-    
+
   jntGo = jntHome
   jntGo.position = []
   jntGo.velocity = speed
@@ -250,13 +249,14 @@ if __name__ == '__main__':
 #  err_max = [-9999.99, -9999.99, -9999.99, -9999.99, -9999.99, -9999.99]
   err_max = [380, 870, 470, 340, 140, 110]
 
-
   t_detect = time.time()
   count = 0
   while not rospy.is_shutdown():
 #    rospy.loginfo("count = %d", count)
     b_tq_stop = False
     set_jnt(jntGo, pub)
+    if not(len(arm_state.position) is 6) or not(len(arm_state.velocity) is 6) or not(len(arm_state.effort) is 6):
+      continue
     for i in range(6):
       if arm_state.position[i] <= mmin[i]:
         jntGo.velocity[i] = abs(jntGo.velocity[i])
@@ -276,6 +276,8 @@ if __name__ == '__main__':
 #      if b_in:
 #        print("err_max")
 #        print(err_max)
+    if not(len(stat.position) is 6) or not(len(stat.velocity) is 6) or not(len(stat.effort) is 6):
+      continue
     for i in range(6):
       if stat.effort[i] >= err_max[i]:
         print("stat.effort[%d] is over : %lf" % (i, stat.effort[i]))
