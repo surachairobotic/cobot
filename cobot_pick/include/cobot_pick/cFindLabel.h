@@ -87,7 +87,7 @@ private:
           break;
         }
         if(++cnt>100){
-          printf("ransac2d failed : edges = %d\n", (int)edges.size());
+          ROS_INFO("ransac2d failed : edges = %d\n", (int)edges.size());
           return false;
         }
 //        assert(++cnt<100);
@@ -168,7 +168,7 @@ private:
                   b_ok = false;
                   break;
                 }
-                //printf("dis[%d][%d] : %.5lf\n", i, j
+                //ROS_INFO("dis[%d][%d] : %.5lf\n", i, j
                 //  , DIS2( *(ps[i]->p), *(ps[j]->p) ));
               }
             } while (!b_ok && --cnt >= 0);
@@ -328,10 +328,10 @@ public:
 
     for(int ir=label.reg_info.size()-1;ir>=0;ir--){
       const tRegInfo &r = label.reg_info[ir];
-      printf("reg [%d]: (%d, %d), (%d, %d)\n", ir, r.x1, r.y1, r.x2, r.y2);
+      ROS_INFO("reg [%d]: (%d, %d), (%d, %d)\n", ir, r.x1, r.y1, r.x2, r.y2);
       if( r.pix_num<config.min_label_pix_num || r.pix_num>config.max_label_pix_num ){
         if( r.pix_num>100 ){
-          printf("* invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
+          ROS_INFO("* invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
           print_reg(r);
         }
         continue;
@@ -340,7 +340,7 @@ public:
       if( ratio<1.0 )
         ratio = 1.0/ratio;
       if( ratio>config.max_label_ratio || ratio<config.min_label_ratio ){
-        printf("* invalid text reg [%d] : ratio = %.3lf\n", ir, ratio);
+        ROS_INFO("* invalid text reg [%d] : ratio = %.3lf\n", ir, ratio);
         print_reg(r);
         continue;
       }
@@ -359,7 +359,7 @@ public:
         }
         double c = double(sum)/r.pix_num;
         if( c>config.th_region_color ){
-          printf("* invalid reg color [%d]: %.3lf\n", ir, c );
+          ROS_INFO("* invalid reg color [%d]: %.3lf\n", ir, c );
           print_reg(r);
           continue;
         }
@@ -442,7 +442,7 @@ public:
           for(int i=0;i<4;i++){
             if( !ransac_2d( *p_edges[i%2], best_p[i], best_v[i]) ){
               b_ok = false;
-              printf("* ransac2d failed [%d]\n", ir);
+              ROS_INFO("* ransac2d failed [%d]\n", ir);
               break;
             }
             if( i<3 ){
@@ -450,7 +450,7 @@ public:
                 , best_p[i], best_v[i], config.dis_remove_edge );
               if( p_edges[(i+1)%2]->size()<4 ){
                 b_ok = false;
-                printf("* too few edges [%d]\n", ir);
+                ROS_INFO("* too few edges [%d]\n", ir);
                 break;
               }
             }
@@ -473,7 +473,7 @@ public:
               , best_p[n[i][1]], best_v[n[i][1]]
               , warp_src[i] ) ){
               
-              printf("* invalid line %d (%d,%d) : %.3lf, %.3lf / %.3lf, %.3lf\n"
+              ROS_INFO("* invalid line %d (%d,%d) : %.3lf, %.3lf / %.3lf, %.3lf\n"
                 , ir, n[i][0], n[i][1]
                 , best_v[n[i][0]].x, best_v[n[i][0]].y
                 , best_v[n[i][1]].x, best_v[n[i][1]].y );
@@ -504,10 +504,10 @@ public:
             double x = sqrt( DIS2_2D(warp_src[0], warp_src[1]))
               , y = sqrt( DIS2_2D(warp_src[1], warp_src[2]));
             if( x<config.min_label_size_x || y<config.min_label_size_y ){
-              printf("* invalid label size [%d] : %.3lf, %.3lf\n"
+              ROS_INFO("* invalid label size [%d] : %.3lf, %.3lf\n"
                 , ir, x, y);
               for(int i=0;i<4;i++){
-                printf("warp src[%d]: %.3f, %.3f\n"
+                ROS_INFO("warp src[%d]: %.3f, %.3f\n"
                   , i, warp_src[i].x, warp_src[i].y);
               }
               continue;
@@ -580,7 +580,7 @@ public:
 
           for(int i=0;i<ocr.confs.size();i++){
             const char *str = ocr.texts[i].c_str();
-            printf("text flip [%d][%d]: %s, %.3f\n", ir, k, str, ocr.confs[i]);
+            ROS_INFO("text flip [%d][%d]: %s, %.3f\n", ir, k, str, ocr.confs[i]);
             if( str && str[0]=='M' && i<ocr.confs.size()-1 ){
               const char *str2 = ocr.texts[i+1].c_str();
               if( !str2 )
@@ -604,7 +604,7 @@ public:
                   n_label = 3;
                   break;
                 default:
-                  printf("* Unknown M : %c\n", str2[0]);
+                  ROS_INFO("* Unknown M : %c\n", str2[0]);
               }
             }
           }
@@ -624,7 +624,7 @@ public:
               create_filename( config.collect_prefix_label_raw, fname, cnt_sample, n_label );
               cv::imwrite( fname, cv::Mat(img_col, cv::Range(r.y1, r.y2+1), cv::Range(r.x1, r.x2+1)) );
             }
-            printf("saved %d\n", cnt_sample);
+            ROS_INFO("saved %d\n", cnt_sample);
             cnt_sample++;
           }
 
@@ -632,7 +632,7 @@ public:
           if( n_label>0 ){
             cPlane plane(&r);
             if( !ransac_3d( r, cloud, plane ) ){
-              printf("* Label too few valid points [%d]\n", ir);
+              ROS_INFO("* Label too few valid points [%d]\n", ir);
               continue;
             }
             plane.set_flip( k==1 );
@@ -645,10 +645,10 @@ public:
               for(int i=0;i<2;i++){
                 dis[i] = sqrt( DIS2( plane.frames[i+1], plane.frames[i] ));
               }
-              printf("* label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
+              ROS_INFO("* label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
               if( fabs(dis[0] - config.label_width) > config.label_size_error
                 || fabs(dis[1] - config.label_height) > config.label_size_error){
-                printf("invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
+                ROS_INFO("invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
                 continue;
               }
             }
@@ -660,12 +660,12 @@ public:
             else if( config.object_type==OBJECT_BASKET ){
               
             }
-            printf("** label : M%d\n", n_label);
+            ROS_INFO("** label : M%d\n", n_label);
             planes.push_back(plane);
             break;
           }
           else{
-            printf("* invalid label text [%d]\n", ir);
+            ROS_INFO("* invalid label text [%d]\n", ir);
           }
         }
       }
@@ -764,7 +764,7 @@ public:
             p1.z = f.z;
             marker_frame.points.push_back(p1);
           }
-          printf("label : %d, height : %.3lf\n", n_label, plane.max_height);
+          ROS_INFO("label : %d, height : %.3lf\n", n_label, plane.max_height);
         }
       }
     }

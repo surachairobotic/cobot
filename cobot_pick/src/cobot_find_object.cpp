@@ -53,6 +53,7 @@ void process_data()
 
 void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, actionlib::SimpleActionServer<cobot_pick::CobotFindObjectAction> *as)
 {
+  ROS_INFO("start action");
   cobot_pick::CobotFindObjectFeedback feedback;
   cobot_pick::CobotFindObjectResult result;
   cROSData::start_sub();
@@ -76,7 +77,7 @@ void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, ac
 
       result.poses.resize(find_label.planes.size());
       result.labels.resize(find_label.planes.size());
-      printf("results :\n");
+      ROS_INFO("results :\n");
       for (int i = 0; i < find_label.planes.size(); i++)
       {
         cPlane &plane = find_label.planes[i];
@@ -91,10 +92,10 @@ void execute_find_object(const cobot_pick::CobotFindObjectGoalConstPtr &goal, ac
           result.poses[i] = plane.pick_pose.pose;
           result.labels[i] = plane.pick_pose.label;
         }
-        printf("label[%d] : %s\n", plane.order, plane.pick_pose.label.c_str());
+        ROS_INFO("label[%d] : %s\n", plane.order, plane.pick_pose.label.c_str());
       }
       as->setSucceeded(result);
-      printf("action end.\n");
+      ROS_INFO("action end.\n");
       b_pub = true;
       return;
     }
