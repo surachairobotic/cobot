@@ -255,8 +255,12 @@ public:
     place_markers.resize(n);
     basket_markers.resize(n);
     
-    std::vector<visualization_msgs::Marker>* ms[4] = {&pick_markers, &frame_markers
-      , &place_markers, &basket_markers};
+    std::vector<visualization_msgs::Marker>* ms[4] = {
+      &pick_markers, 
+      &frame_markers, 
+      &place_markers, 
+      &basket_markers
+    };
     const double d = 1.0/255.0;
     for(int j=0;j<4;j++){
       std::string ns, frame_id;
@@ -269,7 +273,7 @@ public:
       else{
         ns = NS_LABEL_FRAME;
         type = visualization_msgs::Marker::LINE_STRIP;
-        frame_id = FRAME_CAMERA;
+        frame_id = j==3 ? FRAME_WORLD : FRAME_CAMERA;
       }
       for(int i=0;i<n;i++){
         visualization_msgs::Marker &m = (*ms[j])[i];
@@ -297,8 +301,8 @@ public:
   
   
   void set_frame_id_camera(const std::string &frame_id){
-    std::vector<visualization_msgs::Marker>* ms[4] = { &frame_markers, &basket_markers};
-    for(int j=0;j<2;j++){
+    std::vector<visualization_msgs::Marker>* ms[2] = { &frame_markers };//, &basket_markers};
+    for(int j=0;j<1;j++){
       for(int i=0;i<frame_markers.size();i++){
         visualization_msgs::Marker &m = (*ms[j])[i];
         m.header.frame_id = frame_id;
@@ -823,9 +827,14 @@ public:
     for(int i=0;i<pick_markers.size();i++){
       pick_markers[i].action = visualization_msgs::Marker::DELETE;
       pick_markers[i].points.clear();
+
       frame_markers[i].action = visualization_msgs::Marker::DELETE;
       frame_markers[i].points.clear();
+
       place_markers[i].action = visualization_msgs::Marker::DELETE;
+      place_markers[i].points.clear();
+
+      basket_markers[i].action = visualization_msgs::Marker::DELETE;
       basket_markers[i].points.clear();
     }
 /*    std::vector<visualization_msgs::Marker> markers(2);
