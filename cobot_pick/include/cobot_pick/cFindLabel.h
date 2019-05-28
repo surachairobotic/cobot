@@ -481,7 +481,7 @@ public:
                 , ir, n[i][0], n[i][1]
                 , best_v[n[i][0]].x, best_v[n[i][0]].y
                 , best_v[n[i][1]].x, best_v[n[i][1]].y );
-              assert( ir!=256 );
+//              assert( ir!=256 );
               b_ok = false;
               
               if( config.save_result ){
