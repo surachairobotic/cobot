@@ -134,7 +134,7 @@ if __name__ == '__main__':
   rospy.init_node('init_torque', anonymous=True)
 
   global arm_state, ABC, first, list_current_cal, list_current, stat
-    
+
   ABC = [ [ 355.0, 1240.0,  245.0],
           [-177.0, -690.0, -650.0],
           [ 180.0,  564.0,  206.0],
@@ -146,13 +146,14 @@ if __name__ == '__main__':
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
   pub_tq = rospy.Publisher("/cobot/torque_detection", Bool, queue_size=10)
-  
+
   rate = rospy.Rate(50) # 50hz
   stop = rospy.Rate(1) # 1hz
 
-  err_max = [380, 870, 470, 340, 140, 9999]
+  err_max = [450, 870, 470, 340, 140, 9999]
 
-  t = [time.time(), time.time(), time.time(), time.time(), time.time(), time.time()]
+  tt = time.time()
+  t = [tt, tt, tt, tt, tt, tt]
   t_send = time.time()
   while (time.time()-t_send) < 2.5 and not rospy.is_shutdown():
     a=0
@@ -177,13 +178,12 @@ if __name__ == '__main__':
     else:
       pub_tq.publish(Bool(False))
     rate.sleep()
-    
+
   sub.unregister()
   sub_return.unregister()
   pub.unregister()
   pub_status.unregister()
-  
+
   print("OK !!!")
   # spin() simply keeps python from exiting until this node is stopped
   rospy.spin()
-  

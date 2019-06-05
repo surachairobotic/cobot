@@ -57,7 +57,9 @@
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
 #define BAUDRATE                        1000000
-#define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
+//#define BAUDRATE                        9600
+#define DEVICENAME                      "/dev/ttyUSB"      // Check which port is being used on your controller
+//#define DEVICENAME                      "/dev/ttyS0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0"
 #define DXL_MINIMUM_POSITION_VALUE      -150000             // Dynamixel will rotate between this value
 #define DXL_MAXIMUM_POSITION_VALUE      150000              // and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
@@ -305,7 +307,7 @@ void cJoint::get_info() const {
 */
 //  printf("SHUTDOWN : %d\n", read( P_SHUTDOWN ));
   printf("HARDWARE_ERROR_STATUS : %d\n", read( P_HARDWARE_ERROR_STATUS ));
-  
+
 //  return 0.0;
 }
 
@@ -613,12 +615,27 @@ std::vector<cJoint> &cJoint::init(){
 	ADDR[P_HARDWARE_ERROR_STATUS][1] = 4;
 
   group_read_size = 15;
-  
+
   load_settings(setting_file);
 
-  portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
+  bool b_first = true;
+  int id = 0;
+  std::string port;
+  // std::to_string(id)
+  do {
+    if( !b_first )
+      ROS_ERROR("Failed to open the port! : %s\n", port.c_str());
+    port = DEVICENAME + std::to_string(id);
+    ROS_INFO("Open the port : %s\n", port.c_str());
+    portHandler = dynamixel::PortHandler::getPortHandler(port.c_str());
+    id++;
+    if( id > 3 )
+      throw 0;
+    b_first = false;
+  } while(!portHandler->openPort());
+
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
-	group_write_goal_torque = new dynamixel::GroupSyncWrite(portHandler, packetHandler
+  group_write_goal_torque = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_GOAL_TORQUE][0], ADDR[P_GOAL_TORQUE][1]);
   group_write_gain_p = new dynamixel::GroupSyncWrite(portHandler, packetHandler
       , ADDR[P_VELOCITY_P_GAIN][0], ADDR[P_VELOCITY_P_GAIN][1]);
@@ -634,15 +651,7 @@ std::vector<cJoint> &cJoint::init(){
       , ADDR[P_GOAL_POSITION][0], ADDR[P_GOAL_POSITION][1] + ADDR[P_GOAL_VELOCITY][1] + ADDR[P_GOAL_ACCELERATION][1]);
   group_read = new dynamixel::GroupSyncRead(portHandler, packetHandler
       , ADDR[P_PRESENT_POSITION][0], group_read_size);
-//  group_read = new dynamixel::GroupBulkRead(portHandler, packetHandler);
-  // Open port
-  if (portHandler->openPort()){
-    ROS_INFO("Succeeded to open the port!\n");
-  }
-  else{
-    ROS_ERROR("Failed to open the port! : %s\n", DEVICENAME);
-    throw 0;
-  }
+  ROS_INFO("Succeeded to open the port!\n");
 
   // Set port baudrate
   if (portHandler->setBaudRate(BAUDRATE)){
@@ -785,7 +794,7 @@ void cJoint::sync_torque(){
     if( !j.b_goal_torque )
       continue;
 		if( j.mode != MODE_TORQUE_CONTROL )
-		  j.change_mode(MODE_TORQUE_CONTROL);   
+		  j.change_mode(MODE_TORQUE_CONTROL);
     j.b_goal_torque = false;
     data_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_torque));
     data_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_torque));
@@ -934,7 +943,7 @@ void cJoint::sync_pos_velo(){
 		if( j.mode != MODE_POSITION_CONTROL )
 		  j.change_mode(MODE_POSITION_CONTROL);
   }
-  
+
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
     if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ){
@@ -982,7 +991,7 @@ void cJoint::sync_pos_velo_acc() {
 		if( j.mode != MODE_POSITION_CONTROL )
 		  j.change_mode(MODE_POSITION_CONTROL);
 	}
-  
+
   for(int i=0; i<joints.size(); i++){
     cJoint &j = joints[i];
     if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ) {
@@ -1052,13 +1061,13 @@ bool cJoint::sync_read(){
     j.temperature = group_read->getData(j.get_id(), ADDR[P_PRESENT_TEMPERATURE][0], ADDR[P_PRESENT_TEMPERATURE][1]);
 		j.goal_torque = (short)group_read->getData(j.get_id(), ADDR[P_GOAL_TORQUE][0], ADDR[P_GOAL_TORQUE][1]);
   }
-  
+
   if( b_set_home ){
     b_set_home = false;
     for(int i=0;i<joints.size();i++){
       cJoint &j = joints[i];
       j.write( P_TORQUE_ENABLE, 0 );
-      
+
       int off = j.read(P_HOMING_OFFSET);
       j.write( P_HOMING_OFFSET, off-joints[i].pos );
       j.write( P_TORQUE_ENABLE, 1 );
@@ -1113,4 +1122,3 @@ void cJoint::change_mode_2(int _mode){
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;
 }
-

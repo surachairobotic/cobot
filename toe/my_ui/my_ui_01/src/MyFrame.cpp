@@ -12,7 +12,7 @@ using namespace my_plugin;
 // minimum delay between calls to callback function
 const ros::Duration MyFrame::min_delay_(0.5);
 
-MyFrame::MyFrame( MyDisplay* pdisplay, 
+MyFrame::MyFrame( MyDisplay* pdisplay,
 									rviz::DisplayContext* context,
                   QWidget* parent)
   : QWidget(parent)
@@ -68,12 +68,12 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
   connect(ui_->btnUpRY, SIGNAL(clicked()), this, SLOT(upRYClicked()));
   connect(ui_->btnUpRZ, SIGNAL(clicked()), this, SLOT(upRZClicked()));
 
-  connect(ui_->btn_send_signal, SIGNAL(clicked()), this, SLOT(triggerClicked()));	
+  connect(ui_->btn_send_signal, SIGNAL(clicked()), this, SLOT(triggerClicked()));
 
-  connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));	
+  connect(ui_->pushButton, SIGNAL(clicked()), this, SLOT(pushButtonClicked()));
   connect(ui_->pushButton_2, SIGNAL(clicked()), this, SLOT(pushButton_2Clicked()));
   connect(ui_->btn_input, SIGNAL(clicked()), this, SLOT(btn_inputClicked()));
-  
+
   connect(ui_->btn_add_points, SIGNAL(clicked()), this, SLOT(btn_add_pointsClicked()));
   connect(ui_->btn_del_points, SIGNAL(clicked()), this, SLOT(btn_del_pointsClicked()));
   connect(ui_->btn_save_points, SIGNAL(clicked()), this, SLOT(btn_save_pointsClicked()));
@@ -146,39 +146,6 @@ MyFrame::MyFrame( MyDisplay* pdisplay,
 	ui_textbox.push_back(ui_->lineEdit_j5);
 	ui_textbox.push_back(ui_->lineEdit_j6);
 
-	std::vector<double> x;
-	x.push_back(-1.442625345);
-	x.push_back(0.3745256647);
-	x.push_back(-0.1796085105);
-	x.push_back(0.03117646285);
-	x.push_back(-0.1955543147);
-	x.push_back(-1.494953367);
-	test_point.push_back(x);
-	x.clear();
-	x.push_back(-1.435452402);
-	x.push_back(0.1611274743);
-	x.push_back(0.1528505229);
-	x.push_back(0.02793424244);
-	x.push_back(-0.7236728467);
-	x.push_back(-1.487051551);
-	test_point.push_back(x);
-	x.clear();
-	x.push_back(-1.324353151);
-	x.push_back(0.1715801926);
-	x.push_back(0.1506848699);
-	x.push_back(-0.290041204);
-	x.push_back(-0.6945478264);
-	x.push_back(-1.329470298);
-	test_point.push_back(x);
-	x.clear();
-	x.push_back(-1.186389787);
-	x.push_back(0.2316551569);
-	x.push_back(0.1305305268);
-	x.push_back(-0.6393873235);
-	x.push_back(-0.5456751197);
-	x.push_back(-1.130911299);
-	test_point.push_back(x);
-	x.clear();				
 	index = 0;
 }
 
@@ -364,8 +331,8 @@ void MyFrame::updateCallback(const ros::TimerEvent& e)
 /* Calculate new positions and publish results to rviz */
 void MyFrame::updateAll()
 {
-	ROS_INFO("updateTimer...");		
-	
+	ROS_INFO("updateTimer...");
+
 
 /*	if (frame_)	{
 		for(int i=0; i<robot_pose.size(); i++) {
@@ -375,7 +342,7 @@ void MyFrame::updateAll()
 			debug_message = debug_message + QString::fromStdString(PoseString(robot_pose[i]));
 			debug_message = debug_message + QString::fromStdString("\r\n");
 		}
-		frame_->ui_->plainTextEdit_info->setPlainText(debug_message);	
+		frame_->ui_->plainTextEdit_info->setPlainText(debug_message);
 	}
 */
 }
@@ -383,11 +350,11 @@ void MyFrame::updateAll()
 /*
 ///////////////////////////////////////////////////////////////////////
 cControl::cControl(const std::string& _group_name, const std::string& _end_effector_name)
-    :spinner(1), 
-		group_name(_group_name), 
+    :spinner(1),
+		group_name(_group_name),
 		end_effector_name(_end_effector_name),
-		move_group(group_name), 
-		b_start_sub(false), 
+		move_group(group_name),
+		b_start_sub(false),
 		robot_model_loader("robot_description"),
 		joint_model_group(NULL)
 

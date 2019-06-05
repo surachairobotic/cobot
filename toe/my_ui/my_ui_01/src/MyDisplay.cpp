@@ -36,8 +36,8 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
 		const robot_state::JointModel *j = robot_model_->getJointModel(i);
 		const std::string name = j->getName();
 		const robot_model::JointModel::JointType type = j->getType();
-		if( name.size()==0 || 
-				(name[0]!='j' && name[0]!='J') || 
+		if( name.size()==0 ||
+				(name[0]!='j' && name[0]!='J') ||
 				type!=robot_model::JointModel::REVOLUTE )
 			continue;
 		sJointsName.push_back(name);
@@ -48,7 +48,8 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
   if (!robotCurrentState)
     ROS_ERROR("Could not get RobotState from Model");
   robotCurrentState->setToDefaultValues();
-	
+	robotCurrentState->updateLinkTransforms();
+
   // Prepare to move the "right_arm" group
   group_ = robotCurrentState->getJointModelGroup(planning_group);
 	sJointsName = group_->getActiveJointModelNames();
@@ -65,8 +66,8 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
     while(1);
   }
 
-	irobot_start_state = new InteractiveRobot( "robot_description", 
-																						 "start_state_robot_pub", 
+	irobot_start_state = new InteractiveRobot( "robot_description",
+																						 "start_state_robot_pub",
 																						 "start_state_robot_markers",
 																						 "start_state_robot_imarkers",
 																						 "arm",
@@ -74,8 +75,8 @@ MyDisplay::MyDisplay() : nh_(), spinner(1),
 																						 "robot_start_state",
 																						 this);
 	irobot_start_state->setColor(irobot_start_state->createRandColor());
-	irobot_goal_state = new InteractiveRobot( "robot_description", 
-																						 "goal_state_robot_pub", 
+	irobot_goal_state = new InteractiveRobot( "robot_description",
+																						 "goal_state_robot_pub",
 																						 "goal_state_robot_markers",
 																						 "goal_state_robot_imarkers",
 																						 "arm",
@@ -108,8 +109,8 @@ void MyDisplay::onInitialize()
 	Display::onInitialize();
 
   rviz::WindowManagerInterface* window_context = context_->getWindowManager();
-  frame_ = new MyFrame( this, 
-												context_, 
+  frame_ = new MyFrame( this,
+												context_,
 												window_context ? window_context->getParentWindow() : NULL);
 //  resetStatusTextColor();
 //  addStatusText("Initialized.");
@@ -355,6 +356,7 @@ void MyDisplay::updateCurrentRobotState()
 	if(current != NULL)
 	{
 		robotCurrentState = current;
+		robotCurrentState->updateLinkTransforms();
 	}
 	else
 	{
@@ -448,4 +450,3 @@ void MyDisplay::clearJobs()
     main_loop_jobs_.clear();
   }
 }
-

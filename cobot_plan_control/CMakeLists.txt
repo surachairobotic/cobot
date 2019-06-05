@@ -187,6 +187,24 @@ target_link_libraries(cobot_plan_control
   cobot_controller_class
 )
 
+add_executable(cobot_vacuum
+  src/cobot_vacuum.cpp
+  src/tcp_client.cpp
+)
+target_link_libraries(cobot_vacuum
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+add_executable(test_vacuum
+  src/test_vacuum.cpp
+  src/tcp_client.cpp
+)
+target_link_libraries(test_vacuum
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
 add_executable(gpio_server src/gpio_server.c)
 target_link_libraries(gpio_server
   ${catkin_LIBRARIES}

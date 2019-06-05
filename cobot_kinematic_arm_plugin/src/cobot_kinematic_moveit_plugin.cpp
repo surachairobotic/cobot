@@ -193,7 +193,7 @@ public:
 		if( kmodel_ == NULL )
 		  ROS_WARN("kmodel_ = NULL");
 		else
-		  ROS_WARN("kmodel_ is OK !!!");			
+		  ROS_WARN("kmodel_ is OK !!!");
 */
   }
 
@@ -238,7 +238,7 @@ public:
    * @param ik_seed_state an initial guess solution for the inverse kinematics
    * @return True if a valid solution was found, false otherwise
    */
-  bool searchPositionIK(const geometry_msgs::Pose& ik_pose, 
+  bool searchPositionIK(const geometry_msgs::Pose& ik_pose,
 												const std::vector<double>& ik_seed_state, double timeout,
                         std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
                         const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
@@ -252,9 +252,9 @@ public:
    * @param the distance that the redundancy can be from the current position
    * @return True if a valid solution was found, false otherwise
    */
-  bool searchPositionIK(const geometry_msgs::Pose& ik_pose, 
+  bool searchPositionIK(const geometry_msgs::Pose& ik_pose,
 												const std::vector<double>& ik_seed_state, double timeout,
-                        const std::vector<double>& consistency_limits, 
+                        const std::vector<double>& consistency_limits,
 												std::vector<double>& solution,
                         moveit_msgs::MoveItErrorCodes& error_code,
                         const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
@@ -267,7 +267,7 @@ public:
    * @param ik_seed_state an initial guess solution for the inverse kinematics
    * @return True if a valid solution was found, false otherwise
    */
-  bool searchPositionIK(const geometry_msgs::Pose& ik_pose, 
+  bool searchPositionIK(const geometry_msgs::Pose& ik_pose,
 												const std::vector<double>& ik_seed_state, double timeout,
                         std::vector<double>& solution, const IKCallbackFn& solution_callback,
                         moveit_msgs::MoveItErrorCodes& error_code,
@@ -283,12 +283,12 @@ public:
    * @param consistency_limit the distance that the redundancy can be from the current position
    * @return True if a valid solution was found, false otherwise
    */
-  bool searchPositionIK(const geometry_msgs::Pose& ik_pose, 
-												const std::vector<double>& ik_seed_state, 
+  bool searchPositionIK(const geometry_msgs::Pose& ik_pose,
+												const std::vector<double>& ik_seed_state,
 												double timeout,
-                        const std::vector<double>& consistency_limits, 
+                        const std::vector<double>& consistency_limits,
 												std::vector<double>& solution,
-                        const IKCallbackFn& solution_callback, 
+                        const IKCallbackFn& solution_callback,
 												moveit_msgs::MoveItErrorCodes& error_code,
                         const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
 
@@ -438,7 +438,7 @@ bool CobotKinematic::initialize(const std::string& robot_description, const std:
           upper = M_PI;
           hasLimits = 0;
         }
-        if (hasLimits)
+        if (hasLimits && 0)
         {
           joint_has_limits_vector_.push_back(true);
           joint_min_vector_.push_back(lower);
@@ -543,7 +543,7 @@ int CobotKinematic::solve(KDL::Frame& pose_frame, const std::vector<double>& vfr
 	double Px05 = Px06-(L[4]*r06(0,2)), Py05 = Py06-(L[4]*r06(1,2)), Pz05 = Pz06-(L[4]*r06(2,2));
 	double Z06x = r06(0,2), Z06y = r06(1,2), Z06z = r06(2,2);
 	double Y06x = r06(0,1), Y06y = r06(1,1), Y06z = r06(2,1);
-	
+
 	double A = Py05, B = -Px05, D = 0;
 	double h1_s1 = atan2(Py05, Px05), h1_s2;
 	if(h1_s1 > 0)
@@ -553,7 +553,7 @@ int CobotKinematic::solve(KDL::Frame& pose_frame, const std::vector<double>& vfr
 	std::vector<double> h1, h3, h5;
 	h1.push_back(h1_s1);
 	h1.push_back(h1_s2);
-	
+
 	double c1, s1, P, Q, y, h3_s1, h3_s2, PPQQ, c2, s2, h2, c23, s23, s5, c5p, c5m, c4, s4, h4, c6, s6, h6, RHSx, RHSy;
   for(int i1=0; i1<h1.size(); i1++) {
 		c1 = cos(h1[i1]);
@@ -576,7 +576,7 @@ int CobotKinematic::solve(KDL::Frame& pose_frame, const std::vector<double>& vfr
 		    c2 = ((P*RHSx) - (Q*RHSy)) / PPQQ;
 		    s2 = ((-P*RHSy) - (Q*RHSx)) / PPQQ;
 		    h2 = atan2(s2, c2);
-		    
+
 		    c23 = (cos(h2)*cos(h3[i3]))-(sin(h2)*sin(h3[i3]));
 		    s23 = (cos(h2)*sin(h3[i3]))+(cos(h3[i3])*sin(h2));
 
@@ -930,9 +930,9 @@ bool CobotKinematic::getPositionFK(const std::vector<std::string>& link_names,
 }
 
 bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
-                                      const std::vector<double>& ik_seed_state, 
+                                      const std::vector<double>& ik_seed_state,
 																			double timeout,
-                                      std::vector<double>& solution, 
+                                      std::vector<double>& solution,
 																			moveit_msgs::MoveItErrorCodes& error_code,
                                       const kinematics::KinematicsQueryOptions& options) const
 {
@@ -944,10 +944,10 @@ bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
 }
 
 bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
-                                      const std::vector<double>& ik_seed_state, 
+                                      const std::vector<double>& ik_seed_state,
 																			double timeout,
                                       const std::vector<double>& consistency_limits,
-                                      std::vector<double>& solution, 
+                                      std::vector<double>& solution,
 																			moveit_msgs::MoveItErrorCodes& error_code,
                                       const kinematics::KinematicsQueryOptions& options) const
 {
@@ -957,9 +957,9 @@ bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
 }
 
 bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
-                                      const std::vector<double>& ik_seed_state, 
+                                      const std::vector<double>& ik_seed_state,
 																			double timeout,
-                                      std::vector<double>& solution, 
+                                      std::vector<double>& solution,
 																			const IKCallbackFn& solution_callback,
                                       moveit_msgs::MoveItErrorCodes& error_code,
                                       const kinematics::KinematicsQueryOptions& options) const
@@ -970,10 +970,10 @@ bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
 }
 
 bool CobotKinematic::searchPositionIK(const geometry_msgs::Pose& ik_pose,
-                                      const std::vector<double>& ik_seed_state, 
+                                      const std::vector<double>& ik_seed_state,
 																			double timeout,
                                       const std::vector<double>& consistency_limits,
-                                      std::vector<double>& solution, 
+                                      std::vector<double>& solution,
 																			const IKCallbackFn& solution_callback,
                                       moveit_msgs::MoveItErrorCodes& error_code,
                                       const kinematics::KinematicsQueryOptions& options) const

@@ -20,9 +20,8 @@ private:
   struct hostent *server;
   char buffer[256];
 
-
 public:
-  bool init();
+  bool init(int& _port);
   std::string tcpRead();
   bool tcpWrite(std::string& str);
 };

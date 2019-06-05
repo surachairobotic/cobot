@@ -372,7 +372,7 @@
   </link>
   <joint
     name="J6"
-    type="revolute">
+    type="continuous">
     <origin
       xyz="0 0.111 0"
       rpy="-1.5708 0 0" />

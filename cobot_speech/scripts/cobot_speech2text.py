@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
@@ -40,12 +41,14 @@ import pyaudio
 from six.moves import queue
 
 import rospy
+import time
+from std_msgs.msg import String
 
 # Audio recording parameters
 RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms
 
-
+t = time.time()
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
@@ -113,60 +116,76 @@ class MicrophoneStream(object):
 
 
 def listen_print_loop(responses):
-    """Iterates through server responses and prints them.
+    rospy.loginfo("aaaaaaaaaaaaaa")
 
-    The responses passed is a generator that will block until a response
-    is provided by the server.
-
-    Each response may contain multiple results, and each result may contain
-    multiple alternatives; for details, see https://goo.gl/tjCPAU.  Here we
-    print only the transcription for the top alternative of the top result.
-
-    In this case, responses are provided for interim results as well. If the
-    response is an interim one, print a line feed at the end of it, to allow
-    the next result to overwrite it, until the response is a final one. For the
-    final one, print a newline to preserve the finalized transcription.
-    """
     num_chars_printed = 0
+    plus_one = [[u'หนึ่ง','1'], [u'สอง','2'], [u'สาม','3'], [u'สี่',u'ห้า',u'หก',u'เจ็ด',u'แปด',u'เก้า',u'สิบ','4','5','6','7','8','9','10']]
     for response in responses:
+        rospy.loginfo("listen_print_loop")
+        if rospy.is_shutdown():
+            break
+
         if not response.results:
             continue
 
-        # The `results` list is consecutive. For streaming, we only care about
-        # the first result being considered, since once it's `is_final`, it
-        # moves on to considering the next utterance.
         result = response.results[0]
         if not result.alternatives:
             continue
 
-        # Display the transcription of the top alternative.
         transcript = result.alternatives[0].transcript
-
-        # Display interim results, but with a carriage return at the end of the
-        # line, so subsequent lines will overwrite them.
-        #
-        # If the previous result was longer than this one, we need to print
-        # some extra spaces to overwrite the previous result
         overwrite_chars = ' ' * (num_chars_printed - len(transcript))
 
         if not result.is_final:
-            #sys.stdout.write(transcript + overwrite_chars + '\r')
-            #sys.stdout.flush()
             print(transcript + overwrite_chars)
-
             num_chars_printed = len(transcript)
 
         else:
-            print(transcript + overwrite_chars)
+            i=0
+            what_number = [0.0]*4
+            for num in range(len(plus_one)):
+              for k in range(len(plus_one[num])):
+                if result.alternatives[i].transcript.find(plus_one[num][k]) != -1:
+                  what_number[num] = what_number[num] + 1
+                  break
+            if result.alternatives[i].transcript.find(u'ึ') != -1:
+              what_number[0] = what_number[0] + 0.01
+            if result.alternatives[i].transcript.find(u'อ') != -1:
+              what_number[1] = what_number[1] + 0.01
+            if result.alternatives[i].transcript.find(u'า') != -1:
+              what_number[2] = what_number[2] + 0.01
 
-            # Exit recognition if any of the transcribed phrases could be
-            # one of our keywords.
-            if re.search(r'\b(exit|quit)\b', transcript, re.I):
+            print(transcript + overwrite_chars)
+            print(what_number)
+
+            if (what_number[0]+what_number[1]+what_number[2]) > 0:
+              b_other = True
+              for i in range(len(what_number)-1):
+                if what_number[3] < what_number[i]:
+                  b_other = False
+                  break
+              cmd = '~/catkin_ws/src/cobot/ros_speech2text/speech.sh '
+              if not b_other:
+                if what_number[0] > what_number[1] and what_number[0] > what_number[2]:
+                  c = 'กล่องที่หนึ่ง'
+                  rospy.loginfo('Number One');
+                  pub_text.publish(String('M1'))
+                elif what_number[1] > what_number[0] and what_number[1] > what_number[2]:
+                  c = 'กล่องที่สอง'
+                  rospy.loginfo('Number Two');
+                  pub_text.publish(String('M2'))
+                elif what_number[2] > what_number[0] and what_number[2] > what_number[1]:
+                  c = 'กล่องที่สาม'
+                  rospy.loginfo('Number Three');
+                  pub_text.publish(String('M3'))
+              else:
+                c = 'อะไรนะคะ'
+                rospy.loginfo('Other');
+              os.system(cmd+c)
+
+            if re.search(r'\b(Exit|exit|Quit|quit|xxxx)\b', transcript, re.I):
                 print('Exiting..')
                 break
-
             num_chars_printed = 0
-
 
 def main():
     # See http://g.co/cloud/speech/docs/languages
@@ -177,24 +196,31 @@ def main():
     config = types.RecognitionConfig(
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
-        language_code=language_code)
+        language_code=language_code
+        )
     streaming_config = types.StreamingRecognitionConfig(
         config=config,
         interim_results=True)
 
-    with MicrophoneStream(RATE, CHUNK) as stream:
-        audio_generator = stream.generator()
-        requests = (types.StreamingRecognizeRequest(audio_content=content)
-                    for content in audio_generator)
+    while not rospy.is_shutdown():
+        try:
+            rospy.loginfo('start')
+            with MicrophoneStream(RATE, CHUNK) as stream:
+                audio_generator = stream.generator()
+                requests = (types.StreamingRecognizeRequest(audio_content=content)
+                            for content in audio_generator)
 
-        responses = client.streaming_recognize(streaming_config, requests)
+                responses = client.streaming_recognize(streaming_config, requests)
 
-        # Now, put the transcription responses to use.
-        listen_print_loop(responses)
-
+                # Now, put the transcription responses to use.
+                rospy.loginfo('response')
+                listen_print_loop(responses)
+        except:
+           rospy.loginfo('end : %s' % str(sys.exc_info()[0]))
 
 if __name__ == '__main__':
     rospy.init_node('cobot_speech', anonymous=True)
     rospy.loginfo('cobot_speech_starting...')
+    pub_text = rospy.Publisher('/cobot/speech/text', String, queue_size=10)
     main()
 # [END speech_transcribe_streaming_mic]

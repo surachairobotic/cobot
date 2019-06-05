@@ -1,0 +1,4 @@
+<launch>
+  <node name="cobot_vacuum" pkg="cobot_plan_control" type="cobot_vacuum" respawn="false" output="screen">
+  </node>
+</launch>

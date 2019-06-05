@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	getlogin_r(username, LOGIN_NAME_MAX);
 	std::string result_dir = "/home/";
 	result_dir += username;
-	result_dir += "/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";	
+	result_dir += "/catkin_ws/src/cobot/cobot_dynamixel_driver/log/";
   FILE *_fp = fopen( (result_dir + iso_time_str + "_driver_log.txt").c_str() , "w");
   FILE *_fp2 = fopen( (result_dir + iso_time_str + "_driver_cmd.txt").c_str() , "w");
 	if(_fp == NULL) {
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
   _log = _fp;
   _cmd = _fp2;
   t_callback = ros::Time::now();
-  
+
   pub_return = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states_return", 1000);
   ros::Publisher pub = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/joint_states", 1000);
 //  ros::Publisher pub_gain = n.advertise<int>("cobot_dynamixel_driver/p_gain_velo", 1000);
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
   ros::ServiceServer service_set_i_gain = n.advertiseService("cobot_dynamixel_driver/set_i_gain", set_i_gain);
   ros::ServiceServer service_set_torque = n.advertiseService("cobot_dynamixel_driver/set_torque", set_torque);
   ros::ServiceServer service_up_one = n.advertiseService("cobot_dynamixel_driver/up_one", up_one);
-  
+
   int fake_joints = 0;
   try{
     ros::NodeHandle nh("~");
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     nh.deleteParam("load_joint_name");
     if( b )
       cJoint::load_joint_name();
-      
+
     std::string setting_file;
     nh.getParam("setting_file", setting_file);
     nh.deleteParam("setting_file");
@@ -224,6 +224,7 @@ int main(int argc, char **argv)
           ;//ROS_INFO("Main rate : %lf sec", dt);
 
         t_prev = t;
+        joint_state.header.frame_id = "world";
         joint_state.header.stamp = t;
         timestamp = joint_state.header.stamp.toSec();
         joint_state.header.seq = seq;
@@ -357,7 +358,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
           if(b_write)
             fprintf(_cmd, "%s\n", s_info.c_str());
 //          ROS_INFO("%s", s_info.c_str());
-          if( msg.name.size() != msg.velocity.size() || 
+          if( msg.name.size() != msg.velocity.size() ||
               msg.name.size() != msg.position.size() ||
               msg.name.size() != msg.effort.size())
             throw -1;
@@ -536,7 +537,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
 //	debug = true;
 //  ROS_INFO("end - control_callback");
 //  ros::Time t2 = ros::Time::now();
-//  ROS_ERROR("Callback rate : %lf sec", (t2-t1).toSec());        
+//  ROS_ERROR("Callback rate : %lf sec", (t2-t1).toSec());
 }
 
 bool get_offset(std::string name, double* offs){
@@ -599,4 +600,3 @@ bool set_torque(cobot_dynamixel_driver::set_torque::Request &req, cobot_dynamixe
 		return false;
 	return true;
 }
-

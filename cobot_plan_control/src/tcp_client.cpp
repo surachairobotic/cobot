@@ -2,10 +2,11 @@
 #include <string>
 #include <cstring>
 
-bool tcpClient::init() {
-  portno = 2222;
+bool tcpClient::init(int& _port) {
+  portno = _port;
+  printf("tcpClient::tcpClient() : portno = %d\n", portno);
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) 
+  if (sockfd < 0)
     printf("tcpClient::tcpClient() : ERROR opening socket\n");
   server = gethostbyname("127.0.0.1");
   if (server == NULL) {
@@ -15,14 +16,14 @@ bool tcpClient::init() {
   serv_addr.sin_family = AF_INET;
   bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
   serv_addr.sin_port = htons(portno);
-  if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+  if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
     printf("tcpClient::tcpClient() : ERROR connecting\n");
 }
 
 std::string tcpClient::tcpRead() {
   bzero(buffer,256);
   n = read(sockfd,buffer,255);
-  if (n < 0) 
+  if (n < 0)
     printf("tcpClient::tcpRead() : ERROR reading from socket\n");
   printf("%s\n",buffer);
   std::string str(buffer);

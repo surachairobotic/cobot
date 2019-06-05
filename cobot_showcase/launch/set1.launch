@@ -1,0 +1,35 @@
+<launch>
+
+  <include file="$(find cobot_pick)/launch/rs_basket.launch">
+  </include>
+
+  <include file="$(find cobot_pick)/launch/rs_object.launch">
+  </include>
+
+  <include file="$(find cobot_pick)/launch/action_server.launch" output="screen">
+  </include>
+
+  <include file="$(find cobot_pick)/launch/action_server_basket.launch" output="screen">
+  </include>
+
+  <node name="cobot_speech" pkg="cobot_speech" type="cobot_speech2text.py" output="screen">
+  </node>
+<!--
+  <node name="gpio_server" pkg="cobot_plan_control" type="gpio_server" respawn="false" launch-prefix="sudo" output="screen">
+  </node>
+
+  <node name="cobot_pose" pkg="cobot_showcase" type="camera_marker2.py">
+  </node>
+
+
+  <node name="cobot_plan_control" pkg="cobot_plan_control" type="cobot_plan_control" respawn="false" launch-prefix="gdb -ex run - -args">
+    <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
+  </node>
+
+  <include file="$(find cobot_plan_control)/launch/cobot_vacuum.launch">
+  </include>
+
+  <node name="cobot_torque_detection" pkg="cobot_jig_controller" type="torque_detection.py">
+  </node>
+-->
+</launch>

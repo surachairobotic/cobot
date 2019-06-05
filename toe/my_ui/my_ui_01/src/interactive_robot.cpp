@@ -64,16 +64,16 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
   rm_loader_(robot_description),
 
   // create publishers for markers and robot state
-  robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(robot_topic, 1)), 
+  robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(robot_topic, 1)),
   world_state_publisher_(nh_.advertise<visualization_msgs::Marker>(marker_topic, 100)),
 
   // create an interactive marker server for displaying interactive markers
-  interactive_marker_server_(imarker_topic), 
-	imarker_robot_(0), 
+  interactive_marker_server_(imarker_topic),
+	imarker_robot_(0),
 	imarker_world_(0),
 
-	group_(0), 
-	user_data_(0), 
+	group_(0),
+	user_data_(0),
 	user_callback_(0),
 	my_display(pDisplay)
 //	robot_state_(robot_state)
@@ -101,6 +101,7 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
     throw RobotLoadException();
   }
   robot_state_->setToDefaultValues();
+	robot_state_->updateLinkTransforms();
 
   // Prepare to move the "right_arm" group
   group_ = robot_state_->getJointModelGroup(planning_group);
@@ -114,10 +115,10 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
 
   // Create a marker to control the "right_arm" group
   imarker_robot_ = new IMarker(interactive_marker_server_,
-															 name_id, 
-															 desired_group_end_link_pose_, 
+															 name_id,
+															 desired_group_end_link_pose_,
 															 frame_id,
-                               boost::bind(movedRobotMarkerCallback, this, _1), 
+                               boost::bind(movedRobotMarkerCallback, this, _1),
 															 IMarker::BOTH);
 
   // create an interactive marker to control the world geometry (the yellow cube)
@@ -130,9 +131,9 @@ InteractiveRobot::InteractiveRobot(const std::string& robot_description,
   last_callback_time_ = init_time_;
   average_callback_duration_ = min_delay_;
   schedule_request_count_ = 0;
-  publish_timer_ = nh_.createTimer(average_callback_duration_, 
-																	 &InteractiveRobot::updateCallback, 
-																	 this, 
+  publish_timer_ = nh_.createTimer(average_callback_duration_,
+																	 &InteractiveRobot::updateCallback,
+																	 this,
 																	 true);
 
   // begin publishing robot state
@@ -151,7 +152,7 @@ void InteractiveRobot::movedRobotMarkerCallback(InteractiveRobot* robot,
 {
 //  Eigen::Affine3d pose;
 //  tf::poseMsgToEigen(feedback->pose, pose);
-	
+
   ros::Time t1 = ros::Time::now();
   robot->setGroupPose(feedback->pose);
   ros::Time t2 = ros::Time::now();
@@ -271,6 +272,7 @@ void InteractiveRobot::updateAll()
   if (robot_state_->setFromIK(group_, pose, 10, 0.1))
   {
 		ROS_INFO("robot_state_->setFromIK is true");
+		robot_state_->updateLinkTransforms();
 
 		std::vector<double> ik_seed_state;
 		robot_state_->copyJointGroupPositions("arm", ik_seed_state);
@@ -470,5 +472,5 @@ float InteractiveRobot::fRand(float dMin, float dMax)
 bool InteractiveRobot::setGroupJointPosition(const std::vector<double>& position)
 {
 	robot_state_->setVariablePositions(position);
+	robot_state_->updateLinkTransforms();
 }
-

@@ -85,25 +85,33 @@ def pick_marker(msg, aa):
   p1.y = msg.position.y
   p1.z = msg.position.z
 
+  k = 180.0/180.0*math.pi
+  a7= np.array([[math.cos(k), -math.sin(k), 0.0],
+      [ math.sin(k),  math.cos(k), 0.0],
+      [         0.0,          0.0, 1.0]])
+
   a2 = R.from_quat([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
-  a2 = a2.as_dcm()
-  print(a2)
-  a3 = R.from_quat([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
-  a3 = a3.as_dcm()
-  a4 = R.from_quat([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
-  a4 = a4.as_dcm()
+  a2 = np.dot(a2.as_dcm(), a7)
+  rospy.loginfo("a7 : ")
+  rospy.loginfo(type(a7))
+  rospy.loginfo("a2 : ")
+  rospy.loginfo(type(a2))
+  rospy.loginfo(a2)
+  rospy.loginfo("a2[0][2] : %f", a2[0][2])
+  rospy.loginfo("a2[1][2] : %f", a2[1][2])
+  rospy.loginfo("a2[2][2] : %f", a2[2][2])
 
   p2.x = a2[0][0]*0.05 + p1.x;
   p2.y = a2[1][0]*0.05 + p1.y;
   p2.z = a2[2][0]*0.05 + p1.z;
 
-  p3.x = a3[0][1]*0.05 + p1.x;
-  p3.y = a3[1][1]*0.05 + p1.y;
-  p3.z = a3[2][1]*0.05 + p1.z;
+  p3.x = a2[0][1]*0.05 + p1.x;
+  p3.y = a2[1][1]*0.05 + p1.y;
+  p3.z = a2[2][1]*0.05 + p1.z;
 
-  p4.x = p1.x - a4[0][2]*0.05;
-  p4.y = p1.y - a4[1][2]*0.05;
-  p4.z = p1.z - a4[2][2]*0.05;
+  p4.x = p1.x - a2[0][2]*0.05;
+  p4.y = p1.y - a2[1][2]*0.05;
+  p4.z = p1.z - a2[2][2]*0.05;
 
   pp1.header.frame_id = "world"
   pp1.header.stamp = rospy.Time.now()
@@ -121,7 +129,7 @@ def pick_marker(msg, aa):
 
   pp1.color.a = 1.0
   pp1.color.r = 1.0
-  pp1.color.g = 0.0 
+  pp1.color.g = 0.0
   pp1.color.b = 0.0
   pub_box_marker.publish(pp1)
 
@@ -141,7 +149,7 @@ def pick_marker(msg, aa):
 
   pp2.color.a = 1.0
   pp2.color.r = 0.0
-  pp2.color.g = 1.0 
+  pp2.color.g = 1.0
   pp2.color.b = 0.0
   pub_box_marker.publish(pp2)
 
@@ -161,10 +169,10 @@ def pick_marker(msg, aa):
 
   pp3.color.a = 1.0
   pp3.color.r = 0.0
-  pp3.color.g = 0.0 
+  pp3.color.g = 0.0
   pp3.color.b = 1.0
   pub_box_marker.publish(pp3)
-   
+
 if __name__ == "__main__":
   try:
     rospy.init_node('camera_marker', anonymous=True)
@@ -184,10 +192,10 @@ if __name__ == "__main__":
     rospy.on_shutdown(shutdown_cb)
     rospy.loginfo('camera server : ok')
 
-    rospy.loginfo('waiting GetPositionFK server')
-    rospy.wait_for_service('compute_fk')
-    getFk = rospy.ServiceProxy('compute_fk', GetPositionFK)
-    rospy.loginfo('GetPositionFK server : ok')
+#    rospy.loginfo('waiting GetPositionFK server')
+#    rospy.wait_for_service('compute_fk')
+#    getFk = rospy.ServiceProxy('compute_fk', GetPositionFK)
+#    rospy.loginfo('GetPositionFK server : ok')
 
     old_state = -1
     while not rospy.is_shutdown():
@@ -213,8 +221,8 @@ if __name__ == "__main__":
               print(action_client_object.get_result().labels[i])
               if action_client_object.get_result().labels[i].find('M1') != -1:
                 pick_marker(action_client_object.get_result().poses[i], 0)
-                res = getFk(robot_state.joint_state.header, ['tool0'], robot_state)
-                pick_marker(res.pose_stamped[0].pose, 3)
+                #res = getFk(robot_state.joint_state.header, ['tool0'], robot_state)
+                #pick_marker(res.pose_stamped[0].pose, 3)
                 break
           state = 0
       rospy.sleep(0.01)
