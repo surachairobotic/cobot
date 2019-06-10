@@ -139,6 +139,9 @@ private:
         vec_pix.push_back(p2i);
       }
     }
+    
+    if( vec_pix.size()<10 )
+      return false;
 
     // ransac
     int best_cnt = 0;
