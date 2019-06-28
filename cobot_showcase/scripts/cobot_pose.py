@@ -222,9 +222,9 @@ class CobotImageHandler:
         poses.header.seq = self.seq
         self.path.points = []
         if m == 0:
-            poses.poses = [self.p_dot(a, 0.05, 180.0), self.p_dot(a, -0.01, 180.0), self.p_dot(a, 0.05, 180.0), self.p_dot(b, 0.1, 0.0), self.p_dot(b, 0.00, 0.0), self.p_dot(b, 0.1, 0.0)]
+            poses.poses = [self.p_dot(a, 0.05, 180.0), self.p_dot(a, -0.005, 180.0), self.p_dot(a, 0.05, 180.0), self.p_dot(b, 0.1, 0.0), self.p_dot(b, 0.00, 0.0), self.p_dot(b, 0.1, 0.0)]
         elif m == 1:
-            poses.poses = [self.p_dot(a, 0.05, 180.0), self.p_dot(a, -0.01, 180.0), self.p_dot(a, 0.05, 180.0), self.p_dot(b, 0.00, 0.0)]
+            poses.poses = [self.p_dot(a, 0.05, 180.0), self.p_dot(a, -0.005, 180.0), self.p_dot(a, 0.05, 180.0), self.p_dot(b, 0.00, 0.0)]
 
         for x in poses.poses:
             self.path.points.append(x.position)

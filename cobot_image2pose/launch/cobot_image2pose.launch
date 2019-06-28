@@ -1,0 +1,6 @@
+<launch>
+
+  <node name="cobot_image2pose" pkg="cobot_image2pose" type="cobot_image2pose" respawn="false" output="screen">
+  </node>
+
+</launch>

@@ -88,8 +88,14 @@ int main(int argc, char *argv[])
   if(fp)
     fclose(fp);
 
-  listen(sockfd,5);
+  if ( listen(sockfd, 3) < 0 ) {
+    error("ERROR on listen");
+    goto LB_PORT_NUM;
+  }
+
+  //accept the incoming connection
   clilen = sizeof(cli_addr);
+
   newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
   if (newsockfd < 0)
     error("ERROR on accept");
@@ -100,9 +106,20 @@ int main(int argc, char *argv[])
     return -1;
 
   GPO_Write(0);
+
+  unsigned short *tmp;
+  while(1) {
+    GPO_Read(tmp);
+    printf("GPO_Read : %d\n", *tmp);
+    GPI_Read(tmp);
+    printf("GPI_Read : %d\n", *tmp);
+    usleep(100000);
+  }
+  exit(1);
+
+
 //  printf("InitWDT : %d", InitWDT());
 //  printf("StopWDT : %d", StopWDT());
-  unsigned short *tmp;
   bool out = false;
   while(!out) {
     bzero(buffer,256);

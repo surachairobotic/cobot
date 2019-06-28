@@ -44,11 +44,15 @@ import rospy
 import time
 from std_msgs.msg import String
 
+import wave
+from ctypes import *
+
 # Audio recording parameters
-RATE = 16000
+RATE = 44100
 CHUNK = int(RATE / 10)  # 100ms
 
 t = time.time()
+node_name = ""
 
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
@@ -58,16 +62,34 @@ class MicrophoneStream(object):
 
         # Create a thread-safe buffer of audio data
         self._buff = queue.Queue()
+        self._frames = []
         self.closed = True
 
     def __enter__(self):
         self._audio_interface = pyaudio.PyAudio()
+
+        print("--------------------Input Deviece Lists : host 0---------------------")
+        info = self._audio_interface.get_host_api_info_by_index(0)
+        numdevices = info.get('deviceCount')
+        for i in range(0, numdevices):
+            channel = self._audio_interface.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')
+            if channel > 0:
+                name = self._audio_interface.get_device_info_by_host_api_device_index(0, i).get('name')
+                rate = self._audio_interface.get_device_info_by_host_api_device_index(0, i).get('defaultSampleRate')
+                print "Input Device id [", i, "] : ", name, ", Rate : ", rate, ", Channel : ", channel
+
+        input_idx = rospy.get_param(rospy.get_name() + '/audio_device_idx', None)
+#        input_idx = 0
+
         self._audio_stream = self._audio_interface.open(
-            format=pyaudio.paInt16,
             # The API currently only supports 1-channel (mono) audio
             # https://goo.gl/z757pE
-            channels=1, rate=self._rate,
-            input=True, frames_per_buffer=self._chunk,
+            rate=self._rate,
+            channels=1,
+            format=pyaudio.paInt16,
+            input=True,
+            input_device_index=input_idx,
+            frames_per_buffer=self._chunk,
             # Run the audio stream asynchronously to fill the buffer object.
             # This is necessary so that the input device's buffer doesn't
             # overflow while the calling thread makes network requests, etc.
@@ -87,13 +109,21 @@ class MicrophoneStream(object):
         self._buff.put(None)
         self._audio_interface.terminate()
 
+        self.wf.writeframes(b''.join(self._frames))
+        self.wf.close()
+
     def _fill_buffer(self, in_data, frame_count, time_info, status_flags):
         """Continuously collect data from the audio stream, into the buffer."""
         self._buff.put(in_data)
+        self._frames.append(in_data)
         return None, pyaudio.paContinue
 
     def generator(self):
-        while not self.closed:
+        self.wf = wave.open("cobot_speech2text.wav", 'wb')
+        self.wf.setnchannels(1)
+        self.wf.setsampwidth(self._audio_interface.get_sample_size(pyaudio.paInt16))
+        self.wf.setframerate(RATE)
+        while not self.closed and not rospy.is_shutdown():
             # Use a blocking get() to ensure there's at least one chunk of
             # data, and stop iteration if the chunk is None, indicating the
             # end of the audio stream.
@@ -103,7 +133,7 @@ class MicrophoneStream(object):
             data = [chunk]
 
             # Now consume whatever other data's still buffered.
-            while True:
+            while not rospy.is_shutdown():
                 try:
                     chunk = self._buff.get(block=False)
                     if chunk is None:
@@ -112,16 +142,16 @@ class MicrophoneStream(object):
                 except queue.Empty:
                     break
 
+            # print("generator")
             yield b''.join(data)
 
 
 def listen_print_loop(responses):
-    rospy.loginfo("aaaaaaaaaaaaaa")
+    rospy.loginfo("def listen_print_loop(responses):")
 
     num_chars_printed = 0
-    plus_one = [[u'หนึ่ง','1'], [u'สอง','2'], [u'สาม','3'], [u'สี่',u'ห้า',u'หก',u'เจ็ด',u'แปด',u'เก้า',u'สิบ','4','5','6','7','8','9','10']]
     for response in responses:
-        rospy.loginfo("listen_print_loop")
+        rospy.logdebug("listen_print_loop")
         if rospy.is_shutdown():
             break
 
@@ -136,54 +166,16 @@ def listen_print_loop(responses):
         overwrite_chars = ' ' * (num_chars_printed - len(transcript))
 
         if not result.is_final:
-            print(transcript + overwrite_chars)
+            rospy.logdebug(transcript + overwrite_chars)
             num_chars_printed = len(transcript)
 
         else:
-            i=0
-            what_number = [0.0]*4
-            for num in range(len(plus_one)):
-              for k in range(len(plus_one[num])):
-                if result.alternatives[i].transcript.find(plus_one[num][k]) != -1:
-                  what_number[num] = what_number[num] + 1
-                  break
-            if result.alternatives[i].transcript.find(u'ึ') != -1:
-              what_number[0] = what_number[0] + 0.01
-            if result.alternatives[i].transcript.find(u'อ') != -1:
-              what_number[1] = what_number[1] + 0.01
-            if result.alternatives[i].transcript.find(u'า') != -1:
-              what_number[2] = what_number[2] + 0.01
+            rospy.logdebug(transcript + overwrite_chars)
+            rospy.loginfo(transcript.encode('utf-8'))
+            pub_text.publish(String(transcript))
 
-            print(transcript + overwrite_chars)
-            print(what_number)
-
-            if (what_number[0]+what_number[1]+what_number[2]) > 0:
-              b_other = True
-              for i in range(len(what_number)-1):
-                if what_number[3] < what_number[i]:
-                  b_other = False
-                  break
-              cmd = '~/catkin_ws/src/cobot/ros_speech2text/speech.sh '
-              if not b_other:
-                if what_number[0] > what_number[1] and what_number[0] > what_number[2]:
-                  c = 'กล่องที่หนึ่ง'
-                  rospy.loginfo('Number One');
-                  pub_text.publish(String('M1'))
-                elif what_number[1] > what_number[0] and what_number[1] > what_number[2]:
-                  c = 'กล่องที่สอง'
-                  rospy.loginfo('Number Two');
-                  pub_text.publish(String('M2'))
-                elif what_number[2] > what_number[0] and what_number[2] > what_number[1]:
-                  c = 'กล่องที่สาม'
-                  rospy.loginfo('Number Three');
-                  pub_text.publish(String('M3'))
-              else:
-                c = 'อะไรนะคะ'
-                rospy.loginfo('Other');
-              os.system(cmd+c)
-
-            if re.search(r'\b(Exit|exit|Quit|quit|xxxx)\b', transcript, re.I):
-                print('Exiting..')
+            if re.search(r'\b(Exit|exit|Quit|quit)\b', transcript, re.I):
+                rospy.loginfo('Exiting..')
                 break
             num_chars_printed = 0
 
@@ -192,16 +184,26 @@ def main():
     # for a list of supported languages.
     language_code = 'th-TH'  # a BCP-47 language tag
 
+    cobot_context = [ types.SpeechContext
+                ( phrases=
+                ['teach mode', 'normal mode', 'pickplace mode',
+                 'บันทึกจุดที่', 'ไปจุดที่', 'กล่องที่', 'เริ่มได้', 'หยุด', 'go home',
+                 'หนึ่ง', 'สอง', 'สาม',
+                ],
+                )
+                ]
     client = speech.SpeechClient()
     config = types.RecognitionConfig(
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
-        language_code=language_code
+        language_code=language_code,
+        speech_contexts=cobot_context
         )
     streaming_config = types.StreamingRecognitionConfig(
         config=config,
         interim_results=True)
 
+    rospy.loginfo('cobot_speech2text')
     while not rospy.is_shutdown():
         try:
             rospy.loginfo('start')
@@ -216,11 +218,14 @@ def main():
                 rospy.loginfo('response')
                 listen_print_loop(responses)
         except:
-           rospy.loginfo('end : %s' % str(sys.exc_info()[0]))
+            rospy.loginfo('end : %s' % str(sys.exc_info()[0]))
 
 if __name__ == '__main__':
-    rospy.init_node('cobot_speech', anonymous=True)
-    rospy.loginfo('cobot_speech_starting...')
-    pub_text = rospy.Publisher('/cobot/speech/text', String, queue_size=10)
+    rospy.init_node('cobot_speech2text', anonymous=True)
+    rospy.loginfo('cobot_speech2text_starting...')
+    global node_name
+    node_name = rospy.get_name()
+    rospy.loginfo(node_name)
+    pub_text = rospy.Publisher('/cobot/speech/tts', String, queue_size=10)
     main()
 # [END speech_transcribe_streaming_mic]

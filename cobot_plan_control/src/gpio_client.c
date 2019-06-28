@@ -45,11 +45,9 @@ int main(int argc, char *argv[])
   if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
     error("ERROR connecting");
   while(1) {
-    /*
     printf("Please enter the message: ");
     bzero(buffer,256);
     fgets(buffer,255,stdin);
-    */
     n = write(sockfd,buffer,strlen(buffer));
     if (n < 0)
       error("ERROR writing to socket");

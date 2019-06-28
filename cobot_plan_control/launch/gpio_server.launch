@@ -1,4 +1,6 @@
 <launch>
+  <!--node name="gpio_server_multi_client" pkg="cobot_plan_control" type="gpio_server_multi_client" respawn="false" output="screen" launch-prefix="sudo">
+-->
   <node name="gpio_server" pkg="cobot_plan_control" type="gpio_server" respawn="false" output="screen" launch-prefix="sudo">
   </node>
 </launch>

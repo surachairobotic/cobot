@@ -1,0 +1,8 @@
+<launch>
+  <node name="cobot_speech2text" pkg="cobot_speech" type="cobot_speech2text.py" output="screen">
+    <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+    <param    name ="audio_device_idx" value="0" />
+  </node>
+  <node name="cobot_text2speech" pkg="cobot_speech" type="cobot_text2speech.py" output="screen">
+  </node>
+</launch>

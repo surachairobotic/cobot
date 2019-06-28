@@ -247,7 +247,7 @@ bool move_trajectory_2(cControl &control) {
   // set acc to 3.14 rad/sec^2
   std::vector<double> acc(6);
   for(int j=0;j<acc.size();j++)
-    acc[j] = M_PI;
+    acc[j] = 2.0*M_PI;
   control.set_acc(acc);
 
 	bool first_time = true;
@@ -296,7 +296,11 @@ bool move_trajectory_2(cControl &control) {
 		//print_move_cartesian(fp1, p.time_from_start.toSec(), wp_pose.position, wp_velo, d_time_move, current_pose.position, mv_velo);
 
     double dist_pnt = distance_point(current_pose, wp_pose);
-    if( dist_pnt < 0.005 ) {
+    double dist_jnt = 0.00;
+    for( int l=0; j<joint_state.position.size(); l++) {
+      dist_jnt += fabs(joint_state.position[l]-p.positions[l]);
+    }
+    if( dist_pnt < 0.005 && dist_jnt < 0.05) {
       if( i < traj.points.size()-1 ) {
         i++;
         p = traj.points[i];

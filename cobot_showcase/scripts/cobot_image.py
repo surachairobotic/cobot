@@ -17,10 +17,12 @@ from scipy.spatial.transform import Rotation as R
 class CobotImage:
 
     def __init__(self, topic):
+        rospy.loginfo('CobotImage : init | %s' % topic)
         self.topic = topic
         self.action_client = actionlib.SimpleActionClient(topic, CobotFindObjectAction)
         self.action_client.wait_for_server()
         self.obj = CobotFindObjectGoal()
+        rospy.loginfo('CobotImage : init done | %s' % topic)
 
     def terminate(self):
         self.action_client.cancel_goal()
@@ -93,7 +95,7 @@ class CobotImageHandler:
         self.newMsgs = False
         while not rospy.is_shutdown():
             if self.newMsgs == True:
-                obj_res = self.obj.send_goal()
+                obj_res = self.basket.send_goal() ################3
                 num_obj = len(obj_res.labels)
                 if num_obj > 0:
                     b_p1 = False

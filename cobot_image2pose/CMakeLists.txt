@@ -1,37 +1,26 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(cobot_plan_control)
+project(cobot_image2pose)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-g3 -O0 -pg -std=c++11)
-#add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(Eigen3 REQUIRED)
-# Eigen 3.2 (Wily) only provides EIGEN3_INCLUDE_DIR, not EIGEN3_INCLUDE_DIRS
-if(NOT EIGEN3_INCLUDE_DIRS)
-  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
-endif()
-
-find_package(catkin REQUIRED COMPONENTS
-  geometric_shapes
-  moveit_core
-  moveit_ros_planning
-  moveit_ros_planning_interface
-  moveit_visual_tools
-  pluginlib
-  roscpp
-  rospy
-  std_msgs
-  cobot_sample_controller
-  visualization_msgs
-  serial
+find_package(catkin
+  REQUIRED
+    actionlib
+  COMPONENTS
+    cobot_msgs
+    cobot_pick
+    roscpp
+    rospy
+    actionlib
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Boost REQUIRED system filesystem date_time thread)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -86,7 +75,7 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   cobot_msgs
 # )
 
 ################################################
@@ -119,18 +108,10 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES cobot_plan_control
-  CATKIN_DEPENDS
-    roscpp
-    rospy
-    std_msgs
-    moveit_core
-    moveit_ros_planning_interface
-    interactive_markers
-  DEPENDS
-#    system_lib
-    EIGEN3
+#  INCLUDE_DIRS include
+#  LIBRARIES cobot_image2pose
+#  CATKIN_DEPENDS cobot_msgs roscpp rospy
+#  DEPENDS system_lib
 )
 
 ###########
@@ -140,17 +121,13 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  SYSTEM
+# include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIR}
-  include
 )
-
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/cobot_plan_control.cpp
+#  src/${PROJECT_NAME}/cobot_image2pose.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -161,7 +138,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/cobot_plan_control_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/cobot_image2pose_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -178,63 +155,10 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-add_executable(cobot_plan_control
-  src/cobot_plan_control.cpp
-  src/tcp_client.cpp
-)
-target_link_libraries(cobot_plan_control
+add_executable(${PROJECT_NAME} src/cobot_image2pose.cpp)
+add_dependencies(${PROJECT_NAME} cobot_find_object)
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  cobot_controller_class
-)
-
-add_executable(cobot_vacuum
-  src/cobot_vacuum_serial.cpp
-  src/cSerial.cpp
-#  src/tcp_client.cpp
-)
-target_link_libraries(cobot_vacuum
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
-add_executable(test_vacuum
-  src/test_vacuum.cpp
-  src/tcp_client.cpp
-)
-target_link_libraries(test_vacuum
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
-add_executable(test_vacuum_serial
-  src/test_vacuum_serial.cpp
-  src/cSerial.cpp
-)
-target_link_libraries(test_vacuum_serial
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
-add_executable(gpio_server src/gpio_server.c)
-target_link_libraries(gpio_server
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
-)
-
-add_executable(gpio_client src/gpio_client.c)
-target_link_libraries(gpio_client
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
-)
-
-add_executable(gpio_server_multi_client src/gpio_server_multi_client.c)
-target_link_libraries(gpio_server_multi_client
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
 )
 
 #############
@@ -277,7 +201,7 @@ target_link_libraries(gpio_server_multi_client
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_cobot_plan_control.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_cobot_image2pose.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
