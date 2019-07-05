@@ -1,0 +1,2 @@
+No robot model found
+ /home/mtec/catkin_ws/src/cobot/cobot_dynamixel_driver/src/cJoint_common.cpp:171

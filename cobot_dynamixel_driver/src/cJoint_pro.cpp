@@ -1083,17 +1083,12 @@ void cJoint::change_mode(int _mode){
     return;
   }
 
-  ROS_INFO("cJoint::change_mode A");
   write( P_TORQUE_ENABLE, 0 );
-  ROS_INFO("cJoint::change_mode B");
   write( P_OPERATING_MODE, _mode);
-  ROS_INFO("cJoint::change_mode C");
   if( P_OPERATING_MODE != MODE_TORQUE_CONTROL )
     write( P_GOAL_TORQUE, 0 );
 //  write( P_TORQUE_LIMIT, torque_limit );
-  ROS_INFO("cJoint::change_mode D");
   write( P_TORQUE_ENABLE, 1 );
-  ROS_INFO("cJoint::change_mode E");
 
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;
@@ -1102,22 +1097,16 @@ void cJoint::change_mode(int _mode){
 void cJoint::change_mode_2(int _mode){
   ROS_INFO("cJoint::change_mode_2()");
 
-  ROS_INFO("cJoint::change_mode A");
   write( P_TORQUE_ENABLE, 0 );
   usleep(5000);
-  ROS_INFO("cJoint::change_mode B");
   write( P_OPERATING_MODE, _mode);
   usleep(5000);
-  ROS_INFO("cJoint::change_mode C");
   if( P_OPERATING_MODE != MODE_TORQUE_CONTROL ) {
     write( P_GOAL_TORQUE, 0 );
     usleep(5000);
   }
-//  write( P_TORQUE_LIMIT, torque_limit );
-  ROS_INFO("cJoint::change_mode D");
   write( P_TORQUE_ENABLE, 1 );
   usleep(5000);
-  ROS_INFO("cJoint::change_mode E");
 
   ROS_INFO("control mode has been changed from %d to %d\n", mode, _mode);
   mode = _mode;

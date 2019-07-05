@@ -96,7 +96,7 @@ add_service_files(
 	set_p_gain.srv
 	set_i_gain.srv
 	set_torque.srv
-	up_one.srv
+	change_key.srv
 )
 
 generate_messages(
@@ -197,7 +197,7 @@ add_library(cobot_dynamixel_sdk
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp 
+  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp
   /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
 )
 

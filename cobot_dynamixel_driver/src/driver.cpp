@@ -11,6 +11,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
@@ -20,13 +21,15 @@
 #include "cobot_dynamixel_driver/set_p_gain.h"
 #include "cobot_dynamixel_driver/set_i_gain.h"
 #include "cobot_dynamixel_driver/set_torque.h"
-#include "cobot_dynamixel_driver/up_one.h"
+#include "cobot_dynamixel_driver/change_key.h"
 #include "sensor_msgs/JointState.h"
 #include "cobot_dynamixel_driver/cJoint.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include <unistd.h>
 #include <limits.h>
 
+std::string DRIVER_KEY = "NOT SET";
+bool b_change_key = false;
 std::string iso_time_str = "";
 int num_log = 0;
 ros::Publisher pub_return;
@@ -51,8 +54,19 @@ bool set_i_gain(cobot_dynamixel_driver::set_i_gain::Request &req, cobot_dynamixe
 bool set_torque(cobot_dynamixel_driver::set_torque::Request &req, cobot_dynamixel_driver::set_torque::Response &res);
 bool get_offset(std::string name, double* offs);
 
-bool up_one(cobot_dynamixel_driver::up_one::Request &req, cobot_dynamixel_driver::up_one::Response &res) {
-  res.out = req.in + 1;
+bool change_key(cobot_dynamixel_driver::change_key::Request &req, cobot_dynamixel_driver::change_key::Response &res) {
+  DRIVER_KEY = req.key;
+  res.status = true;
+  ROS_INFO("DRIVER_KEY is %s", DRIVER_KEY.c_str());
+  /*
+  b_change_key = true;
+  ros::Time t = ros::Time::now();
+  while(b_change_key && (ros::Time::now()-t).toSec()<2.5 && ros::ok());
+  if((ros::Time::now()-t).toSec()>2.5)
+    res.status = false;
+  else
+    res.status = true;
+  */
   return true;
 }
 
@@ -112,7 +126,7 @@ int main(int argc, char **argv)
   ros::ServiceServer service_set_p_gain = n.advertiseService("cobot_dynamixel_driver/set_p_gain", set_p_gain);
   ros::ServiceServer service_set_i_gain = n.advertiseService("cobot_dynamixel_driver/set_i_gain", set_i_gain);
   ros::ServiceServer service_set_torque = n.advertiseService("cobot_dynamixel_driver/set_torque", set_torque);
-  ros::ServiceServer service_up_one = n.advertiseService("cobot_dynamixel_driver/up_one", up_one);
+  ros::ServiceServer service_change_key = n.advertiseService("/cobot/cobot_dynamixel_driver/change_key", change_key);
 
   int fake_joints = 0;
   try{
@@ -224,7 +238,7 @@ int main(int argc, char **argv)
           ;//ROS_INFO("Main rate : %lf sec", dt);
 
         t_prev = t;
-        joint_state.header.frame_id = "world";
+        joint_state.header.frame_id = "cobot_dynamixel_driver";
         joint_state.header.stamp = t;
         timestamp = joint_state.header.stamp.toSec();
         joint_state.header.seq = seq;
@@ -280,8 +294,8 @@ int main(int argc, char **argv)
         b_emergency = true;
       }
       ros::spinOnce();
-      usleep(10000);
-//      loop_rate.sleep();
+//      usleep(10000);
+      loop_rate.sleep();
     }
   }
   catch(int err){
@@ -295,6 +309,7 @@ int main(int argc, char **argv)
     fprintf(_log, "%s\n", err.c_str());
   }
   cJoint::terminate();
+
   return 0;
 }
 
@@ -302,11 +317,14 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
   if(b_emergency) return;
   sensor_msgs::JointState msg;
   msg = *data;
-  if(tq_over) {
+  bool b_key_process = false;
+  if(b_change_key)
+    b_key_process = true;
+  int chk = DRIVER_KEY.compare(msg.header.frame_id);
+  if(tq_over || chk != 0 ) {
     msg.position.clear();
     msg.effort.clear();
-    for(int i=0; i<6; i++)
-      msg.velocity[i] = 0.0000;
+    msg.velocity = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   }
   bool b_write = false;
   if((ros::Time::now()-t_callback).toSec() > 0.025) {
@@ -507,7 +525,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
       else
         cJoint::reset_goal();
     }
-
+    if(b_key_process)
+      b_change_key = false;
   } // try
   catch(int err) {
 //    ROS_ERROR("%s", s_info.c_str());

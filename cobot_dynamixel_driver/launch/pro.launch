@@ -1,6 +1,6 @@
 <launch>
   <!-- GDB Debug Option -->
-  <arg name="debug" default="false" />
+  <arg name="debug" default="true" />
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
@@ -10,7 +10,7 @@
   <arg     if="$(arg info)" name="command_args" value="--debug" />
 
   <node name="cobot_dynamixel_driver" pkg="cobot_dynamixel_driver" type="cobot_dynamixel_driver_pro" respawn="false" output="screen" launch-prefix="$(arg launch_prefix)" args="$(arg command_args)">
-    <remap from="cobot_dynamixel_driver/joint_states" to="joint_states"/>
+    <remap from="cobot_dynamixel_driver/joint_states" to="/cobot/joint_states"/>
     <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
 <!--    <param name="fake_joints" value="5"/> -->
     <param name="load_joint_name" value="true"/>

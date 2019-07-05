@@ -1,0 +1,4 @@
+int32 index
+int32 operation
+---
+std_msgs/String error

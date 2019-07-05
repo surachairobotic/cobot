@@ -1,0 +1,8 @@
+<launch>
+
+<!--  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen">
+-->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" launch-prefix="gdb -ex run - -args">
+  </node>
+
+</launch>

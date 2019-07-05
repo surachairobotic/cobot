@@ -1,0 +1,4 @@
+<launch>
+  <node name="cobot_core_node" pkg="cobot_core" type="cobot_core_node" respawn="false" output="screen" >
+  </node>
+</launch>

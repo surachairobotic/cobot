@@ -9,6 +9,7 @@ project(cobot_msgs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
+  sensor_msgs
   geometry_msgs
   message_generation
 )
@@ -54,14 +55,20 @@ add_message_files(
   PickPlacePoseArray.msg
   Poses.msg
   Paths.msg
+  Enable.msg
+  Jog.msg
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
+add_service_files(
+  FILES
+  EditJointStateFile.srv
+  ReadJointStateFile.srv
+  EnableNode.srv
+  ChangeMode.srv
 #   Service1.srv
 #   Service2.srv
-# )
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -74,6 +81,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
   geometry_msgs
 )
 
@@ -109,7 +117,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES cobot_msgs
-  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs message_runtime
 #  DEPENDS system_lib
 )
 

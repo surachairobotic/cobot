@@ -131,7 +131,7 @@ def callback_return(jnt_re):
     jntReturn = jnt_re
 
 if __name__ == '__main__':
-  rospy.init_node('init_torque', anonymous=True)
+  rospy.init_node('cobot_torque_detection', anonymous=True)
 
   global arm_state, ABC, first, list_current_cal, list_current, stat
 
@@ -142,13 +142,12 @@ if __name__ == '__main__':
           [ 241.0,   22.0,   58.0],
           [   0.0,    0.0,    0.0] ]
 
-  sub = rospy.Subscriber("/joint_states", JointState, callback)
+  sub = rospy.Subscriber("/cobot/joint_states", JointState, callback)
   sub_return = rospy.Subscriber("/cobot_dynamixel_driver/joint_states_return", JointState, callback_return)
   pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
   pub_tq = rospy.Publisher("/cobot/torque_detection", Bool, queue_size=10)
 
   rate = rospy.Rate(50) # 50hz
-  stop = rospy.Rate(1) # 1hz
 
   err_max = [450, 870, 470, 340, 140, 9999]
 

@@ -1,6 +1,6 @@
 /* Author: Ioan Sucan */
 
-#include <class_loader/class_loader.h>
+#include <class_loader/class_loader.hpp>
 #include <MyDisplay.h>
 
 //CLASS_LOADER_REGISTER_CLASS(multi_state_planning::MultiMoveGroupDisplay, rviz::Panel)
