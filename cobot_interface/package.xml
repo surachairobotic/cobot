@@ -79,5 +79,6 @@
   <export>
     <!-- Other tools can request additional information be placed here -->
     <rviz plugin="${prefix}/cobot_interface_alpha.xml"/>
+    <rviz plugin="${prefix}/cobot_interface_status_tools.xml"/>
   </export>
 </package>

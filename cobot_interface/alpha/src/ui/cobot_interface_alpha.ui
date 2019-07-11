@@ -29,7 +29,7 @@
     <enum>QTabWidget::South</enum>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <property name="documentMode">
     <bool>false</bool>
@@ -177,6 +177,19 @@
        <width>631</width>
        <height>401</height>
       </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_jog_enable">
+     <property name="geometry">
+      <rect>
+       <x>650</x>
+       <y>10</y>
+       <width>80</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Enable</string>
      </property>
     </widget>
    </widget>

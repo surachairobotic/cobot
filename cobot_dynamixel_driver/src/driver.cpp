@@ -321,7 +321,9 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
   if(b_change_key)
     b_key_process = true;
   int chk = DRIVER_KEY.compare(msg.header.frame_id);
-  if(tq_over || chk != 0 ) {
+  if(chk != 0)
+    return;
+  if(tq_over) {
     msg.position.clear();
     msg.effort.clear();
     msg.velocity = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};

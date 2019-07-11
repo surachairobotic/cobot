@@ -1,26 +1,28 @@
-#include <cobot_widget.h>
-#include <cobot_display.h>
-#include "cobot_label.h"
+#include <cobot_status_tools_widget.h>
+#include <cobot_status_tools_display.h>
 
-#include "ui_cobot_interface_alpha.h"
+#include <QResizeEvent>
+#include <QSize>
+#include <QRect>
+
+#include "ui_cobot_status_tools.h"
 
 using namespace cobot_interface;
 
-CobotWidget::CobotWidget( CobotDisplay* pdisplay, rviz::DisplayContext* context, QWidget* parent)
+CobotStatusToolsWidget::CobotStatusToolsWidget( CobotStatusToolsDisplay* pdisplay, rviz::DisplayContext* context, QWidget* parent)
 	: planning_display_(pdisplay)
   , context_(context)
   , QWidget(parent)
-  , ui_(new Ui::CobotInterfaceAlphaUI)
+  , ui_(new Ui::CobotToolsUI)
 //  , cobot_label_teach_header(ui_->label_teach_header)
 {
   ui_->setupUi(this);
-
-
 
 //  srv_teach_enable = n.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach");
 //  CobotLabel cobot_label_teach_header;
 //  connect(cobot_label_teach_header, SIGNAL(clicked()), this, SLOT(enableNodeClicked()));
 
+/*
 	// teach_mode
   connect(ui_->btn_teach_enable, SIGNAL(clicked()), this, SLOT(enableNodeClicked()));
 	connect(ui_->btn_teach_disable, SIGNAL(clicked()), this, SLOT(disableNodeClicked()));
@@ -42,20 +44,42 @@ CobotWidget::CobotWidget( CobotDisplay* pdisplay, rviz::DisplayContext* context,
 	connect(ui_->btnDownJ5, SIGNAL(clicked()), this, SLOT(downJ5Clicked()));
 	connect(ui_->btnDownJ6, SIGNAL(clicked()), this, SLOT(downJ6Clicked()));
 	connect(ui_->btn_jog_enable, SIGNAL(clicked()), this, SLOT(jog_enableClicked()));
+*/
 }
 
-CobotWidget::~CobotWidget() {
-	ROS_INFO("CobotWidget::~CobotWidget()");
+CobotStatusToolsWidget::~CobotStatusToolsWidget() {
+	ROS_INFO("CobotStatusToolsWidget::~CobotStatusToolsWidget()");
   delete ui_;
 }
 
-void CobotWidget::enable() {
+void CobotStatusToolsWidget::enable() {
   // activate the frame
   parentWidget()->show();
   show();
 }
 
-void CobotWidget::disable() {
+void CobotStatusToolsWidget::disable() {
   parentWidget()->hide();
   hide();
 }
+
+/*
+void CobotStatusToolsWidget::resizeEvent(QResizeEvent *event) {
+	QSize size = event->size();
+	QRect rect(0, 0, size.width(), size.height());
+	ui_->gridLayout->setGeometry(rect);
+	QRect tmp = ui_->gridLayout->geometry();
+//	ROS_INFO("CobotStatusToolsWidget::resizeEvent : [%d, %d][%d, %d, %d, %d]", size.width(), size.height(), tmp.x(), tmp.y(), tmp.width(), tmp.height());
+}
+*/
+
+/*
+void CobotStatusToolsWidget::updateJointStateUI() {
+	ui_->lineEdit_j1->setText(QString::number(js.position[0], 'f', 4));
+	ui_->lineEdit_j2->setText(QString::number(js.position[1], 'f', 4));
+	ui_->lineEdit_j3->setText(QString::number(js.position[2], 'f', 4));
+	ui_->lineEdit_j4->setText(QString::number(js.position[3], 'f', 4));
+	ui_->lineEdit_j5->setText(QString::number(js.position[4], 'f', 4));
+	ui_->lineEdit_j6->setText(QString::number(js.position[5], 'f', 4));
+}
+*/

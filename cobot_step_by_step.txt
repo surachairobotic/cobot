@@ -1,0 +1,18 @@
+cd catkin_ws
+Terminal 1
+roscore
+
+Terminal 2
+roslaunch my_ui cobot_demo_model.launch
+
+Terminal 3
+roslaunch cobot_dynamixel_driver pro.launch
+
+Terminal 4
+sudo ~/catkin_ws/devel/lib/cobot_plan_control/gpio_server_multi_client
+
+Terminal 5
+roslaunch cobot_showcase set1.launch
+
+Terminal 6
+roslaunch cobot_showcase set2.launch

@@ -105,7 +105,7 @@ def handle_enable_node(req):
     global enable, DRIVER_KEY
     error = String()
     error.data = "ERROR"
-    enable = req.enable
+    enable = False
     if req.enable:
         resp = get_key("TEACH_MODE")
         if resp.error == "OK":

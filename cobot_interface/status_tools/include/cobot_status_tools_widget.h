@@ -1,5 +1,5 @@
-#ifndef COBOT_WIDGET_H
-#define COBOT_WIDGET_H
+#ifndef COBOT_STATUS_TOOLS_WIDGET_H
+#define COBOT_STATUS_TOOLS_WIDGET_H
 
 #include <rviz/display.h>
 #include <QWidget>
@@ -7,50 +7,51 @@
 #include "cobot_msgs/Jog.h"
 #include "sensor_msgs/JointState.h"
 
-#include "cobot_label.h"
-
 namespace rviz
 {
 class DisplayContext;
 }
 
 namespace Ui {
-	class CobotInterfaceAlphaUI;
+	class CobotToolsUI;
 }
 
 namespace cobot_interface {
-	class CobotDisplay;
+	class CobotStatusToolsDisplay;
 
-	class CobotWidget : public QWidget
+	class CobotStatusToolsWidget : public QWidget
 	{
-	  friend class CobotDisplay;
+	  friend class CobotStatusToolsDisplay;
 			Q_OBJECT
 
 		public:
-		  CobotWidget(CobotDisplay* pdisplay, rviz::DisplayContext* context, QWidget* parent = 0);
-			~CobotWidget();
+		  CobotStatusToolsWidget(CobotStatusToolsDisplay* pdisplay, rviz::DisplayContext* context, QWidget* parent = 0);
+			~CobotStatusToolsWidget();
 
 			void enable();
 			void disable();
 
 //		protected:
-			CobotDisplay* planning_display_;
+			CobotStatusToolsDisplay* planning_display_;
       rviz::DisplayContext* context_;
-			Ui::CobotInterfaceAlphaUI *ui_;
-
-			CobotLabel cobot_label_teach_header;
+			Ui::CobotToolsUI *ui_;
 
 		protected:
+			
 			ros::ServiceClient srv_teach_enable;
 			ros::ServiceClient srv_jog_enable;
 			ros::ServiceClient srv_read_point_file;
 			ros::ServiceClient srv_edit_js_file;
 
+			//static void callback_js(const sensor_msgs::JointState &js);
+
 		private:
 			std::vector<sensor_msgs::JointState> js_points;
 			cobot_msgs::Jog msg_jog;
+			sensor_msgs::JointState js;
 
 			void updatePointsTable();
+			void updateJointStateUI();
 
 			// Jog
 			ros::Publisher pub_jog;
@@ -81,4 +82,4 @@ namespace cobot_interface {
 	};
 }
 
-#endif // COBOT_WIDGET_H
+#endif // COBOT_STATUS_TOOLS_WIDGET_H
