@@ -17,7 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
-	eigen_conversions
+  tf
+  eigen_conversions
 )
 
 find_package(Boost REQUIRED system filesystem date_time thread)
@@ -51,6 +52,7 @@ catkin_package(
     trajectory_msgs
     moveit_core
     moveit_ros_planning_interface
+    tf
   DEPENDS
     system_lib
 )
@@ -80,9 +82,14 @@ target_link_libraries(cobot_planner
   ${Boost_LIBRARIES}
 )
 
+#add_executable(cobot_test_eq src/cobot_test_eq.cpp)
+#target_link_libraries(cobot_test_eq
+#  ${catkin_LIBRARIES}
+#  opencv_core
+#  opencv_imgcodecs
+#  opencv_highgui
+#)
+
 #############
 ## Install ##
 #############
-
-
-

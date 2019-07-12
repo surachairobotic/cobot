@@ -50,6 +50,7 @@ void callback_js(const sensor_msgs::JointState &_js) {
   js = _js;
 }
 bool editJointStateFileFunc(cobot_msgs::EditJointStateFile::Request  &req, cobot_msgs::EditJointStateFile::Response &res) {
+  res.error.data = "OK";
   if(COBOT_MODE.compare("TEACH_MODE") != 0) {
     res.error.data = "ERR: CobotMode is not TEACH_MODE";
     ROS_INFO("res.error.data");
@@ -123,6 +124,7 @@ int countLine(void) {
 
 // cobot_msgs::ReadJointStateFile
 bool readJointStateFileFunc(cobot_msgs::ReadJointStateFile::Request  &req, cobot_msgs::ReadJointStateFile::Response &res) {
+  ROS_INFO("readJointStateFileFunc");
   res.error.data = "OK";
   FILE *fp = fopen(ori_file.c_str(), "r");
   if( !fp ) {
@@ -140,6 +142,9 @@ bool readJointStateFileFunc(cobot_msgs::ReadJointStateFile::Request  &req, cobot
     std::string s = tmp;
     boost::algorithm::split( v_str, s, boost::algorithm::is_any_of( " ,\n" ), boost::token_compress_on );
     sensor_msgs::JointState js;
+    js.header.stamp = ros::Time::now();
+    js.name = {"J1","J2","J3","J4","J5","J6"};
+
     if(v_str.size()>=6) {
       js.position = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
       for(int k=0; k<6; k++) {

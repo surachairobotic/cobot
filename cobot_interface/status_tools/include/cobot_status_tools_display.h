@@ -20,6 +20,12 @@ namespace cobot_interface
 
 			void setName(const QString& name);
 
+			static void callback_js(const sensor_msgs::JointState &js);
+			sensor_msgs::JointState js;
+
+		Q_SIGNALS:
+			void jsUpdate();
+
 		protected:
 			virtual void load(const rviz::Config& config);
 			virtual void save(rviz::Config config) const;
@@ -41,8 +47,6 @@ namespace cobot_interface
 
 		private:
 			ros::Subscriber sub_js;
-			sensor_msgs::JointState js;
-			static void callback_js(const sensor_msgs::JointState &js);
 
 		private Q_SLOTS:
 		  void cobotPanelVisibilityChange(bool enable);

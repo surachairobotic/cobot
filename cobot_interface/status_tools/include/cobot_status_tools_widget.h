@@ -3,6 +3,8 @@
 
 #include <rviz/display.h>
 #include <QWidget>
+#include <vector>
+#include "geometry_msgs/Quaternion.h"
 #include "cobot_msgs/EnableNode.h"
 #include "cobot_msgs/Jog.h"
 #include "sensor_msgs/JointState.h"
@@ -30,55 +32,40 @@ namespace cobot_interface {
 
 			void enable();
 			void disable();
+			bool jsCartesian(const sensor_msgs::JointState &_js, double* _pose);
 
 //		protected:
-			CobotStatusToolsDisplay* planning_display_;
+			CobotStatusToolsDisplay* cobot_display_;
       rviz::DisplayContext* context_;
 			Ui::CobotToolsUI *ui_;
 
 		protected:
-			
-			ros::ServiceClient srv_teach_enable;
-			ros::ServiceClient srv_jog_enable;
+
+			// ros::ServiceClient srv_teach_enable;
+			// ros::ServiceClient srv_jog_enable;
 			ros::ServiceClient srv_read_point_file;
 			ros::ServiceClient srv_edit_js_file;
+			ros::ServiceClient srv_fk;
 
 			//static void callback_js(const sensor_msgs::JointState &js);
+			void updatePointsTable();
 
 		private:
 			std::vector<sensor_msgs::JointState> js_points;
 			cobot_msgs::Jog msg_jog;
 			sensor_msgs::JointState js;
 
-			void updatePointsTable();
-			void updateJointStateUI();
+//			void updateJointStateUI();
 
 			// Jog
 			ros::Publisher pub_jog;
 
 		private Q_SLOTS:
-
-			// teach
-			void enableNodeClicked();
-			void disableNodeClicked();
-			void pointsNodeClicked();
 			void addPointClicked();
 			void delPointClicked();
+			void readPointClicked();
 
-			// Jog
-			void upJ1Clicked();
-			void upJ2Clicked();
-			void upJ3Clicked();
-			void upJ4Clicked();
-			void upJ5Clicked();
-			void upJ6Clicked();
-			void downJ1Clicked();
-			void downJ2Clicked();
-			void downJ3Clicked();
-			void downJ4Clicked();
-			void downJ5Clicked();
-			void downJ6Clicked();
-			void jog_enableClicked();
+			void updateJointStateUI();
 	};
 }
 
