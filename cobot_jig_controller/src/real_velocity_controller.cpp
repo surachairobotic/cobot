@@ -1,6 +1,5 @@
 #include "ros/ros.h"
-#include "cobot_sample_controller/cControl.h"
-#include "traj_controller.h"
+#include "cobot_planner/cControl.h"
 #include "math.h"
 
 std::string result_dir;
@@ -20,7 +19,7 @@ void print_move_joint_2(FILE *fp, const std::vector<double> &v_cal);
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "cobot_sample_controller");
+  ros::init(argc, argv, "cobot_jig_controller");
   cControl control("arm", "tool0");
 //  TrajectoryController trajControl;
   try {
@@ -76,18 +75,18 @@ bool create_trajectory(cControl &control, bool direction) {
     cControl::print_pose(start_pose);
     return false;
   }
-  
+
   if( !control.is_valid_pose(end_pose) ){
     ROS_ERROR("Invalid end_pos : ");
     cControl::print_pose(end_pose);
     return false;
   }
-  
+
   ROS_INFO("start pose : ");
   cControl::print_pose(start_pose);
   ROS_INFO("end pose : ");
   cControl::print_pose(end_pose);
-  
+
   bool b = control.plan_line(start_pose, end_pose, 0.01);
 //  bool b = control.plan_p2p(start_pose, end_pose);
   if( b )
@@ -157,7 +156,7 @@ void print_trajectory(cControl &control, const std::string &file_name) {
   }
   if(fp)
     fclose(fp);
-    
+
   printf("\nstart - end point\n");
   const int ii[] = { 0, (int)traj.points.size()-1 };
   for(int i=0; i<2; i++){
@@ -183,7 +182,7 @@ bool move_trajectory(cControl &control) {
 
   ros::Rate r(100);
   ros::Time t_start = ros::Time::now(), t_print = t_start, start_time, read_time, run_time;
-  
+
   // set acc to 3.14 rad/sec^2
   std::vector<double> acc(6);
   for(int i=0;i<acc.size();i++)
@@ -395,4 +394,3 @@ geometry_msgs::Pose extend_waypoint(const geometry_msgs::Pose &p1, const geometr
   p.orientation = p2.orientation;
   return p;
 }
-

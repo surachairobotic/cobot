@@ -37,14 +37,14 @@ void cControl::init() {
 
   ros::NodeHandle n;
   pub_goal = n.advertise<sensor_msgs::JointState>("cobot_dynamixel_driver/goal", 1000);
-  
+
   sub_joints = n.subscribe("/joint_states", 10, &cControl::joint_states_callback, this);
   srv_set_acc = n.serviceClient<cobot_dynamixel_driver::set_acc>("cobot_dynamixel_driver/set_acc");
   srv_set_p_gain = n.serviceClient<cobot_dynamixel_driver::set_p_gain>("cobot_dynamixel_driver/set_p_gain");
   srv_set_i_gain = n.serviceClient<cobot_dynamixel_driver::set_i_gain>("cobot_dynamixel_driver/set_i_gain");
   srv_set_goal_torque = n.serviceClient<cobot_dynamixel_driver::set_torque>("cobot_dynamixel_driver/set_torque");
 
-/*  
+/*
 
   ros::Rate r(10);
   ROS_INFO("waiting for joint_states ...\n");
@@ -237,7 +237,7 @@ void cControl::check_goal_state(const std::vector<double> &joints){
     goal.name = traj.joint_names;
   }
   if( goal.name.size()!=joints.size() ){
-    mythrow(std::string("cControl::check_goal_state() : joint num does not match : ") + 
+    mythrow(std::string("cControl::check_goal_state() : joint num does not match : ") +
       tostr((int)joints.size()) + " / " + tostr((int)goal.name.size()));
   }
 }
@@ -246,7 +246,7 @@ void cControl::move_pos_velo_acc(const std::vector<double> &joint_pos, const std
   check_goal_state(joint_pos);
   check_goal_state(joint_velo);
   check_goal_state(joint_acc);
-  
+
   goal.header.stamp = ros::Time::now();
   goal.position = joint_pos;
   goal.velocity = joint_velo;
@@ -257,13 +257,13 @@ void cControl::move_pos_velo_acc(const std::vector<double> &joint_pos, const std
 void cControl::move_pos_velo(const std::vector<double> &joint_pos, const std::vector<double> &joint_velo){
   check_goal_state(joint_pos);
   check_goal_state(joint_velo);
-  
+
   goal.header.stamp = ros::Time::now();
   goal.position = joint_pos;
   goal.velocity = joint_velo;
   goal.effort.clear();
   pub_goal.publish(goal);
-  
+
 }
 
 void cControl::move_velo_acc(const std::vector<double> &joint_velo, const std::vector<double> &joint_acc){
@@ -527,7 +527,7 @@ const robot_state::RobotStatePtr cControl::get_robot_state(const geometry_msgs::
 //  pose_eigen = end_effector_state;
   ROS_INFO_STREAM("Translation 2: " << pose_eigen.translation());
   ROS_INFO_STREAM("Rotation 2: " << pose_eigen.rotation());*/
-  
+
 //  robot_state::RobotState robot_state(*move_group.getCurrentState());
 //  robot_state.setToDefaultValues();
 	ROS_INFO("cControl::get_robot_state 0");
@@ -597,4 +597,3 @@ void cControl::print_joints(robot_state::RobotStatePtr state){
   }
   printf("\n");
 }
-

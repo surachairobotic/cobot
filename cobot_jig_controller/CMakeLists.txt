@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  cobot_sample_controller
+  cobot_planner
   cobot_dynamixel_driver
 )
 
@@ -53,7 +53,6 @@ include_directories(
 )
 
 add_library(traj_controller_class
-  src/traj_controller.cpp
 	src/MathFunctions.cpp
 )
 target_link_libraries(traj_controller_class
@@ -87,4 +86,3 @@ target_link_libraries(cobot_pi_vel
    up_one.srv
    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
  )
-

@@ -51,12 +51,7 @@ void callback_js(const sensor_msgs::JointState &_js) {
 }
 bool editJointStateFileFunc(cobot_msgs::EditJointStateFile::Request  &req, cobot_msgs::EditJointStateFile::Response &res) {
   res.error.data = "OK";
-  if(COBOT_MODE.compare("TEACH_MODE") != 0) {
-    res.error.data = "ERR: CobotMode is not TEACH_MODE";
-    ROS_INFO("res.error.data");
-    return true;
-  }
-  else if( !(req.operation == 1 || req.operation == -1) ) {
+  if( !(req.operation == 1 || req.operation == -1) ) {
     res.error.data = "ERR: Operation not found [ADD = 1, DELETE = -1]";
     return true;
   }
@@ -93,6 +88,8 @@ bool editJointStateFileFunc(cobot_msgs::EditJointStateFile::Request  &req, cobot
         continue;
     fputc(c, fp2);
   }
+  if( req.index == -1 && req.operation == 1)
+    fprintf(fp2, "%lf %lf %lf %lf %lf %lf\n", js.position[0], js.position[1], js.position[2], js.position[3], js.position[4], js.position[5]);
   if(fp1)
     fclose(fp1);
   if(fp2)
@@ -163,6 +160,7 @@ bool changeModeFunc(cobot_msgs::ChangeMode::Request  &req, cobot_msgs::ChangeMod
   srv.request.key = gen_random(8);
   ROS_INFO("srv.request.key = %s", srv.request.key.c_str());
   if (client_change_key.call(srv)) ;
+  ROS_INFO("srv.response.status = %d", srv.response.status);
   if (srv.response.status) {
     DRIVER_KEY = srv.request.key;
     COBOT_MODE = req.mode;

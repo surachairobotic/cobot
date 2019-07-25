@@ -1,6 +1,6 @@
 
 #include "ros/ros.h"
-#include "cobot_sample_controller/cControl.h"
+#include "cobot_planner/cControl.h"
 #include "math.h"
 #include <string>
 
@@ -205,18 +205,18 @@ bool create_trajectory(cControl &control){
     cControl::print_pose(start_pose);
     return false;
   }
-  
+
   if( !control.is_valid_pose(end_pose) ){
     ROS_ERROR("Invalid end_pos : ");
     cControl::print_pose(end_pose);
     return false;
   }
-  
+
   ROS_INFO("start pose : ");
   cControl::print_pose(start_pose);
   ROS_INFO("end pose : ");
   cControl::print_pose(end_pose);
-  
+
   bool b = control.plan_line(start_pose, end_pose, 0.05);
 //  bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
@@ -227,4 +227,3 @@ bool create_trajectory(cControl &control){
   }
   return b;
 }
-

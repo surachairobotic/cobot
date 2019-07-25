@@ -58,12 +58,14 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>rviz</build_depend>
   <build_depend>pluginlib</build_depend>
+  <build_depend>cobot_planner</build_depend>
 
   <build_export_depend>cobot_msgs</build_export_depend>
   <build_export_depend>moveit_msgs</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>cobot_planner</build_export_depend>
 
   <exec_depend>cobot_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
@@ -72,6 +74,7 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>pluginlib</exec_depend>
+  <exec_depend>cobot_planner</exec_depend>
 
   <test_depend>rostest</test_depend>
 
@@ -80,5 +83,7 @@
     <!-- Other tools can request additional information be placed here -->
     <rviz plugin="${prefix}/cobot_interface_alpha.xml"/>
     <rviz plugin="${prefix}/cobot_interface_status_tools.xml"/>
+    <rviz plugin="${prefix}/cobot_interface_jog_teach.xml"/>
+    <rviz plugin="${prefix}/cobot_interface_beta.xml"/>
   </export>
 </package>

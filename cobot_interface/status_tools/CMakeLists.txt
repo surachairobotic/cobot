@@ -17,7 +17,12 @@ set(COBOT_UI_LIB_NAME cobot_interface_status_tools)
 add_library(${COBOT_UI_LIB_NAME}_core ${SOURCE_FILES} ${HEADERS} ${UIC_FILES})
 set_target_properties(${COBOT_UI_LIB_NAME}_core PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})
 target_link_libraries(${COBOT_UI_LIB_NAME}_core
-  ${catkin_LIBRARIES} ${rviz_DEFAULT_PLUGIN_LIBRARIES} ${OGRE_LIBRARIES} ${QT_LIBRARIES} ${Boost_LIBRARIES})
+  ${catkin_LIBRARIES}
+  ${rviz_DEFAULT_PLUGIN_LIBRARIES}
+  ${OGRE_LIBRARIES} ${QT_LIBRARIES}
+  ${Boost_LIBRARIES}
+#  ${cobot_msgs_EXPORTED_TARGETS}
+)
 
 add_library(${COBOT_UI_LIB_NAME} src/plugin_init.cpp)
 set_target_properties(${COBOT_UI_LIB_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})

@@ -73,14 +73,28 @@ include_directories(
   include
 )
 
-
-add_executable(cobot_planner src/main.cpp src/cControl.cpp)
-add_dependencies(cobot_planner cobot_planner_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(cobot_planner
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+## Declare a C++ library
+add_library(${PROJECT_NAME}
+  src/cControl.cpp
 )
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+add_dependencies(${PROJECT_NAME}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+
+)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+#add_executable(cobot_planner src/cControl.cpp)
+#add_dependencies(cobot_planner cobot_planner_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+#target_link_libraries(cobot_planner
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
 
 #add_executable(cobot_test_eq src/cobot_test_eq.cpp)
 #target_link_libraries(cobot_test_eq
@@ -89,7 +103,3 @@ target_link_libraries(cobot_planner
 #  opencv_imgcodecs
 #  opencv_highgui
 #)
-
-#############
-## Install ##
-#############

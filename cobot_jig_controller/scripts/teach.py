@@ -46,7 +46,7 @@ def main():
   enable = True
   t_start = time.time()
   while not rospy.is_shutdown():
-    rospy.loginfo("%s : [%s]" % (jntSend.header.frame_id, enable))
+#    rospy.loginfo("%s : [%s]" % (jntSend.header.frame_id, enable))
     if len(arm_state.velocity) >= 5 and enable:
         for i in range(5):
           eff[i] = curr[i];
@@ -104,15 +104,17 @@ def callback(data):
 def handle_enable_node(req):
     global enable, DRIVER_KEY
     error = String()
-    error.data = "ERROR"
+    error.data = "OK"
     enable = False
+    rospy.loginfo("handle_enable_node(req)")
     if req.enable:
         resp = get_key("TEACH_MODE")
         if resp.error == "OK":
             enable = req.enable
             DRIVER_KEY = resp.key
             rospy.loginfo("DRIVER_KEY is %s", DRIVER_KEY)
-            error.data = "OK"
+        else:
+            error.data = "ERROR"
     return EnableNodeResponse(error)
 
 if __name__ == '__main__':

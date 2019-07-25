@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   cobot_msgs
   moveit_msgs
   std_msgs
+  cobot_planner
 )
 
 ## System dependencies are found with CMake's conventions
@@ -83,8 +84,10 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  alpha/include
-  status_tools/include
+#  alpha/include
+#  status_tools/include
+#  jog_teach/include
+  beta/include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
@@ -99,16 +102,19 @@ include_directories(SYSTEM
 link_directories(${Boost_LIBRARY_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
-add_subdirectory(alpha)
-add_subdirectory(status_tools)
+#add_subdirectory(alpha)
+#add_subdirectory(status_tools)
+#add_subdirectory(jog_teach)
+add_subdirectory(beta)
 
 #############
 ## Install ##
 #############
 
 install(FILES
-  cobot_interface_alpha.xml
-  cobot_interface_status_tools.xml
+#  cobot_interface_alpha.xml
+#  cobot_interface_status_tools.xml
+  cobot_interface_beta.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 install(DIRECTORY icons DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

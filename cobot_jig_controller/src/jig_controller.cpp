@@ -1,6 +1,6 @@
 
 #include "ros/ros.h"
-#include "cobot_sample_controller/cControl.h"
+#include "cobot_planner/cControl.h"
 
 std::string result_dir;
 
@@ -9,9 +9,9 @@ void print_trajectory(cControl &control, const std::string &file_name);
 void move_trajectory(cControl &control);
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "cobot_sample_controller");
+  ros::init(argc, argv, "cobot_jig_controller");
   cControl control("arm", "tool0");
-  
+
   try{
     control.init();
     {
@@ -57,18 +57,18 @@ bool create_trajectory(cControl &control){
     cControl::print_pose(start_pose);
     return false;
   }
-  
+
   if( !control.is_valid_pose(end_pose) ){
     ROS_ERROR("Invalid end_pos : ");
     cControl::print_pose(end_pose);
     return false;
   }
-  
+
   ROS_INFO("start pose : ");
   cControl::print_pose(start_pose);
   ROS_INFO("end pose : ");
   cControl::print_pose(end_pose);
-  
+
   bool b = control.plan_line(start_pose, end_pose, 0.05);
 //  bool b = control.plan_p2p(start_pose, end_pose);
   if( b ){
@@ -142,7 +142,7 @@ void print_trajectory(cControl &control, const std::string &file_name){
   }
   if(fp)
     fclose(fp);
-    
+
   {
     printf("\nstart - end point\n");
     const int ii[] = { 0, (int)traj.points.size()-1 };
@@ -179,7 +179,7 @@ void move_trajectory(cControl &control){
   }
   ros::Rate r(100);
   ros::Time t_start = ros::Time::now(), t_print = t_start;
-  
+
   { // set acc to 3.14 rad/sec^2
     std::vector<double> acc(6);
     for(int i=0;i<acc.size();i++)
@@ -196,7 +196,7 @@ void move_trajectory(cControl &control){
     std::vector<double> stop_velo;
     new_velo=p.velocities;
     stop_velo=p.velocities;
-    
+
     control.get_cartesian_position(p.positions, pose);
     // show target joint angle and velocity
     printf("waypoint %d\njoints : ", i);
@@ -207,7 +207,7 @@ void move_trajectory(cControl &control){
     for(int j=0;j<p.velocities.size();j++)
       printf(" %.3lf", p.velocities[j]);
     printf("\n");
-    
+
     fprintf(fp2, "waypoint %d\njoints : ", i);
     fprintf(fp2, "\nangle : ");
     for(int j=0;j<p.positions.size();j++)
@@ -235,7 +235,7 @@ void move_trajectory(cControl &control){
         , pose.position.x, pose.position.y, pose.position.z
         , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
     }
-    
+
 
 // //    control.move_velo(p.velocities);
     // control.move_pos_velo(p.positions, p.velocities);
@@ -339,7 +339,7 @@ void move_trajectory(cControl &control){
           fprintf(fp2, "joint [%d] : new velocity = %lf\n", j, new_velo[j]);
         }
         t_print = t;
-        
+
         printf("time : %lf, %lf, %lf, %lf, %lf, %d\n", dt[0].toSec(), dt[1].toSec(), dt[2].toSec(), dt[3].toSec(), dt[4].toSec(), i); // show calculation time
         fprintf(fp2, "time : %lf, %lf, %lf, %lf, %lf, %d\n", dt[0].toSec(), dt[1].toSec(), dt[2].toSec(), dt[3].toSec(), dt[4].toSec(), i); // show calculation time
       } // if

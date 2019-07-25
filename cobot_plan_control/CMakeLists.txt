@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  cobot_sample_controller
+  cobot_planner
   visualization_msgs
   serial
 )
@@ -128,6 +128,7 @@ catkin_package(
     moveit_core
     moveit_ros_planning_interface
     interactive_markers
+    cobot_planner
   DEPENDS
 #    system_lib
     EIGEN3
@@ -185,7 +186,7 @@ add_executable(cobot_plan_control
 target_link_libraries(cobot_plan_control
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  cobot_controller_class
+  cobot_planner
 )
 
 add_executable(cobot_vacuum

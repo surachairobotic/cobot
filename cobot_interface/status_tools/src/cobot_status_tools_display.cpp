@@ -12,6 +12,7 @@
 #include "moveit_msgs/GetPositionFK.h"
 #include "cobot_msgs/ReadJointStateFile.h"
 #include "cobot_msgs/EditJointStateFile.h"
+#include "cobot_planner/CobotPlanning.h"
 
 #include "ui_cobot_status_tools.h"
 
@@ -59,6 +60,7 @@ void CobotStatusToolsDisplay::onInitialize()
 	frame_->srv_fk = nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
 	frame_->srv_read_point_file = nh_.serviceClient<cobot_msgs::ReadJointStateFile>("/cobot/cobot_core/read_js_file");
 	frame_->srv_edit_js_file = nh_.serviceClient<cobot_msgs::EditJointStateFile>("/cobot/cobot_core/edit_js_file");
+	frame_->srv_cobot_planning = nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 	frame_->updatePointsTable();
 	sub_js = nh_.subscribe("/cobot/joint_states", 100, callback_js);
 }

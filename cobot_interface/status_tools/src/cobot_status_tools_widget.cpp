@@ -8,7 +8,11 @@
 #include "moveit_msgs/GetPositionFK.h"
 #include "cobot_msgs/ReadJointStateFile.h"
 #include "cobot_msgs/EditJointStateFile.h"
+#include "cobot_planner/CobotPlanning.h"
 #include "tf/tf.h"
+#include <actionlib/client/simple_action_client.h>
+#include "cobot_msgs/ExecuteAction.h"
+
 
 #include "ui_cobot_status_tools.h"
 
@@ -27,6 +31,9 @@ CobotStatusToolsWidget::CobotStatusToolsWidget( CobotStatusToolsDisplay* pdispla
 
 	connect(ui_->btn_add, SIGNAL(clicked()), this, SLOT(addPointClicked()));
 	connect(ui_->btn_del, SIGNAL(clicked()), this, SLOT(delPointClicked()));
+	connect(ui_->btn_plan, SIGNAL(clicked()), this, SLOT(planClicked()));
+	connect(ui_->btn_exec, SIGNAL(clicked()), this, SLOT(execClicked()));
+
 //  srv_teach_enable = n.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach");
 //  CobotLabel cobot_label_teach_header;
 //  connect(cobot_label_teach_header, SIGNAL(clicked()), this, SLOT(enableNodeClicked()));
@@ -91,14 +98,16 @@ void CobotStatusToolsWidget::updateJointStateUI() {
 	ui_->lineEdit_j5->setText(QString::number(cobot_display_->js.position[4], 'f', 4));
 	ui_->lineEdit_j6->setText(QString::number(cobot_display_->js.position[5], 'f', 4));
 
-	double cartisian[6];
-	if(jsCartesian(cobot_display_->js, cartisian)) {
-		ui_->lineEdit_x->setText(QString::number(cartisian[0], 'f', 4));
-		ui_->lineEdit_y->setText(QString::number(cartisian[1], 'f', 4));
-		ui_->lineEdit_z->setText(QString::number(cartisian[2], 'f', 4));
-		ui_->lineEdit_roll->setText(QString::number(cartisian[3], 'f', 4));
-		ui_->lineEdit_pitch->setText(QString::number(cartisian[4], 'f', 4));
-		ui_->lineEdit_yaw->setText(QString::number(cartisian[5], 'f', 4));
+	std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	std::string error_code = "";
+	geometry_msgs::Pose cartesian = jsCartesian(cobot_display_->js, rpy, error_code);
+	if(error_code == "OK") {
+		ui_->lineEdit_x->setText(QString::number(cartesian.position.x, 'f', 4));
+		ui_->lineEdit_y->setText(QString::number(cartesian.position.y, 'f', 4));
+		ui_->lineEdit_z->setText(QString::number(cartesian.position.z, 'f', 4));
+		ui_->lineEdit_roll->setText(QString::number(rpy[0], 'f', 4));
+		ui_->lineEdit_pitch->setText(QString::number(rpy[1], 'f', 4));
+		ui_->lineEdit_yaw->setText(QString::number(rpy[2], 'f', 4));
 	}
 }
 
@@ -147,23 +156,77 @@ void CobotStatusToolsWidget::updatePointsTable() {
 //		updatePointsTable();
 		ui_->listWidget_points->clear();
 	  for(int i=0; i<js_points.size(); i++) {
-			double cartisian[6];
-			if(jsCartesian(js_points[i], cartisian)) {
+
+			std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+			std::string error_code = "";
+			geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
+			if(error_code == "OK") {
 				QString str;
-				str.sprintf("P%d| X:%.4lf, Y:%.4lf, Z:%.4lf", i, cartisian[0], cartisian[1], cartisian[2]);
+				str.sprintf("P%d| X:%.4lf, Y:%.4lf, Z:%.4lf", i, cartesian.position.x, cartesian.position.y, cartesian.position.z);
 				ui_->listWidget_points->addItem(str);
 			}
 		}
 	}
 }
 
+void CobotStatusToolsWidget::planClicked() {
+	ROS_INFO("CobotStatusToolsWidget::planClicked");
+	cobot_planner::CobotPlanning req_plan;
 
+	for(int i=0; i<js_points.size(); i++) {
+		std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		std::string error_code = "";
+		geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
+		if(error_code == "OK")
+			req_plan.request.pose_array.push_back(cartesian);
+		else
+			ROS_INFO("cartesian pose is false");
+	}
 
-bool CobotStatusToolsWidget::jsCartesian(const sensor_msgs::JointState &_js, double* _pose) {
+	req_plan.request.joint_names = {"J1", "J2", "J3", "J4", "J5", "J6"};
+	req_plan.request.type = "line";
+	req_plan.request.max_velocity = 0.1;
+	req_plan.request.max_acceleration = 0.1;
+	req_plan.request.step_time = 0.01;
+
+	if (srv_cobot_planning.call(req_plan))
+		ROS_INFO("srv_cobot_planning.call is true");
+	else
+		ROS_INFO("srv_cobot_planning.call is false");
+
+	ROS_INFO("req_plan.response.error_code : %d", req_plan.response.error_code);
+	if (req_plan.response.error_code == 0) {
+		;
+	}
+}
+void CobotStatusToolsWidget::execClicked() {
+	ROS_INFO("CobotStatusToolsWidget::execClicked");
+	actionlib::SimpleActionClient<cobot_msgs::ExecuteAction> ac("cobot_execute", true);
+	ac.waitForServer(); //will wait for infinite time
+	ROS_INFO("Action server started, sending goal.");
+  // send a goal to the action
+  cobot_msgs::ExecuteGoal goal;
+  ac.sendGoal(goal);
+
+  //wait for the action to return
+  bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+
+  if (finished_before_timeout)
+  {
+    actionlib::SimpleClientGoalState state = ac.getState();
+    ROS_INFO("Action finished: %s",state.toString().c_str());
+  }
+  else
+    ROS_INFO("Action did not finish before the time out.");
+	ROS_INFO("execClicked is done.");
+}
+
+geometry_msgs::Pose CobotStatusToolsWidget::jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error) {
 	moveit_msgs::GetPositionFK msg;
 	msg.request.header.stamp = ros::Time::now();
 	msg.request.fk_link_names = {"tool0"};
 	msg.request.robot_state.joint_state = _js;
+	error = "OK";
 	if(srv_fk.call(msg))
 	{
 		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
@@ -180,7 +243,7 @@ bool CobotStatusToolsWidget::jsCartesian(const sensor_msgs::JointState &_js, dou
 	}
 	else {
 		ROS_ERROR("Failed to call service compute_fk");
-			return false;
+		error = "Failed to call service compute_fk";
 	}
-	return true;
+	return msg.response.pose_stamped[0].pose;
 }

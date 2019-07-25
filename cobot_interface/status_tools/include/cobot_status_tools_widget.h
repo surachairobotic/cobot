@@ -4,6 +4,7 @@
 #include <rviz/display.h>
 #include <QWidget>
 #include <vector>
+#include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Quaternion.h"
 #include "cobot_msgs/EnableNode.h"
 #include "cobot_msgs/Jog.h"
@@ -32,7 +33,7 @@ namespace cobot_interface {
 
 			void enable();
 			void disable();
-			bool jsCartesian(const sensor_msgs::JointState &_js, double* _pose);
+			geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error);
 
 //		protected:
 			CobotStatusToolsDisplay* cobot_display_;
@@ -46,6 +47,7 @@ namespace cobot_interface {
 			ros::ServiceClient srv_read_point_file;
 			ros::ServiceClient srv_edit_js_file;
 			ros::ServiceClient srv_fk;
+			ros::ServiceClient srv_cobot_planning;
 
 			//static void callback_js(const sensor_msgs::JointState &js);
 			void updatePointsTable();
@@ -64,6 +66,9 @@ namespace cobot_interface {
 			void addPointClicked();
 			void delPointClicked();
 			void readPointClicked();
+
+			void planClicked();
+			void execClicked();
 
 			void updateJointStateUI();
 	};
