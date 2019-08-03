@@ -216,26 +216,26 @@ target_link_libraries(test_vacuum_serial
   ${Boost_LIBRARIES}
 )
 
-add_executable(gpio_server src/gpio_server.c)
-target_link_libraries(gpio_server
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
-)
+#add_executable(gpio_server src/gpio_server.c)
+#target_link_libraries(gpio_server
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  libmatrix_dio.so
+#)
 
-add_executable(gpio_client src/gpio_client.c)
-target_link_libraries(gpio_client
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
-)
+#add_executable(gpio_client src/gpio_client.c)
+#target_link_libraries(gpio_client
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  libmatrix_dio.so
+#)
 
-add_executable(gpio_server_multi_client src/gpio_server_multi_client.c)
-target_link_libraries(gpio_server_multi_client
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  libmatrix_dio.so
-)
+#add_executable(gpio_server_multi_client src/gpio_server_multi_client.c)
+#target_link_libraries(gpio_server_multi_client
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  libmatrix_dio.so
+#)
 
 #############
 ## Install ##
