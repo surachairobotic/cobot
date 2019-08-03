@@ -26,7 +26,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cobot_planner
   visualization_msgs
-  serial
 )
 
 ## System dependencies are found with CMake's conventions
