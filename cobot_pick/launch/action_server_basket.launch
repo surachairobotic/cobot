@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find cobot_pick)/launch/inc_find_basket.launch" >
+    <arg name="mode" default="action" />
+    <arg name="show_result" default="false" />
+    <arg name="save_result" default="true" />
+    <arg name="launch_prefix" default="gdb -ex run --args" />
+  </include>
+</launch>

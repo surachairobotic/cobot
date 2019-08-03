@@ -1,0 +1,66 @@
+<launch>
+  <arg name="tf_world2camera" default="0.393114 -0.141837 0.479113 0.916331 0.301281 -0.162270 -0.207933" />
+  <arg name="mode" default="action" />
+  <arg name="camera_frame_id" default="camera_object" />
+  <arg name="object_type" default="box" />
+  <arg name="save_file_prefix" default="tmp" />
+  <arg name="show_result" default="false" />
+  <arg name="save_result" default="false" />
+  <arg name="launch_prefix" default="" />
+  
+  <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
+         output="screen" launch-prefix="$(arg launch_prefix)">
+    <param name="mode" value="$(arg mode)"/>
+    <param name="camera_frame_id" value="$(arg camera_frame_id)" />
+    <param name="data_save_path"
+      value="$(find cobot_pick)/data/"/>
+    <param name="save_file_prefix" value="$(arg save_file_prefix)"/>
+    <param name="result_save_path" 
+      value="$(find cobot_pick)/results/"/>
+    <param name="show_result" value="$(arg show_result)"/>
+    <param name="save_result" value="$(arg save_result)"/>
+
+    <param name="normal_th_ang" value="0.05"/>
+    <param name="th_pointcloud_distance" value="0.01"/>
+    <param name="normal_win_size" value="6"/>
+    <param name="normal_thread_num" value="2"/>
+
+    <param name="object_type" value="$(arg object_type)"/>
+    <param name="min_label_pix_num" value="250"/>
+    <param name="max_label_pix_num" value="2000"/>
+    <param name="min_label_ratio" value="1.0"/>
+    <param name="max_label_ratio" value="3.0"/>
+    <param name="dis_remove_edge" value="2.0"/>
+    <param name="min_label_size_x" value="10"/>
+    <param name="min_label_size_y" value="10"/>
+    <param name="label_mean_rgb" value="140"/>
+    <param name="label_multiply_rgb" value="3.0"/>
+    <param name="pc_dis2plane" value="0.005"/>
+    <param name="find_plane_radius" value="150"/>
+    
+    <param name="plane_reg_min" value="6000"/>
+    <param name="plane_reg_max" value="50000"/>
+    <param name="plane_reg_ratio_min" value="1.0"/>
+    <param name="plane_reg_ratio_max" value="5.0"/>
+    <param name="warp_meter2pixel" value="4000.0"/>
+
+    <param name="plane_ransac_repeat_time" value="300"/>
+    <param name="plane_ransac_th_error" value="0.001"/>
+
+    <param name="text_binarize_win_size" value="4"/>
+    <param name="text_binarize_subtract" value="3.0"/>
+
+    <param name="text_ransac_repeat_time" value="300"/>
+    <param name="text_ransac_th_error" value="0.5"/>
+
+    <param name="th_region_color" value="4000"/>
+    <param name="label_width" value="0.022"/>
+    <param name="label_height" value="0.012"/>
+    <param name="label_size_error" value="0.004"/>
+
+    <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
+
+  </node>
+  <node name="tf_realsense_object" pkg="tf" type="static_transform_publisher" 
+    args="$(arg tf_world2camera) world camera_object 100" respawn="false" output="screen" />
+</launch>

@@ -15,21 +15,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_poses = n.subscribe("/cobot/image2pose/pickplace_array", 100, cb);
     ros::Rate loop_rate(50);
     while (ros::ok()) {
-      if(b_chk) {
-        for(int i=0; i<pppa.data.size(); i++) {
-          if(pppa.data[i].b_pick && pppa.data[i].b_place) {
-            ;
-          }
-          else if(pppa.data[i].b_pick && !pppa.data[i].b_place) {
-            ;
-          }
-          else if(!pppa.data[i].b_pick && pppa.data[i].b_place) {
-            ;
-          }
-          else
-            ;
-        }
-      }
+
 
       ros::spinOnce();
       loop_rate.sleep();
@@ -44,8 +30,5 @@ int main(int argc, char **argv)
 }
 
 void cb(const cobot_msgs::PickPlacePoseArray& msg) {
-  if(!b_chk) {
-    pppa = msg;
-    b_chk = true;
-  }
+  pppa = msg;
 }

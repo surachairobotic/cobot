@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   ROS_INFO("COBOT_JOG : START");
   ros::Rate loop_rate(100);
   while(ros::ok()) {
-    ROS_INFO("%d : %s", is_enable, DRIVER_KEY.c_str());
+//    ROS_INFO("%d : %s", is_enable, DRIVER_KEY.c_str());
     ros::spinOnce();
     loop_rate.sleep();
   }

@@ -63,6 +63,7 @@ namespace cobot_interface {
 
 		private Q_SLOTS:
 			void updateJointStateUI();
+			void updatePPPAUI();
 
 			void enableTeachClicked();
 

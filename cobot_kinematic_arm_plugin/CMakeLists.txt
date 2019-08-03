@@ -30,7 +30,7 @@ include_directories(include)
 set(COBOT_KINEMATIC_LIBRARY_NAME cobot_kinematic_moveit_plugin)
 
 find_package(LAPACK REQUIRED)
-
+  
 add_library(${COBOT_KINEMATIC_LIBRARY_NAME} src/cobot_kinematic_moveit_plugin.cpp)
 target_link_libraries(${COBOT_KINEMATIC_LIBRARY_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${LAPACK_LIBRARIES})
 

@@ -1,0 +1,4 @@
+<launch>
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find cobot_pick)/rviz/rs.rviz" output="screen" />
+</launch>
+

@@ -32,8 +32,8 @@ int main(int argc, char **argv)
     cobot_pick::CobotFindObjectGoal action_goal2;
 
     ros::Publisher pub = n.advertise<cobot_msgs::PickPlacePoseArray>("cobot/image2pose/pickplace_array", 1000);
-    stub.b_pick = false;
-    stub.b_place = false;
+    stub.b_pick = -1;
+    stub.b_place = -1;
     stub.label = "M1";
     pppa.data.push_back(stub);
     stub.label = "M2";
@@ -61,9 +61,9 @@ int main(int argc, char **argv)
       pppa.header.stamp = ros::Time::now();
       for(int k=0; k<pppa.data.size(); k++) {
         if( (pppa.header.stamp-pppa.data[k].pick.header.stamp).toSec() > 2.5 )
-          pppa.data[k].b_pick = false;
+          pppa.data[k].b_pick = -1;
         if( (pppa.header.stamp-pppa.data[k].place.header.stamp).toSec() > 2.5 )
-          pppa.data[k].b_place = false;
+          pppa.data[k].b_place = -1;
       }
       pub.publish(pppa);
       ros::spinOnce();
@@ -82,12 +82,14 @@ void doneObj(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
   ROS_INFO("doneObj");
   if(objStatus == 2) {
     int chk = 0;
+    for(int j=0; j<pppa.data.size(); j++)
+      pppa.data[j].b_pick = -1;
     for(int i=0; i<result->labels.size(); i++) {
       for(int j=0; j<pppa.data.size(); j++) {
         if(result->labels[i] == pppa.data[j].label) {
           pppa.data[j].pick.pose = result->poses[i];
           pppa.data[j].pick.header.stamp = ros::Time::now();
-          pppa.data[j].b_pick = true;
+          pppa.data[j].b_pick = i;
           chk++;
         }
       }
@@ -110,12 +112,14 @@ void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
   ROS_INFO("doneBas");
   if(basStatus == 2) {
     int chk = 0;
+    for(int j=0; j<pppa.data.size(); j++)
+      pppa.data[j].b_place = -1;
     for(int i=0; i<result->labels.size(); i++) {
       for(int j=0; j<pppa.data.size(); j++) {
         if(result->labels[i] == pppa.data[j].label) {
           pppa.data[j].place.pose = result->poses[i];
           pppa.data[j].place.header.stamp = ros::Time::now();
-          pppa.data[j].b_place = true;
+          pppa.data[j].b_place = i;
           chk++;
         }
       }

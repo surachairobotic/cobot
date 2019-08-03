@@ -24,7 +24,6 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
   , context_(context)
   , QWidget(parent)
   , ui_(new Ui::CobotInterfaceBetaUI)
-//  , cobot_label_teach_header(ui_->label_teach_header)
 {
   ui_->setupUi(this);
 
@@ -35,6 +34,7 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 	changeColor(ui_->btn_jog, -1);
 
 	connect(cobot_display_, SIGNAL(jsUpdate()), this, SLOT(updateJointStateUI()));
+	connect(cobot_display_, SIGNAL(pppaUpdate()), this, SLOT(updatePPPAUI()));
 	connect(ui_->btn_teach, SIGNAL(clicked()), this, SLOT(enableTeachClicked()));
 
 	// jog_mode
@@ -71,20 +71,6 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 
 	connect(ui_->btn_plan, SIGNAL(clicked()), this, SLOT(planClicked()));
 	connect(ui_->btn_exec, SIGNAL(clicked()), this, SLOT(execClicked()));
-
-//  srv_teach_enable = n.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach");
-//  CobotLabel cobot_label_teach_header;
-//  connect(cobot_label_teach_header, SIGNAL(clicked()), this, SLOT(enableNodeClicked()));
-
-/*
-	// teach_mode
-  connect(ui_->btn_teach_enable, SIGNAL(clicked()), this, SLOT(enableNodeClicked()));
-	connect(ui_->btn_teach_disable, SIGNAL(clicked()), this, SLOT(disableNodeClicked()));
-	connect(ui_->btn_teach_add, SIGNAL(clicked()), this, SLOT(addPointClicked()));
-	connect(ui_->btn_teach_del, SIGNAL(clicked()), this, SLOT(delPointClicked()));
-	connect(ui_->btn_teach_points, SIGNAL(clicked()), this, SLOT(pointsNodeClicked()));
-
-*/
 }
 
 CobotInterfaceBetaWidget::~CobotInterfaceBetaWidget() {
@@ -133,6 +119,21 @@ void CobotInterfaceBetaWidget::updateJointStateUI() {
 		ui_->lineEdit_ry->setText(QString::number(rpy[4], 'f', 4));
 		ui_->lineEdit_rz->setText(QString::number(rpy[5], 'f', 4));
 	}
+}
+
+void CobotInterfaceBetaWidget::updatePPPAUI() {
+	std::string str_pick = "";
+	std::string str_place = "";
+	for(int i=0; i<3; i++) {
+		for(int j=0; j<cobot_display_->pppa.data.size(); j++) {
+			if(cobot_display_->pppa.data[j].b_pick == i)
+				str_pick += cobot_display_->pppa.data[j].label + ", ";
+			if(cobot_display_->pppa.data[j].b_place == i)
+				str_place += cobot_display_->pppa.data[j].label + ", ";
+		}
+	}
+	ui_->label_cam_a->setText(QString::fromStdString(str_pick));
+	ui_->label_cam_b->setText(QString::fromStdString(str_place));
 }
 
 geometry_msgs::Pose CobotInterfaceBetaWidget::jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error) {

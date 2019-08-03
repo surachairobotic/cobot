@@ -9,6 +9,7 @@
 #include "cobot_msgs/EditJointStateFile.h"
 #include "cobot_msgs/ReadJointStateFile.h"
 #include "cobot_msgs/Jog.h"
+#include "cobot_msgs/PickPlacePoseArray.h"
 #include "moveit_msgs/GetPositionFK.h"
 #include "cobot_planner/CobotPlanning.h"
 
@@ -60,12 +61,18 @@ void CobotInterfaceBetaDisplay::onInitialize()
 	frame_->srv_cobot_planning = nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 
 	sub_js = nh_.subscribe("/cobot/joint_states", 100, callback_js);
+	sub_pppa = nh_.subscribe("cobot/image2pose/pickplace_array", 100, callback_pppa);
 	frame_->updatePointsTable();
 }
 
 void CobotInterfaceBetaDisplay::callback_js(const sensor_msgs::JointState &_js) {
 	md->js = _js;
 	Q_EMIT md->jsUpdate();
+}
+
+void CobotInterfaceBetaDisplay::callback_pppa(const cobot_msgs::PickPlacePoseArray &_msg) {
+	md->pppa = _msg;
+	Q_EMIT md->pppaUpdate();
 }
 
 void CobotInterfaceBetaDisplay::cobotPanelVisibilityChange(bool enable)

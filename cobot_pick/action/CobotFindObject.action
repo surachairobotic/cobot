@@ -1,0 +1,8 @@
+# Define the goal
+---
+# Define the result
+geometry_msgs/Pose[] poses
+string[] labels
+---
+# Define a feedback message
+float32 percent_complete

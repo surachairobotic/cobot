@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
         execute = false;
         ROS_INFO("A");
-        move_trajectory_2(*p_control);
+        move_trajectory_1(*p_control);
         std_msgs::Bool send;
         send.data = true;
         pub_message.publish(send);
@@ -308,17 +308,27 @@ bool move_trajectory_1(cControl &control) {
   control.move_pos_velo(p.positions, p.velocities);
   ros::Time t = ros::Time::now();
 
+//  dt = p.time_from_start.toSec() - d_time_move;
+
   bool stop = false;
   while( !stop && ros::ok() ) {
     if( !control.wait_new_joint_state(&joint_state, 1.0) ) {
 			goto LB_EXIT_MOVE; // exit program if the new state does not come
 		}
 
-    control.get_cartesian_position(joint_state.position, jnt_pose);
-    for(int j=0; j<p.velocities.size(); j++)
-      p.velocities[j] = 0.15;
+/*
+    for(int k=0; k<joint_state.position.size(); k++) {
+      // s = (v0+v1)/2*t;
+      // v1 = (s*2/t)-v0;
+      double s  = fabs(joint_state.position[k]-p.positions[k]);
+      double v0 = joint_state.velocity[k];
+      double tt  = p.time_from_start.toSec() - (ros::Time::now()-t).toSec();
+      p.velocities[k] = (s*2/tt)-v0;
+    }
+*/
     control.move_pos_velo(p.positions, p.velocities);
 
+    control.get_cartesian_position(joint_state.position, jnt_pose);
     if( distance_point(jnt_pose, wp_pose) < 0.015 ) {
       if( i < traj.points.size()-1 ) {
         i++;

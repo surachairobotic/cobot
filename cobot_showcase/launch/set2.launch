@@ -22,11 +22,12 @@
   <node name="cobot_pose" pkg="cobot_showcase" type="camera_marker2.py">
   </node>
 
-
+<!--
   <node name="cobot_plan_control" pkg="cobot_plan_control" type="cobot_plan_control" respawn="false" launch-prefix="gdb -ex run - -args">
     <remap from="cobot_dynamixel_driver/goal" to="/cobot/goal"/>
   </node>
 
   <node name="cobot_torque_detection" pkg="cobot_jig_controller" type="torque_detection.py">
   </node>
+-->
 </launch>

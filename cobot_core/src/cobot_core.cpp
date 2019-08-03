@@ -170,6 +170,7 @@ bool changeModeFunc(cobot_msgs::ChangeMode::Request  &req, cobot_msgs::ChangeMod
   else {
     res.error = "ERROR";
   }
+  return true;
 }
 
 std::string gen_random(const int len) {

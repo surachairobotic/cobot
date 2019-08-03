@@ -1,0 +1,39 @@
+<launch>
+  <node name="cobot_pick_calibrate" pkg="cobot_pick" type="cobot_pick_calibrate" respawn="false"
+         output="screen"  launch-prefix="gdb -ex run --args">
+    <param name="load_mode" value="true"/>
+    <param name="save_file_prefix"
+      value="$(find cobot_pick)/data/calib_basket_03"/>
+    <param name="result_save_path"
+      value="$(find cobot_pick)/results_basket/"/>
+    <param name="show_result" value="true"/>
+
+    <param name="chess_num_x" value="5"/>
+    <param name="chess_num_y" value="9"/>
+
+    <param name="chess_size_x" value="0.025"/>
+    <param name="chess_size_y" value="0.025"/>
+
+    <param name="chess_pos1_x" value="-0.02"/> <!-- top left -->
+    <param name="chess_pos1_y" value="-0.285"/>
+    <param name="chess_pos1_z" value="0.010"/>
+
+    <param name="chess_pos2_x" value="-0.02"/> <!-- top right -->
+    <param name="chess_pos2_y" value="-0.185"/>
+    <param name="chess_pos2_z" value="0.010"/>
+
+    <param name="chess_pos3_x" value="0.18"/> <!-- bot right not necessary -->
+    <param name="chess_pos3_y" value="-0.185"/>
+    <param name="chess_pos3_z" value="0.010"/>
+
+    <param name="chess_pos4_x" value="0.18"/> <!-- bot left -->
+    <param name="chess_pos4_y" value="-0.285"/>
+    <param name="chess_pos4_z" value="0.010"/>
+
+    <param name="plane_ransac_repeat_time" value="1000"/>
+    <param name="plane_ransac_th_error" value="0.0005"/>
+
+    <param name="bruteforce_range" value="0.1"/>
+    <param name="bruteforce_num" value="100"/>
+  </node>
+</launch>
