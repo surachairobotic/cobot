@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
-#  dynamixel_sdk
+  dynamixel_sdk
 )
 
 find_package(TinyXML REQUIRED)
@@ -141,6 +141,7 @@ catkin_package(
     roscpp
     rospy
     std_msgs
+    dynamixel_sdk
 #  DEPENDS system_lib
   DEPENDS
     TinyXML
@@ -154,8 +155,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  include/dynamixel_sdk
   ${catkin_INCLUDE_DIRS}
-	/opt/DynamixelSDK/c++/include/dynamixel_sdk
+#	/opt/DynamixelSDK/c++/include/dynamixel_sdk
   ${TinyXML_INCLUDE_DIRS}
 )
 
@@ -189,27 +191,33 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-add_library(cobot_dynamixel_sdk
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp
-  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
-)
+#add_library(cobot_dynamixel_sdk
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_bulk_write.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_read.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol1_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/protocol2_packet_handler.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/group_sync_write.cpp
+#  /opt/DynamixelSDK/c++/src/dynamixel_sdk/port_handler_linux.cpp
+#)
 
 add_library(cobot_joint_pro
   src/cJoint_common.cpp
   src/cJoint_pro.cpp
 )
 
+add_dependencies(cobot_joint_pro
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  dynamixel_sdk
+)
+
 target_link_libraries(cobot_joint_pro
   ${catkin_LIBRARIES}
   ${TinyXML_LIBRARIES}
-  cobot_dynamixel_sdk
+#  cobot_dynamixel_sdk
 )
 
 #add_library(cobot_joint_mx64
