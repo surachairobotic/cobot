@@ -16,6 +16,9 @@ find_package(catkin
     roscpp
     rospy
     actionlib
+    geometry_msgs
+    eigen_conversions
+    visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions

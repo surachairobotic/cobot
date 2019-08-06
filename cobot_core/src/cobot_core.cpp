@@ -1,9 +1,13 @@
 #include "ros/ros.h"
 #include "sensor_msgs/JointState.h"
+#include "geometry_msgs/PoseArray.h"
 #include "cobot_msgs/EditJointStateFile.h"
 #include "cobot_msgs/ReadJointStateFile.h"
 #include "cobot_msgs/ChangeMode.h"
 #include "cobot_dynamixel_driver/change_key.h"
+#include "cobot_planner/CobotPlanning.h"
+#include "moveit_msgs/GetPositionFK.h"
+#include "tf/tf.h"
 
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -15,26 +19,35 @@ std::string DRIVER_KEY = "";
 sensor_msgs::JointState js;
 std::string ori_file = "/home/mtec/catkin_ws/src/cobot/cobot_core/data/joint_state_file.txt";
 std::string tmp_file = "/home/mtec/catkin_ws/src/cobot/cobot_core/data/temp_file.txt";
-ros::ServiceClient client_change_key;
+ros::ServiceClient client_change_key, srv_cobot_planning;
+ros::ServiceClient srv_fk;
 
 void callback_js(const sensor_msgs::JointState &js);
+void callback_pick(const geometry_msgs::PoseArray &p);
+void callback_place(const geometry_msgs::PoseArray &p);
 bool editJointStateFileFunc(cobot_msgs::EditJointStateFile::Request  &req, cobot_msgs::EditJointStateFile::Response &res);
 bool readJointStateFileFunc(cobot_msgs::ReadJointStateFile::Request  &req, cobot_msgs::ReadJointStateFile::Response &res);
 bool changeModeFunc(cobot_msgs::ChangeMode::Request  &req, cobot_msgs::ChangeMode::Response &res);
 int countLine(void);
 std::string gen_random(const int len);
+geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error);
 
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "cobot_core");
   ros::NodeHandle n;
   ros::Subscriber sub_js = n.subscribe("/cobot/joint_states", 100, callback_js);
+  ros::Subscriber sub_pick = n.subscribe("/cobot/cobot_core/pick", 10, callback_pick);
+  ros::Subscriber sub_place = n.subscribe("/cobot/cobot_core/pick", 10, callback_place);
 
   ros::ServiceServer service_edit_js_file = n.advertiseService("/cobot/cobot_core/edit_js_file", editJointStateFileFunc);
   ros::ServiceServer service_read_js_file = n.advertiseService("/cobot/cobot_core/read_js_file", readJointStateFileFunc);
   ros::ServiceServer service_change_mode  = n.advertiseService("/cobot/cobot_core/change_mode" , changeModeFunc);
 
+  srv_fk = n.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
+
   client_change_key = n.serviceClient<cobot_dynamixel_driver::change_key>("/cobot/cobot_dynamixel_driver/change_key");
+  srv_cobot_planning = n.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 
   ROS_INFO("COBOT_CORE : START");
   ros::Rate loop_rate(100);
@@ -185,4 +198,67 @@ std::string gen_random(const int len) {
   s[len] = 0;
   std::string str(s);
   return str;
+}
+
+void callback_pick(const geometry_msgs::PoseArray &p) {
+  ROS_INFO("callback_pick");
+  cobot_planner::CobotPlanning req_plan;
+
+  std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::string error_code = "";
+  geometry_msgs::Pose cartesian = jsCartesian(js, rpy, error_code);
+  if(error_code == "OK")
+    req_plan.request.pose_array.push_back(cartesian);
+  else
+    ROS_INFO("cartesian pose is false");
+
+  for(int i=0; i<p.poses.size(); i++) {
+    req_plan.request.pose_array.push_back(p.poses[i]);
+  }
+
+  req_plan.request.joint_names = {"J1", "J2", "J3", "J4", "J5", "J6"};
+  req_plan.request.type = "line";
+  req_plan.request.max_velocity = 0.1;
+  req_plan.request.max_acceleration = 0.1;
+  req_plan.request.step_time = 0.01;
+
+  if (srv_cobot_planning.call(req_plan))
+    ROS_INFO("srv_cobot_planning.call is true");
+  else
+    ROS_INFO("srv_cobot_planning.call is false");
+
+  ROS_INFO("req_plan.response.error_code : %d", req_plan.response.error_code);
+  if (req_plan.response.error_code == 0) {
+    ;
+  }
+}
+void callback_place(const geometry_msgs::PoseArray &p) {
+  ;
+}
+
+geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error) {
+	moveit_msgs::GetPositionFK msg;
+	msg.request.header.stamp = ros::Time::now();
+	msg.request.fk_link_names = {"tool0"};
+	msg.request.robot_state.joint_state = _js;
+	error = "OK";
+	if(srv_fk.call(msg))
+	{
+		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
+		_pose[1] = msg.response.pose_stamped[0].pose.position.y;
+		_pose[2] = msg.response.pose_stamped[0].pose.position.z;
+		tf::Quaternion q_ori;
+		tf::quaternionMsgToTF(msg.response.pose_stamped[0].pose.orientation , q_ori);
+		tf::Matrix3x3 m(q_ori);
+		double roll, pitch, yaw;
+		m.getRPY(roll, pitch, yaw);
+		_pose[3] = roll;
+		_pose[4] = pitch;
+		_pose[5] = yaw;
+	}
+	else {
+		ROS_ERROR("Failed to call service compute_fk");
+		error = "Failed to call service compute_fk";
+	}
+	return msg.response.pose_stamped[0].pose;
 }

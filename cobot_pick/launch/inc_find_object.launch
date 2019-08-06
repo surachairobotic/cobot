@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.393114 -0.141837 0.479113 0.916331 0.301281 -0.162270 -0.207933" />
+  <arg name="tf_world2camera" default="0.381060 -0.151097 0.481659 0.915827 0.304798 -0.158045 -0.208279" />
   <arg name="mode" default="action" />
   <arg name="camera_frame_id" default="camera_object" />
   <arg name="object_type" default="box" />
@@ -26,8 +26,8 @@
     <param name="normal_thread_num" value="2"/>
 
     <param name="object_type" value="$(arg object_type)"/>
-    <param name="min_label_pix_num" value="250"/>
-    <param name="max_label_pix_num" value="2000"/>
+    <param name="min_label_pix_num" value="800"/>
+    <param name="max_label_pix_num" value="3000"/>
     <param name="min_label_ratio" value="1.0"/>
     <param name="max_label_ratio" value="3.0"/>
     <param name="dis_remove_edge" value="2.0"/>
@@ -51,12 +51,12 @@
     <param name="text_binarize_subtract" value="3.0"/>
 
     <param name="text_ransac_repeat_time" value="300"/>
-    <param name="text_ransac_th_error" value="0.5"/>
+    <param name="text_ransac_th_error" value="1"/>
 
     <param name="th_region_color" value="4000"/>
-    <param name="label_width" value="0.022"/>
-    <param name="label_height" value="0.012"/>
-    <param name="label_size_error" value="0.004"/>
+    <param name="label_width" value="0.035"/>
+    <param name="label_height" value="0.023"/>
+    <param name="label_size_error" value="0.006"/>
 
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
 

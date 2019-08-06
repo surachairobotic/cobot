@@ -66,6 +66,14 @@ private:
     }
 //    printf("new_edges : %lu / %lu\n", new_edges.size(), edges.size());
   }
+  
+  void draw_edges( const std::vector<cv::Point2i> &edges, const cv::Size size, const char *fname ){
+    cv::Mat img = cv::Mat( size, CV_8UC1, cv::Scalar(0) );
+    for(int i=edges.size()-1;i>=0;i--){
+      img.data[ edges[i].y * img.step + edges[i].x ] = 255;
+    }
+    cv::imwrite(config.result_save_path + fname, img);
+  }
 
   bool ransac_2d(const std::vector<cv::Point2i> &edges
       , cv::Point2d &best_p, cv::Point2d &best_v){
@@ -139,10 +147,9 @@ private:
         vec_pix.push_back(p2i);
       }
     }
-
-    if( vec_pix.size()<10 ){
+    
+    if( vec_pix.size()<10 )
       return false;
-    }
 
     // ransac
     int best_cnt = 0;
@@ -336,7 +343,7 @@ public:
 
     for(int ir=label.reg_info.size()-1;ir>=0;ir--){
       const tRegInfo &r = label.reg_info[ir];
-      ROS_INFO("reg [%d]: (%d, %d), (%d, %d)\n", ir, r.x1, r.y1, r.x2, r.y2);
+      ROS_INFO("reg [%d]: (%d, %d), (%d, %d)", ir, r.x1, r.y1, r.x2, r.y2);
       if( r.pix_num<config.min_label_pix_num || r.pix_num>config.max_label_pix_num ){
         if( r.pix_num>100 ){
           ROS_INFO("* invalid text reg [%d] : pix_num = %d\n", ir, r.pix_num);
@@ -395,11 +402,12 @@ public:
         const int step = img_filter.step;
         
         cv::Point2i pnt;
-        for(int i=img_filter.rows-2;i>=0;i--){
+        for(int i=img_filter.rows-2;i>0;i--){
           unsigned char *p = img_filter.data + img_filter.step * i
             , *p2 = img_edge.data +  + img_edge.step * i;
-          for(int j=img_filter.cols-2;j>=0;j--){
-            if( p[j]!=p[j+1] || p[j]!=p[j+step] ){
+          for(int j=img_filter.cols-2;j>0;j--){
+            if( p[j] && ( !p[j+1] || !p[j-1] || !p[j-step] || !p[j+step] )){
+//            if( p[j]!=p[j+1] || p[j]!=p[j+step] ){
               pnt.x = j;
               pnt.y = i;
               edges.push_back(pnt);
@@ -410,13 +418,13 @@ public:
         for(int i=img_filter.rows-1;i>=0;i--){
           unsigned char *p = img_filter.data + img_filter.step*i
             , *p2 = img_edge.data + img_edge.step*i;
-          if( p[0]>0 ){
+          if( p[0] ){
             pnt.x = 0;
             pnt.y = i;
             edges.push_back(pnt);
             p2[0] = 255;
           }
-          if( p[img_filter.cols-1]>0 ){
+          if( p[img_filter.cols-1] ){
             pnt.x = img_filter.cols-1;
             pnt.y = i;
             edges.push_back(pnt);
@@ -426,14 +434,14 @@ public:
         for(int j=img_filter.cols-1;j>0;j--){
           unsigned char *p = img_filter.data + j
             , *p2 = img_edge.data + j;
-          if( p[0]>0 ){
+          if( p[0] ){
             pnt.x = j;
             pnt.y = 0;
             edges.push_back(pnt);
             p2[0] = 255;
           }
           int i2 = img_filter.step*(img_filter.rows-1);
-          if( p[i2]>0 ){
+          if( p[i2] ){
             pnt.x = j;
             pnt.y = img_filter.rows-1;
             edges.push_back(pnt);
@@ -447,11 +455,16 @@ public:
         std::vector<cv::Point2i> new_edges, *p_edges[2] = {&edges, &new_edges};
         {
           bool b_ok = true;
+          char fname[16];
           for(int i=0;i<4;i++){
             if( !ransac_2d( *p_edges[i%2], best_p[i], best_v[i]) ){
               b_ok = false;
               ROS_INFO("* ransac2d failed [%d]\n", ir);
               break;
+            }
+            if( config.save_result ){
+              sprintf(fname, "edges%03d_%d.jpg", ir, i);
+              draw_edges( *p_edges[i%2], img_filter.size(), fname );
             }
             if( i<3 ){
               remove_edges( *p_edges[i%2], *p_edges[(i+1)%2]
@@ -485,7 +498,7 @@ public:
                 , ir, n[i][0], n[i][1]
                 , best_v[n[i][0]].x, best_v[n[i][0]].y
                 , best_v[n[i][1]].x, best_v[n[i][1]].y );
-//              assert( ir!=256 );
+//              assert( ir!=333 );
               b_ok = false;
               
               if( config.save_result ){
@@ -599,18 +612,24 @@ public:
                 case 'I':
                 case 'l':
                 case 'L':
+                case 't':
+                case 'T':
                   n_label = 1;
                   break;
                 case 'a':
                 case 'e':
                 case '2':
+                case '3':
+                case 's':
+                case 'S':
                   n_label = 2;
                   break;
+                  /*
                 case '3':
                 case 's':
                 case 'S':
                   n_label = 3;
-                  break;
+                  break;*/
                 default:
                   ROS_INFO("* Unknown M : %c\n", str2[0]);
               }

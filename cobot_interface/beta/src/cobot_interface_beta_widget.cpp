@@ -14,6 +14,7 @@
 #include "cobot_msgs/EnableNode.h"
 #include "cobot_msgs/ReadJointStateFile.h"
 #include "cobot_msgs/EditJointStateFile.h"
+#include "std_msgs/Bool.h"
 
 #include "ui_cobot_interface_beta.h"
 
@@ -29,7 +30,7 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 
 	ui_->lineEdit_res->setText(QString::number(0.025, 'f', 2));
 	ui_->lineEdit_velo->setText(QString::number(0.1, 'f', 2));
-	teach_status = jog_status = false;
+	teach_status = jog_status = pick_status = false;
 	changeColor(ui_->btn_teach, -1);
 	changeColor(ui_->btn_jog, -1);
 
@@ -71,6 +72,9 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 
 	connect(ui_->btn_plan, SIGNAL(clicked()), this, SLOT(planClicked()));
 	connect(ui_->btn_exec, SIGNAL(clicked()), this, SLOT(execClicked()));
+
+	connect(ui_->btn_pick, SIGNAL(clicked()), this, SLOT(pick_en_Clicked()));
+	connect(ui_->btn_m1, &QPushButton::clicked, this, [this]{ pickHandle("M1"); });
 }
 
 CobotInterfaceBetaWidget::~CobotInterfaceBetaWidget() {
@@ -307,4 +311,19 @@ void CobotInterfaceBetaWidget::execClicked() {
   else
     ROS_INFO("Action did not finish before the time out.");
 	ROS_INFO("execClicked is done.");
+}
+
+void CobotInterfaceBetaWidget::pick_en_Clicked() {
+	ROS_INFO("CobotInterfaceBetaWidget::pick_en_Clicked");
+	std_msgs::Bool msg;
+	pick_status = !pick_status;
+	msg.data = pick_status;
+	pub_pick_en.publish(msg);
+}
+
+void CobotInterfaceBetaWidget::pickHandle(const std::string &msg) {
+	ROS_INFO("CobotInterfaceBetaWidget::pickHandle");
+	std_msgs::String cmd;
+	cmd.data = msg;
+	pub_pick_cmd.publish(cmd);
 }

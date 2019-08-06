@@ -54,11 +54,11 @@ namespace cobot_interface {
 			std::vector<sensor_msgs::JointState> js_points;
 			cobot_msgs::Jog msg_jog;
 			sensor_msgs::JointState js;
-			bool teach_status, jog_status;
+			bool teach_status, jog_status, pick_status;
 //			void updateJointStateUI();
 
 			// Jog
-			ros::Publisher pub_jog;
+			ros::Publisher pub_jog, pub_pick_en, pub_pick_cmd;
 			void changeColor(QPushButton* button, int color);
 
 		private Q_SLOTS:
@@ -74,6 +74,9 @@ namespace cobot_interface {
 
 			void planClicked();
 			void execClicked();
+
+			void pick_en_Clicked();
+			void pickHandle(const std::string &msg);
 	};
 }
 

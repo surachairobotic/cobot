@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   sensor_msgs
+  cobot_planner
 )
 
 ## System dependencies are found with CMake's conventions

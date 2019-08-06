@@ -12,6 +12,7 @@
 #include "cobot_msgs/PickPlacePoseArray.h"
 #include "moveit_msgs/GetPositionFK.h"
 #include "cobot_planner/CobotPlanning.h"
+#include "std_msgs/Bool.h"
 
 #include "ui_cobot_interface_beta.h"
 
@@ -53,6 +54,8 @@ void CobotInterfaceBetaDisplay::onInitialize()
   }
 
 	frame_->pub_jog = nh_.advertise<cobot_msgs::Jog>("/cobot/cobot_jog", 100);
+	frame_->pub_pick_en = nh_.advertise<std_msgs::Bool>("/cobot/image2pose/enable", 10);
+	frame_->pub_pick_cmd = nh_.advertise<std_msgs::String>("/cobot/image2pose/cmd", 10);
 	frame_->srv_teach_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach/enable");
 	frame_->srv_jog_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_jog/enable");
 	frame_->srv_fk = nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
