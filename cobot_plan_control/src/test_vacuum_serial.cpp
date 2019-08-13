@@ -88,6 +88,7 @@ int main(int argc, char **argv)
     int i=0;
     ros::Rate loop_rate(2);
     while (ros::ok()) {
+//      i = 0;
       vacuum->write(str[i].c_str());
       ROS_DEBUG("Operation : %s", str[i].c_str());
       ROS_INFO("Operation : %s", str[i].c_str());

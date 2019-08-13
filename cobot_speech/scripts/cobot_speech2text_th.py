@@ -201,6 +201,7 @@ def main():
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
         language_code=language_code,
+        # model=command_and_search,
         speech_contexts=cobot_context
         )
     streaming_config = types.StreamingRecognitionConfig(

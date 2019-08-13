@@ -133,16 +133,16 @@ void doneObj(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
   }
 }
 void activeObj() {
-  // ROS_INFO("activeObj");
+  ROS_INFO("activeObj");
   if(objStatus == 1)
     objStatus = 2;
 }
 void feedbackObj(const cobot_pick::CobotFindObjectFeedbackConstPtr& feedback) {
-  // ROS_INFO("feedbackObj");
+  ROS_INFO("feedbackObj");
 }
 
 void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::CobotFindObjectResultConstPtr& result) {
-  // ROS_INFO("doneBas");
+  ROS_INFO("doneBas");
   if(basStatus == 2) {
     int chk = 0;
     for(int j=0; j<pppa.data.size(); j++)
@@ -163,12 +163,12 @@ void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
   }
 }
 void activeBas() {
-  // ROS_INFO("activeBas");
+  ROS_INFO("activeBas");
   if(basStatus == 1)
     basStatus = 2;
 }
 void feedbackBas(const cobot_pick::CobotFindObjectFeedbackConstPtr& feedback) {
-  // ROS_INFO("feedbackBas");
+  ROS_INFO("feedbackBas");
 }
 
 void callback_en(const std_msgs::Bool& msg) {

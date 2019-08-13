@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.381060 -0.151097 0.481659 0.915827 0.304798 -0.158045 -0.208279" />
+  <arg name="tf_world2camera" default="0.387836 -0.145079 0.480547 0.915998 0.302976 -0.161132 -0.207820" />
   <arg name="mode" default="action" />
   <arg name="camera_frame_id" default="camera_object" />
   <arg name="object_type" default="box" />
@@ -7,7 +7,7 @@
   <arg name="show_result" default="false" />
   <arg name="save_result" default="false" />
   <arg name="launch_prefix" default="" />
-  
+
   <node name="cobot_find_object" pkg="cobot_pick" type="cobot_find_object" respawn="false"
          output="screen" launch-prefix="$(arg launch_prefix)">
     <param name="mode" value="$(arg mode)"/>
@@ -15,7 +15,7 @@
     <param name="data_save_path"
       value="$(find cobot_pick)/data/"/>
     <param name="save_file_prefix" value="$(arg save_file_prefix)"/>
-    <param name="result_save_path" 
+    <param name="result_save_path"
       value="$(find cobot_pick)/results/"/>
     <param name="show_result" value="$(arg show_result)"/>
     <param name="save_result" value="$(arg save_result)"/>
@@ -37,7 +37,7 @@
     <param name="label_multiply_rgb" value="3.0"/>
     <param name="pc_dis2plane" value="0.005"/>
     <param name="find_plane_radius" value="150"/>
-    
+
     <param name="plane_reg_min" value="6000"/>
     <param name="plane_reg_max" value="50000"/>
     <param name="plane_reg_ratio_min" value="1.0"/>
@@ -61,6 +61,6 @@
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
 
   </node>
-  <node name="tf_realsense_object" pkg="tf" type="static_transform_publisher" 
+  <node name="tf_realsense_object" pkg="tf" type="static_transform_publisher"
     args="$(arg tf_world2camera) world camera_object 100" respawn="false" output="screen" />
 </launch>
