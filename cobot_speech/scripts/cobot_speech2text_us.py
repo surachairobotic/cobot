@@ -32,7 +32,9 @@ from __future__ import division
 import re
 import sys
 import os
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"]='/home/mtec/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json'
+
+homedir = os.path.expanduser("~")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]=homedir+('/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json')
 
 from google.cloud import speech_v1p1beta1
 from google.cloud.speech_v1p1beta1 import enums
@@ -168,17 +170,17 @@ def listen_print_loop(responses):
         if not result.alternatives:
             continue
 
-        transcript = result.alternatives[0].transcript
-        overwrite_chars = ' ' * (num_chars_printed - len(transcript))
+        s = len(result.alternatives)
+        for i in range(s):
+            transcript = result.alternatives[i].transcript
 
-        if not result.is_final:
-            rospy.logdebug('US : ' + transcript.encode('utf-8') + overwrite_chars)
-            num_chars_printed = len(transcript)
-
-        else:
-            rospy.logdebug('US : ' + transcript.encode('utf-8') + overwrite_chars)
-            rospy.loginfo('US : ' + transcript.encode('utf-8'))
-            pub_text.publish(String(transcript))
+            if not result.is_final:
+                rospy.loginfo('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
+            elif i is 0:
+                rospy.logwarn('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
+                pub_text.publish(String(transcript))
+            else:
+                rospy.loginfo('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
 
             if re.search(r'\b(Exit|exit|Quit|quit)\b', transcript, re.I):
                 rospy.loginfo('Exiting..')
@@ -190,18 +192,32 @@ def main():
     # for a list of supported languages.
     language_code = 'en-US'  # a BCP-47 language tag
 
-    cobot_phrases = ['teach mode', 'jog mode', 'pickplace mode', 'box', 'object', 'start', 'stop','go home', 'go to', 'save point', 'one', 'two', 'three']
+    cobot_phrases = ['easy mode', 'jog mode', 'automatic mode', 'box', 'object', 'start','go home', 'go to point', 'save point number', 'one', 'two', 'three']
 
     #cobot_phrases = ['teach mode']
     cobot_boost = 20
     #boost=cobot_boost
     cobot_context = [ types.SpeechContext(phrases=cobot_phrases, boost=cobot_boost) ]
+    cobot_meta = types.RecognitionMetadata(
+        interaction_type='VOICE_COMMAND',
+#        microphone_distance='NEARFIELD',
+        original_media_type='AUDIO',
+        recording_device_type='PC',
+        audio_topic='Voice command to control robot arm'
+        )
     client = speech_v1p1beta1.SpeechClient()
     config = types.RecognitionConfig(
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
         language_code=language_code,
-        speech_contexts=cobot_context
+        max_alternatives=30,
+        speech_contexts=cobot_context,
+        enable_word_time_offsets=True,
+        enable_word_confidence=True,
+        enable_automatic_punctuation=True,
+        model='command_and_search',
+        use_enhanced=True,
+        metadata=cobot_meta
         )
     streaming_config = types.StreamingRecognitionConfig(
         config=config,
