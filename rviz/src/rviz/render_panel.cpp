@@ -59,6 +59,9 @@ RenderPanel::RenderPanel( QWidget* parent )
 {
   setFocusPolicy(Qt::WheelFocus);
   setFocus( Qt::OtherFocusReason );
+  setAttribute(Qt::WA_AcceptTouchEvents);
+  b_enable_touch_ = true;
+  touch_distance_ = -1.0;
 }
 
 RenderPanel::~RenderPanel()
@@ -92,6 +95,114 @@ void RenderPanel::initialize(Ogre::SceneManager* scene_manager, DisplayContext* 
 
   connect( fake_mouse_move_event_timer_, SIGNAL( timeout() ), this, SLOT( sendMouseMoveEvent() ));
   fake_mouse_move_event_timer_->start( 33 /*milliseconds*/ );
+}
+
+
+bool RenderPanel::event(QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+      QTouchEvent *touchEvent = static_cast<QTouchEvent *>(event);
+      QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
+      int last_x = touch_mouse_x_
+        , last_y = touch_mouse_y_;
+
+      QEvent::Type ev;
+      switch( event->type()){
+        case QEvent::TouchBegin:
+          ev = QEvent::MouseButtonPress;
+          break;
+        case QEvent::TouchUpdate:
+          ev = QEvent::MouseMove;
+          break;
+        case QEvent::TouchEnd:
+          ev = QEvent::MouseButtonRelease;
+          break;
+      }
+
+      if( touchPoints.count() != 2 && touch_distance_>=0.0 ){
+        touch_distance_ = -1.0;
+        QMouseEvent e( QEvent::MouseButtonRelease
+          , QPointF(mouse_x_, mouse_y_), Qt::MidButton, Qt::MidButton, Qt::NoModifier);
+        onRenderWindowMouseEvents_touch( &e );
+        printf("2 release\n");
+      }
+
+      if (touchPoints.count() == 1 ){
+        QTouchEvent::TouchPoint touchPoint = touchEvent->touchPoints().first();
+        
+        QMouseEvent e( ev
+          ,touchPoint.pos(), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        onRenderWindowMouseEvents_touch( &e );
+      }
+      else if (touchPoints.count() == 2) {
+        const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
+        const QTouchEvent::TouchPoint &touchPoint1 = touchPoints.last();
+        double d1 = QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
+          , d2 = QLineF(touchPoint0.lastPos(), touchPoint1.lastPos()).length();
+
+        QPointF centreZoom = QPointF((touchPoint0.pos().x()+ touchPoint1.pos().x())/2 ,
+            (touchPoint0.pos().y()+ touchPoint1.pos().y())/2);
+        QPointF lastCenterZoom = QPointF((touchPoint0.lastPos().x()+ touchPoint1.lastPos().x())/2 ,
+            (touchPoint0.lastPos().y()+ touchPoint1.lastPos().y())/2);
+
+        QString ev_name;
+        if( touch_distance_<0.0 ){
+          touch_distance_ = d1;
+          mouse_x_ = centreZoom.x();
+          mouse_y_ = centreZoom.y();
+          printf("touch set mouse\n");
+          QMouseEvent e( QEvent::MouseButtonPress, centreZoom, Qt::MidButton, Qt::MidButton, Qt::NoModifier);
+          onRenderWindowMouseEvents_touch( &e );
+          ev_name = "press";
+        }
+        else{
+          QMouseEvent e( QEvent::MouseMove, centreZoom, Qt::NoButton, Qt::MidButton, Qt::NoModifier);
+          onRenderWindowMouseEvents_touch( &e );
+          ev_name = "move";
+
+          const double DIS_DELTA = 0.1; // distance to count as 1 delta
+          int delta = int ((d1 - touch_distance_) / DIS_DELTA);
+          printf("%.4lf / %d\n", touch_distance_, delta);
+          {
+            touch_distance_+= delta * DIS_DELTA;
+            QWheelEvent w( centreZoom // pos
+              , delta // qt4Delta
+              , Qt::NoButton, Qt::NoModifier
+            );
+            wheelEvent_touch( &w );
+          }
+        }
+        printf("2 %s : %d, %d\n", ev_name.toStdString().c_str()
+          , (int)centreZoom.x(), (int)centreZoom.y());
+
+/*        if( touch_distance_ < 0.0 ){
+          printf("touch 2 start\n");
+          touch_distance_ = d1;
+        }
+        else{
+          const double DIS_DELTA = 5.0; // distance to count as 1 delta
+          int delta = int ((d1 - touch_distance_) / DIS_DELTA);
+          printf("%.4lf / %d\n", touch_distance_, delta);
+          {
+            touch_distance_+= delta * DIS_DELTA;
+            QWheelEvent w( centreZoom // pos
+              , delta // qt4Delta
+              , Qt::LeftButton, Qt::NoModifier
+            );
+            //wheelEvent_touch( &w );
+          }
+        }*/
+      }
+      break;
+    }
+    default:
+        return QWidget::event(event);
+    }
+    return true;
 }
 
 void RenderPanel::sendMouseMoveEvent()
@@ -153,6 +264,54 @@ void RenderPanel::onRenderWindowMouseEvents( QMouseEvent* event )
   }
 }
 
+
+void RenderPanel::onRenderWindowMouseEvents_touch( QMouseEvent* event )
+{
+  int last_x = touch_mouse_x_;
+  int last_y = touch_mouse_y_;
+
+  touch_mouse_x_ = event->x();
+  touch_mouse_y_ = event->y();
+
+  printf("mid : %d, %d, %d, %d, %d, %d, %d, %d\n", (int)event->type(), (int)event->x(), (int)event->y()
+    , (int)event->button(), (int)event->buttons(), (int)event->modifiers()
+    , last_x, last_y );
+
+  if (context_)
+  {
+    if (focus_on_mouse_move_) {
+      setFocus( Qt::MouseFocusReason );
+    }
+
+    ViewportMouseEvent vme(this, getViewport(), event, last_x, last_y);
+    context_->handleMouseEvent(vme);
+    event->accept();
+  }
+}
+
+
+
+void RenderPanel::wheelEvent_touch( QWheelEvent* event )
+{
+  int last_x = touch_mouse_x_;
+  int last_y = touch_mouse_y_;
+
+  touch_mouse_x_ = event->x();
+  touch_mouse_y_ = event->y();
+
+  printf("whe2: %d, %d, %d, %d, %d, %d\n", (int)event->type(), (int)event->x(), (int)event->y()
+    , (int)event->delta(), (int)event->buttons(), (int)event->modifiers() );
+
+  if (context_)
+  {
+    ViewportMouseEvent vme(this, getViewport(), event, last_x, last_y);
+    context_->handleMouseEvent(vme);
+    event->accept();
+  }
+}
+
+
+
 void RenderPanel::wheelEvent( QWheelEvent* event )
 {
   int last_x = mouse_x_;
@@ -160,6 +319,9 @@ void RenderPanel::wheelEvent( QWheelEvent* event )
 
   mouse_x_ = event->x();
   mouse_y_ = event->y();
+
+//  printf("whe : %d, %d, %d, %d, %d, %d\n", (int)event->type(), (int)event->x(), (int)event->y()
+//    , (int)event->delta(), (int)event->buttons(), (int)event->modifiers() );
 
   if (context_)
   {

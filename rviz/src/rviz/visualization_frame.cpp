@@ -178,6 +178,12 @@ VisualizationFrame::~VisualizationFrame()
 void VisualizationFrame::setApp( QApplication * app )
 {
   app_ = app;
+
+  /////// prevent convert touch event to mouse event ///////
+
+//  QCoreApplication::setAttribute(Qt::AA_SynthesizeMouseForUnhandledTouchEvents, false);
+
+  //////////////////////////////////////////////////////////
 }
 
 void VisualizationFrame::setStatus( const QString & message )

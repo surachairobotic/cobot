@@ -40,6 +40,7 @@
 
 #include <vector>
 #include <map>
+#include <QTouchEvent>
 
 namespace Ogre
 {
@@ -106,6 +107,8 @@ public:
   /** Set to true if moving the mouse within this widget should set keyboard focus, default true */
   void setFocusOnMouseMove( bool enabled );
 
+  void setEnableTouch(bool b){ b_enable_touch_ = b; }
+
 protected:
   // Override from QWidget
   void contextMenuEvent( QContextMenuEvent* event );
@@ -126,6 +129,18 @@ protected:
   virtual void wheelEvent( QWheelEvent* event );
 
   virtual void keyPressEvent( QKeyEvent* event );
+
+  ////// my touch //////
+
+  bool event(QEvent *event) override;
+  void onRenderWindowMouseEvents_touch( QMouseEvent* event );
+  virtual void wheelEvent_touch( QWheelEvent* event );
+
+  double touch_distance_;
+  bool b_enable_touch_;
+  int touch_mouse_x_, touch_mouse_y_;
+
+  //////////////////////
 
   // Mouse handling
   int mouse_x_;                                           ///< X position of the last mouse event
