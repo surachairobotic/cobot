@@ -32,7 +32,9 @@ from __future__ import division
 import re
 import sys
 import os
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"]='/home/mtec/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json'
+
+homedir = os.path.expanduser("~")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]=homedir+('/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json')
 
 from google.cloud import speech_v1p1beta1
 from google.cloud.speech_v1p1beta1 import enums
@@ -227,6 +229,7 @@ def main():
 if __name__ == '__main__':
     rospy.init_node('cobot_speech2text_th', anonymous=True)
     rospy.loginfo('cobot_speech2text_starting...')
+
     global node_name
     node_name = rospy.get_name()
     rospy.loginfo(node_name)
