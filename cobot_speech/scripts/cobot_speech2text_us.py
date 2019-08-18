@@ -202,7 +202,7 @@ def main():
         interaction_type='VOICE_COMMAND',
 #        microphone_distance='NEARFIELD',
         original_media_type='AUDIO',
-        recording_device_type='PC',
+        recording_device_type='OTHER_INDOOR_DEVICE',
         audio_topic='Voice command to control robot arm'
         )
     client = speech_v1p1beta1.SpeechClient()

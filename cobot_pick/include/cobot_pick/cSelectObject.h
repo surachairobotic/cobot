@@ -305,7 +305,7 @@ public:
     cv::warpPerspective(img, img_plane, trans, img_plane.size());
   }
 
-  void find_point_on_plane(const cv::Point2d &p2d, pcl::PointXYZ &p3d)
+  bool find_point_on_plane(const cv::Point2d &p2d, pcl::PointXYZ &p3d)
   {
     cConvert3D::get_vector(p2d.x, p2d.y, p3d);
     // find corner 3d points on the plane
@@ -318,16 +318,19 @@ public:
     {
       pcl::PointXYZ p2;
       MINUS_3D(p2, p3d, point);
-      assert(fabs(INNER_3D(normal, p2)) < 0.000001);
+      if(fabs(INNER_3D(normal, p2)) > 0.000001)
+        return false;
     }
+    return true;
   }
 
-  void find_center_frames(const cv::Point2f *warp_src)
+  bool find_center_frames(const cv::Point2f *warp_src)
   {
     center.x = center.y = center.z = 0.0;
     for (int i = 3; i >= 0; i--)
     {
-      find_point_on_plane(warp_src[i], frames[i]);
+      if( !find_point_on_plane(warp_src[i], frames[i]) )
+        return false;
       center.x += frames[i].x;
       center.y += frames[i].y;
       center.z += frames[i].z;
@@ -348,6 +351,7 @@ public:
     }
     NORMALIZE_3D(y_axis);
     CROSS_3D(x_axis, y_axis, normal);
+    return true;
   }
 
   void find_center(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat &img_label)
@@ -528,6 +532,7 @@ public:
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
     */
+//    assert(0);
     const double DIS2CENTER_BASEKET = (config.basket_size_x + config.box_size_x)*0.5 
       - config.box_label_shift_x ;
     tf::Vector3 c = config.tf_cam( tf::Vector3(

@@ -27,7 +27,7 @@ public:
 
   bool open(const char *_port_name, int _baud_rate);
   int read(void *buf, unsigned len);
-  void write(const char *buf);
+  int write(const char *buf);
 };
 
 #endif

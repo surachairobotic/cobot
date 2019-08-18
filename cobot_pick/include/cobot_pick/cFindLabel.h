@@ -312,7 +312,7 @@ public:
   
   
   void set_frame_id_camera(const std::string &frame_id){
-    std::vector<visualization_msgs::Marker>* ms[2] = { &frame_markers };//, &basket_markers};
+    std::vector<visualization_msgs::Marker>* ms[2] = { &frame_markers , &basket_markers};
     for(int j=0;j<1;j++){
       for(int i=0;i<frame_markers.size();i++){
         visualization_msgs::Marker &m = (*ms[j])[i];
@@ -663,7 +663,10 @@ public:
               continue;
             }
             plane.set_flip( k==1 );
-            plane.find_center_frames( warp_src);
+            if( !plane.find_center_frames( warp_src) ){
+              ROS_INFO("* find_center_frames failed [%d]\n", ir);
+              continue;
+            }
             plane.set_label( n_label );
             
             //  label size
@@ -675,7 +678,7 @@ public:
               ROS_INFO("* label size 3D : %.3lf, %.3lf\n", dis[0], dis[1]);
               if( fabs(dis[0] - config.label_width) > config.label_size_error
                 || fabs(dis[1] - config.label_height) > config.label_size_error){
-                ROS_INFO("invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
+                ROS_INFO("* invalid label size [%d]: %.3lf, %.3lf\n", ir, dis[0], dis[1]);
                 continue;
               }
             }
@@ -833,12 +836,25 @@ public:
         geometry_msgs::Point &p = plane.pick_pose.pose.position;
         geometry_msgs::Quaternion &o = plane.pick_pose.pose.orientation;
         tf::Quaternion q(o.x, o.y, o.z, o.w);
+        
 
         for(int i=0;i<5;i++){
+          
           const tf::Vector3 v = tf::quatRotate( q, v_basket[i%4] );
           p1.x = v.x() + p.x;
           p1.y = v.y() + p.y;
           p1.z = v.z() + p.z;
+          
+          // draw label frame
+          // have to change frame_id to FRAME_CAMERA
+          /*
+          marker_frame.header.frame_id = FRAME_CAMERA;
+          const tf::Vector3 v( plane.frames[i%4].x, plane.frames[i%4].y, plane.frames[i%4].z );
+          p1.x = v.x();
+          p1.y = v.y();
+          p1.z = v.z();
+          */
+          
           marker_frame.points.push_back(p1);
         }
       }

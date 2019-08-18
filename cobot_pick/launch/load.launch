@@ -1,7 +1,7 @@
 <launch>
   <include file="$(find cobot_pick)/launch/inc_find_object.launch" >
     <arg name="mode" default="load" />
-    <arg name="save_file_prefix" default="box_01" />
+    <arg name="save_file_prefix" default="calib_04" />
     <arg name="show_result" default="false" />
     <arg name="save_result" default="true" />
     <arg name="launch_prefix" default="" />

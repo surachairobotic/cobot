@@ -25,8 +25,11 @@ bool cSerial::open(const char *_port_name, int _baud_rate){
   }
   tcgetattr(fd, &toptions);
   /* set 9600 baud both ways */
+  // (speed_t)B9600
   cfsetispeed(&toptions, baud_rate);
   cfsetospeed(&toptions, baud_rate);
+  // cfsetispeed(&toptions, baud_rate);
+  // cfsetospeed(&toptions, baud_rate);
   /* 8 bits, no parity, no stop bits */
   toptions.c_cflag &= ~PARENB;   // No parity bit
   toptions.c_cflag &= ~CSTOPB;   // 1 stop bit
@@ -56,6 +59,6 @@ int cSerial::read(void *buf, unsigned len){
   return ::read( fd, buf, len );
 }
 
-void cSerial::write(const char *buf){
-  ::write( fd, (void*)buf, strlen(buf) );
+int cSerial::write(const char *buf){
+  return ::write( fd, (void*)buf, strlen(buf) );
 }

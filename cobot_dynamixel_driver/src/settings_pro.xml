@@ -22,7 +22,7 @@
     <gear_ratio value="1" />
     <direction value="1.0" />
   </joint>
-  
+
   <!-- 2 -->
   <joint>
     <motor>
@@ -30,7 +30,7 @@
       <model_number value="54024" />
       <!-- degree -->
       <cw_angle_limit value="-60" />
-      <ccw_angle_limit value="30" />
+      <ccw_angle_limit value="57.2958" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -45,7 +45,7 @@
     <gear_ratio value="1" />
     <direction value="-1.0" />
   </joint>
-  
+
   <!-- 3 -->
   <joint>
     <motor>
@@ -53,7 +53,7 @@
       <model_number value="53768" />
       <!-- degree -->
       <cw_angle_limit value="-135" />
-      <ccw_angle_limit value="45" />
+      <ccw_angle_limit value="61.87944" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -68,15 +68,15 @@
     <gear_ratio value="1" />
     <direction value="1.0" />
   </joint>
-  
+
   <!-- 4 -->
   <joint>
     <motor>
       <name value="H54_100_S500_R" />
       <model_number value="53768" />
       <!-- degree -->
-      <cw_angle_limit value="-135" />
-      <ccw_angle_limit value="135" />
+      <cw_angle_limit value="-165" />
+      <ccw_angle_limit value="165" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->
@@ -114,15 +114,15 @@
     <gear_ratio value="1" />
     <direction value="1.0" />
   </joint>
-  
+
   <!-- 6 -->
   <joint>
     <motor>
       <name value="H42_20_S300_R" />
       <model_number value="51200" />
       <!-- degree -->
-      <cw_angle_limit value="-360" />
-      <ccw_angle_limit value="360" />
+      <cw_angle_limit value="-480" />
+      <ccw_angle_limit value="480" />
       <!-- 0-1024 -->
       <torque_limit value="900" />
       <!-- degree/sec -->

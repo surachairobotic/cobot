@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.387836 -0.145079 0.480547 0.915998 0.302976 -0.161132 -0.207820" />
+  <arg name="tf_world2camera" default="0.379948 -0.132475 0.472950 0.971608 0.142506 -0.040211 -0.184534" />
   <arg name="mode" default="action" />
   <arg name="camera_frame_id" default="camera_object" />
   <arg name="object_type" default="box" />
@@ -53,7 +53,7 @@
     <param name="text_ransac_repeat_time" value="300"/>
     <param name="text_ransac_th_error" value="1"/>
 
-    <param name="th_region_color" value="4000"/>
+    <param name="th_region_color" value="8000"/>
     <param name="label_width" value="0.035"/>
     <param name="label_height" value="0.023"/>
     <param name="label_size_error" value="0.006"/>
@@ -63,4 +63,6 @@
   </node>
   <node name="tf_realsense_object" pkg="tf" type="static_transform_publisher"
     args="$(arg tf_world2camera) world camera_object 100" respawn="false" output="screen" />
+  <node name="tf_realsense_object2" pkg="tf" type="static_transform_publisher"
+    args="$(arg tf_world2camera) world camera_color_optical_frame 100" respawn="false" output="screen" />
 </launch>

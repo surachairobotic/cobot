@@ -3,7 +3,7 @@
          output="screen"  launch-prefix="gdb -ex run --args">
     <param name="load_mode" value="true"/>
     <param name="save_file_prefix"
-      value="$(find cobot_pick)/data/calib_02"/>
+      value="$(find cobot_pick)/data/hotel_box_01"/>
     <param name="result_save_path"
       value="$(find cobot_pick)/results/"/>
     <param name="show_result" value="true"/>

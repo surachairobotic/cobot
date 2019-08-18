@@ -75,6 +75,7 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 
 	connect(ui_->btn_pick, SIGNAL(clicked()), this, SLOT(pick_en_Clicked()));
 	connect(ui_->btn_m1, &QPushButton::clicked, this, [this]{ pickHandle("M1"); });
+	connect(ui_->btn_m2, &QPushButton::clicked, this, [this]{ pickHandle("M2"); });
 }
 
 CobotInterfaceBetaWidget::~CobotInterfaceBetaWidget() {
@@ -146,6 +147,7 @@ geometry_msgs::Pose CobotInterfaceBetaWidget::jsCartesian(const sensor_msgs::Joi
 	msg.request.fk_link_names = {"tool0"};
 	msg.request.robot_state.joint_state = _js;
 	error = "OK";
+	srv_fk = cobot_display_->nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
 	if(srv_fk.call(msg))
 	{
 		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
@@ -170,6 +172,7 @@ geometry_msgs::Pose CobotInterfaceBetaWidget::jsCartesian(const sensor_msgs::Joi
 void CobotInterfaceBetaWidget::enableTeachClicked() {
   cobot_msgs::EnableNode srv;
   srv.request.enable = !teach_status;
+	srv_teach_enable = cobot_display_->nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach/enable");
   if (srv_teach_enable.call(srv)) {
 		ROS_INFO("srv_teach_enable: %s", srv.response.error.data.c_str());
 		teach_status = !teach_status;
@@ -194,6 +197,7 @@ void CobotInterfaceBetaWidget::enableJogClicked() {
   ROS_INFO("enableJogClicked");
 	cobot_msgs::EnableNode srv;
   srv.request.enable = !jog_status;
+	srv_jog_enable = cobot_display_->nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_jog/enable");
   if (srv_jog_enable.call(srv)) {
 		ROS_INFO("srv_jog_enable: %s", srv.response.error.data.c_str());
 		jog_status = !jog_status;
@@ -223,6 +227,8 @@ void CobotInterfaceBetaWidget::editPointClicked(bool mode) {
 		req_edit_js_file.request.operation = 1;
 	else
 		req_edit_js_file.request.operation = -1;
+
+	srv_edit_js_file = cobot_display_->nh_.serviceClient<cobot_msgs::EditJointStateFile>("/cobot/cobot_core/edit_js_file");
 	if (srv_edit_js_file.call(req_edit_js_file))
 		ROS_INFO("srv_edit_js_file.call is true");
 	else
@@ -236,6 +242,7 @@ void CobotInterfaceBetaWidget::updatePointsTable() {
 	ROS_INFO("CobotInterfaceBetaWidget::updatePointsTable()");
 
 	cobot_msgs::ReadJointStateFile req_read_point_file;
+	srv_read_point_file = cobot_display_->nh_.serviceClient<cobot_msgs::ReadJointStateFile>("/cobot/cobot_core/read_js_file");
 	if (srv_read_point_file.call(req_read_point_file))
 		ROS_INFO("srv_read_point_file.call is true");
 	else {
@@ -281,6 +288,7 @@ void CobotInterfaceBetaWidget::planClicked() {
 	req_plan.request.max_acceleration = 0.1;
 	req_plan.request.step_time = 0.01;
 
+	srv_cobot_planning = cobot_display_->nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 	if (srv_cobot_planning.call(req_plan))
 		ROS_INFO("srv_cobot_planning.call is true");
 	else

@@ -58,6 +58,7 @@ public:
   void clear_trajectory();
   bool plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2);
   bool plan_p2p(const geometry_msgs::Pose &p2);
+  bool plan_line(const sensor_msgs::JointState &js, const geometry_msgs::Pose &p2, double step);
   bool plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step=0.002);
   bool plan_line(const geometry_msgs::Pose &p2, double step=0.002);
   bool plan_line(std::vector< geometry_msgs::Pose > &waypoints, double step=0.002);

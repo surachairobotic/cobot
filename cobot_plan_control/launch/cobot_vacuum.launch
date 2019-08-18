@@ -1,6 +1,6 @@
 <launch>
   <env name="ROSCONSOLE_CONFIG_FILE"
        value="$(find cobot_plan_control)/custom_rosconsole.conf"/>
-  <node name="test_vacuum_serial" pkg="cobot_plan_control" type="test_vacuum_serial" respawn="false" output="screen">
+  <node name="cobot_vacuum" pkg="cobot_plan_control" type="cobot_vacuum" respawn="false" output="screen">
   </node>
 </launch>

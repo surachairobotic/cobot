@@ -68,28 +68,23 @@ int main(int argc, char **argv)
     pppa.data.push_back(stub);
     pppa.header.stamp = ros::Time::now();
 
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(1000);
     while (ros::ok()) {
-      if(!ObjectAction.isServerConnected())
-        ObjectAction.waitForServer();
-      if(!BasketAction.isServerConnected())
-        BasketAction.waitForServer();
-
       if(en) {
-        if(objStatus == 0) {
+        if(objStatus == 0 && ObjectAction.isServerConnected()) {
           ObjectAction.sendGoal(action_goal1, &doneObj, &activeObj, &feedbackObj);
           objStatus = 1;
         }
-        if(basStatus == 0) {
+        if(objStatus == 3 && BasketAction.isServerConnected()) {
           BasketAction.sendGoal(action_goal2, &doneBas, &activeBas, &feedbackBas);
-          basStatus = 1;
+          objStatus = 4;
         }
 
         pppa.header.stamp = ros::Time::now();
         for(int k=0; k<pppa.data.size(); k++) {
-          if( (pppa.header.stamp-pppa.data[k].pick.header.stamp).toSec() > 2.5 )
+          if( (pppa.header.stamp-pppa.data[k].pick.header.stamp).toSec() > 15 )
             pppa.data[k].b_pick = -1;
-          if( (pppa.header.stamp-pppa.data[k].place.header.stamp).toSec() > 2.5 )
+          if( (pppa.header.stamp-pppa.data[k].place.header.stamp).toSec() > 15 )
             pppa.data[k].b_place = -1;
         }
         pub.publish(pppa);
@@ -117,7 +112,7 @@ void doneObj(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
     int chk = 0;
     for(int j=0; j<pppa.data.size(); j++)
       pppa.data[j].b_pick = -1;
-    for(int i=0; i<result->labels.size(); i++) {
+    for(int i=result->labels.size()-1; i>=0; i--) {
       for(int j=0; j<pppa.data.size(); j++) {
         if(result->labels[i] == pppa.data[j].label) {
           pppa.data[j].pick.pose = result->poses[i];
@@ -129,7 +124,7 @@ void doneObj(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
     }
     if(chk != result->labels.size())
       ROS_WARN("doneObj : chk != result->labels.size()");
-    objStatus = 0;
+    objStatus = 3;
   }
 }
 void activeObj() {
@@ -143,7 +138,7 @@ void feedbackObj(const cobot_pick::CobotFindObjectFeedbackConstPtr& feedback) {
 
 void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::CobotFindObjectResultConstPtr& result) {
   ROS_INFO("doneBas");
-  if(basStatus == 2) {
+  if(objStatus == 5) {
     int chk = 0;
     for(int j=0; j<pppa.data.size(); j++)
       pppa.data[j].b_place = -1;
@@ -159,13 +154,13 @@ void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
     }
     if(chk != result->labels.size())
       ;//ROS_WARN("doneObj : chk != result->labels.size()");
-    basStatus = 0;
+    objStatus = 0;
   }
 }
 void activeBas() {
   ROS_INFO("activeBas");
-  if(basStatus == 1)
-    basStatus = 2;
+  if(objStatus == 4)
+    objStatus = 5;
 }
 void feedbackBas(const cobot_pick::CobotFindObjectFeedbackConstPtr& feedback) {
   ROS_INFO("feedbackBas");
@@ -183,19 +178,23 @@ void callback_cmd(const std_msgs::String& msg) {
       ROS_INFO("msg.data.compare : true");
       if(pppa.data[i].b_pick > -1 && pppa.data[i].b_place > -1) {
         ROS_INFO("pppa.data[i].b_pick && pppa.data[i].b_place : true");
-        pick_marker(pppa.data[i].pick.pose, 0);
-        geometry_msgs::Pose _pick = pose_transform(pppa.data[i].pick.pose, 0.05, 0.0);
-        pick_marker(_pick, 1);
-        geometry_msgs::Pose _place = pose_transform(pppa.data[i].place.pose, 0.05, 0.0);
-        pick_marker(_place, 2);
-        pick_marker(pppa.data[i].place.pose, 3);
-        geometry_msgs::PoseArray msg;
-        msg.poses.push_back(pose_transform(pppa.data[i].pick.pose, 0.05, 0.0));
-        msg.poses.push_back(pppa.data[i].pick.pose);
-        pub_pick.publish(msg);
+        geometry_msgs::PoseArray pose_send;
+        pose_send.poses.push_back(pose_transform(pppa.data[i].pick.pose, 0.1, 0.0));
+        pose_send.poses.push_back(pose_transform(pppa.data[i].pick.pose, -0.004, 0.0));
+        pose_send.poses.push_back(pose_transform(pppa.data[i].place.pose, 0.1, 0.0));
+        pose_send.poses.push_back(pose_transform(pppa.data[i].place.pose, 0.005, 0.0));
+
+        pick_marker(pose_send.poses[0], 0);
+        pick_marker(pose_send.poses[1], 1);
+        pick_marker(pose_send.poses[2], 2);
+        pick_marker(pose_send.poses[3], 3);
+
+        pub_pick.publish(pose_send);
       }
-      else
-        ROS_INFO("pppa.data[i].b_pick && pppa.data[i].b_place : false");
+      else {
+        ROS_INFO("pppa.data[i].b_pick : %d", pppa.data[i].b_pick);
+        ROS_INFO("pppa.data[i].b_place : %d", pppa.data[i].b_place);
+      }
     }
     else
       ROS_INFO("msg.data.compare : false");

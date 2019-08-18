@@ -614,9 +614,12 @@ int CobotKinematic::solve(KDL::Frame& pose_frame, const std::vector<double>& vfr
   std::vector<geometry_msgs::Pose> ppp;
   ROS_ERROR("solution.size() = %d", solutions.size());
   for(int i=0; i<solutions.size(); i++) {
-    ROS_ERROR("solve : %d", i);
+    // ROS_ERROR("solve : %d", i);
     getPositionFK(lll, solutions[i], ppp);
-    ROS_WARN("%lf, %lf, %lf | %lf, %lf, %lf, %lf | %d", ppp[0].position.x, ppp[0].position.y, ppp[0].position.z, ppp[0].orientation.x, ppp[0].orientation.y, ppp[0].orientation.z, ppp[0].orientation.w, ppp.size());
+    // printf("joint : ");
+    // for(int j=0; j<solutions[i].size(); j++)
+    //   printf("%lf, ", solutions[i][j]);
+    // ROS_WARN("\nXYZ : %lf, %lf, %lf | %lf, %lf, %lf, %lf | %d", ppp[0].position.x, ppp[0].position.y, ppp[0].position.z, ppp[0].orientation.x, ppp[0].orientation.y, ppp[0].orientation.z, ppp[0].orientation.w, ppp.size());
   }
   return solutions.size();
 }
@@ -646,7 +649,7 @@ void CobotKinematic::getSolution(const std::vector<std::vector<double>>& solutio
                                          const std::vector<double>& ik_seed_state, int i,
                                          std::vector<double>& solution) const
 {
-	ROS_WARN("CobotKinematic::getSolution : work");
+	// ROS_WARN("CobotKinematic::getSolution : work");
   solution.clear();
   solution.resize(num_joints_);
 

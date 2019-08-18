@@ -46,6 +46,7 @@
     <param name="max_safe_path_cost" value="$(arg max_safe_path_cost)"/>
     <param name="jiggle_fraction" value="$(arg jiggle_fraction)" />
 
+    <remap from="/joint_states" to="/cobot/joint_states"/>
     <!-- load these non-default MoveGroup capabilities -->
     <!--
     <param name="capabilities" value="

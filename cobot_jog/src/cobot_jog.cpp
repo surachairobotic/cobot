@@ -5,11 +5,25 @@
 #include "cobot_msgs/ChangeMode.h"
 #include "moveit_msgs/GetPositionFK.h"
 #include "moveit_msgs/GetPositionIK.h"
+#include "cobot_planner/CobotPlanning.h"
 #include "tf/tf.h"
+#include <actionlib/client/simple_action_client.h>
+#include "cobot_msgs/ExecuteAction.h"
+
+class ROSNode
+{
+public:
+  ROSNode(ros::NodeHandle &_n) {
+    n = &_n;
+  };
+
+  ros::NodeHandle *n;
+};
+ROSNode *rn;
 
 sensor_msgs::JointState js, goal;
 std::string DRIVER_KEY = "";
-ros::ServiceClient srv_mode, srv_fk, srv_ik;
+
 ros::Publisher pub_goal;
 bool is_enable = false;
 
@@ -18,17 +32,18 @@ void callback_jog(const cobot_msgs::Jog &msg);
 bool handle_enable_node(cobot_msgs::EnableNode::Request  &req, cobot_msgs::EnableNode::Response &res);
 geometry_msgs::Pose CobotFK(const sensor_msgs::JointState &_js, std::vector<double> &_pose);
 sensor_msgs::JointState CobotIK(const geometry_msgs::Pose &_p, const sensor_msgs::JointState &_in);
+geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error);
+bool planHome();
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "cobot_jog");
-  ros::NodeHandle n;
-  ros::Subscriber sub_js = n.subscribe("/cobot/joint_states", 100, callback_js);
-  ros::Subscriber sub_ui = n.subscribe("/cobot/cobot_jog", 100, callback_jog);
-  ros::ServiceServer service_enable  = n.advertiseService("/cobot/cobot_jog/enable" , handle_enable_node);
-  pub_goal = n.advertise<sensor_msgs::JointState>("/cobot/goal", 100);
-  srv_mode = n.serviceClient<cobot_msgs::ChangeMode>("/cobot/cobot_core/change_mode");
-  srv_fk = n.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
-  srv_ik = n.serviceClient<moveit_msgs::GetPositionIK>("/compute_ik");
+  ros::NodeHandle nn;
+  rn = new ROSNode(nn);
+
+  ros::Subscriber sub_js = rn->n->subscribe("/cobot/joint_states", 100, callback_js);
+  ros::Subscriber sub_ui = rn->n->subscribe("/cobot/cobot_jog", 100, callback_jog);
+  ros::ServiceServer service_enable  = rn->n->advertiseService("/cobot/cobot_jog/enable" , handle_enable_node);
+  pub_goal = rn->n->advertise<sensor_msgs::JointState>("/cobot/goal", 100);
 
   ROS_INFO("COBOT_JOG : START");
   ros::Rate loop_rate(100);
@@ -53,9 +68,31 @@ void callback_jog(const cobot_msgs::Jog &msg) {
     goal.header.frame_id = DRIVER_KEY;
 
     goal.name = js.name;
-    goal.velocity = {msg.velocity, msg.velocity, msg.velocity, msg.velocity, msg.velocity, msg.velocity};
+    goal.velocity = {msg.velocity, msg.velocity, msg.velocity, msg.velocity, msg.velocity, M_PI/4.0};
     if(msg.cmd == "HOME") {
-      goal.position = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // if(!planHome()) {
+        goal.position = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+      // }
+      // else {
+      //   actionlib::SimpleActionClient<cobot_msgs::ExecuteAction> ac("cobot_execute", true);
+      // 	ac.waitForServer(); //will wait for infinite time
+      // 	ROS_INFO("Action server started, sending goal.");
+      //   // send a goal to the action
+      //   cobot_msgs::ExecuteGoal goal;
+      //   ac.sendGoal(goal);
+      //
+      //   //wait for the action to return
+      //   bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+      //
+      //   if (finished_before_timeout)
+      //   {
+      //     actionlib::SimpleClientGoalState state = ac.getState();
+      //     ROS_INFO("Action finished: %s",state.toString().c_str());
+      //   }
+      //   else
+      //     ROS_INFO("Action did not finish before the time out.");
+      // 	ROS_INFO("execClicked is done.");
+      // }
     }
     else if(msg.cmd[0] == 'J') {
       goal.name = {msg.cmd};
@@ -105,6 +142,7 @@ bool handle_enable_node(cobot_msgs::EnableNode::Request  &req, cobot_msgs::Enabl
   if(req.enable) {
     cobot_msgs::ChangeMode msg;
     msg.request.mode = "JOG_MODE";
+    ros::ServiceClient srv_mode = rn->n->serviceClient<cobot_msgs::ChangeMode>("/cobot/cobot_core/change_mode");
     if (srv_mode.call(msg)) {
       if(msg.response.error == "OK") {
         DRIVER_KEY = msg.response.key;
@@ -124,6 +162,7 @@ geometry_msgs::Pose CobotFK(const sensor_msgs::JointState &_js, std::vector<doub
 	msg.request.header.stamp = ros::Time::now();
 	msg.request.fk_link_names = {"tool0"};
 	msg.request.robot_state.joint_state = _js;
+  ros::ServiceClient srv_fk = rn->n->serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
 	if(srv_fk.call(msg)) {
 		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
 		_pose[1] = msg.response.pose_stamped[0].pose.position.y;
@@ -150,10 +189,91 @@ sensor_msgs::JointState CobotIK(const geometry_msgs::Pose &_p, const sensor_msgs
   msg.request.ik_request.ik_link_name = "tool0";
   msg.request.ik_request.pose_stamped.header.stamp = ros::Time::now();
   msg.request.ik_request.pose_stamped.pose = _p;
+  ros::ServiceClient srv_ik = rn->n->serviceClient<moveit_msgs::GetPositionIK>("/compute_ik");
   if(srv_ik.call(msg)) {
     return msg.response.solution.joint_state;
   }
   else {
 		ROS_ERROR("Failed to call service compute_ik");
 	}
+}
+
+bool planHome() {
+  cobot_planner::CobotPlanning req_plan;
+
+  std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  std::string error_code = "";
+  geometry_msgs::Pose start = jsCartesian(js, rpy, error_code);
+  if(error_code == "OK")
+    req_plan.request.pose_array.push_back(start);
+  else {
+    ROS_INFO("start pose is false");
+    return false;
+  }
+
+  sensor_msgs::JointState js_home = js;
+  for(int i=0; i<js_home.position.size(); i++)
+    js_home.position[i] = 0.000;
+  geometry_msgs::Pose home = jsCartesian(js_home, rpy, error_code);
+  if(error_code == "OK")
+    ; //req_plan.request.pose_array.push_back(home);
+  else {
+    ROS_INFO("home pose is false");
+    return false;
+  }
+
+  sensor_msgs::JointState middle1 = js;
+  sensor_msgs::JointState middle2 = js;
+  for(int i=0; i<js.position.size(); i++) {
+    middle1.position[i] = ((js_home.position[i]-js.position[i])*1.0/3.0) + js.position[i];
+    middle2.position[i] = ((js_home.position[i]-js.position[i])*2.0/3.0) + js.position[i];
+  }
+  req_plan.request.pose_array.push_back(jsCartesian(middle1, rpy, error_code));
+  req_plan.request.pose_array.push_back(jsCartesian(middle2, rpy, error_code));
+  req_plan.request.pose_array.push_back(home);
+
+  req_plan.request.joint_names = {"J1", "J2", "J3", "J4", "J5", "J6"};
+  req_plan.request.seed = js;
+  req_plan.request.type = "line";
+  req_plan.request.max_velocity = 0.1;
+  req_plan.request.max_acceleration = M_PI/2.0;
+  req_plan.request.step_time = 0.2;
+
+  ros::ServiceClient srv_cobot_planning = rn->n->serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
+  if (srv_cobot_planning.call(req_plan)) {
+    ROS_INFO("srv_cobot_planning.call is true");
+  }
+  else {
+    ROS_INFO("srv_cobot_planning.call is false");
+    return false;
+  }
+  return true;
+}
+
+geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error) {
+	moveit_msgs::GetPositionFK msg;
+	msg.request.header.stamp = ros::Time::now();
+	msg.request.fk_link_names = {"tool0"};
+	msg.request.robot_state.joint_state = _js;
+	error = "OK";
+  ros::ServiceClient srv_fk = rn->n->serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
+	if(srv_fk.call(msg))
+	{
+		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
+		_pose[1] = msg.response.pose_stamped[0].pose.position.y;
+		_pose[2] = msg.response.pose_stamped[0].pose.position.z;
+		tf::Quaternion q_ori;
+		tf::quaternionMsgToTF(msg.response.pose_stamped[0].pose.orientation , q_ori);
+		tf::Matrix3x3 m(q_ori);
+		double roll, pitch, yaw;
+		m.getRPY(roll, pitch, yaw);
+		_pose[3] = roll;
+		_pose[4] = pitch;
+		_pose[5] = yaw;
+	}
+	else {
+		ROS_ERROR("Failed to call service compute_fk");
+		error = "Failed to call service compute_fk";
+	}
+	return msg.response.pose_stamped[0].pose;
 }

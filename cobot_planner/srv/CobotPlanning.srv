@@ -1,13 +1,14 @@
-string[]              joint_names
-float64[]             start_joints
-float64[]             end_joints
-geometry_msgs/Pose    start_pose
-geometry_msgs/Pose    end_pose
-geometry_msgs/Pose[]  pose_array
-string                type            # "line" or "p2p"
-float64               max_velocity
-float64               max_acceleration
-float64               step_time
+string[]                joint_names
+sensor_msgs/JointState  seed
+float64[]               start_joints
+float64[]               end_joints
+geometry_msgs/Pose      start_pose
+geometry_msgs/Pose      end_pose
+geometry_msgs/Pose[]    pose_array
+string                  type            # "line" or "p2p"
+float64                 max_velocity
+float64                 max_acceleration
+float64                 step_time
 
 ---
 

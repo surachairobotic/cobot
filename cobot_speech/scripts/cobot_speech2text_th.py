@@ -173,14 +173,17 @@ def listen_print_loop(responses):
         transcript = result.alternatives[0].transcript
         overwrite_chars = ' ' * (num_chars_printed - len(transcript))
 
-        if not result.is_final:
-            rospy.logdebug('TH : ' + transcript.encode('utf-8') + overwrite_chars)
-            num_chars_printed = len(transcript)
+        s = len(result.alternatives)
+        for i in range(s):
+            transcript = result.alternatives[i].transcript
 
-        else:
-            rospy.logdebug('TH : ' + transcript.encode('utf-8') + overwrite_chars)
-            rospy.loginfo('TH : ' + transcript.encode('utf-8'))
-            pub_text.publish(String(transcript))
+            if not result.is_final:
+                rospy.loginfo('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
+            elif i is 0:
+                rospy.logwarn('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
+                pub_text.publish(String(transcript))
+            else:
+                rospy.loginfo('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
 
             if re.search(r'\b(Exit|exit|Quit|quit)\b', transcript, re.I):
                 rospy.loginfo('Exiting..')
@@ -198,13 +201,26 @@ def main():
     cobot_boost = 20
     #boost=cobot_boost
     cobot_context = [ types.SpeechContext(phrases=cobot_phrases, boost=cobot_boost) ]
+    cobot_meta = types.RecognitionMetadata(
+        interaction_type='VOICE_COMMAND',
+#        microphone_distance='NEARFIELD',
+        original_media_type='AUDIO',
+        recording_device_type='OTHER_INDOOR_DEVICE',
+        audio_topic='Voice command to control robot arm'
+        )
     client = speech_v1p1beta1.SpeechClient()
     config = types.RecognitionConfig(
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
         language_code=language_code,
-        # model=command_and_search,
-        speech_contexts=cobot_context
+        max_alternatives=30,
+        speech_contexts=cobot_context,
+        enable_word_time_offsets=True,
+        enable_word_confidence=True,
+        enable_automatic_punctuation=True,
+        model='command_and_search',
+        use_enhanced=True,
+        metadata=cobot_meta
         )
     streaming_config = types.StreamingRecognitionConfig(
         config=config,

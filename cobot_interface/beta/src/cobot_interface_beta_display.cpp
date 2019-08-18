@@ -56,15 +56,17 @@ void CobotInterfaceBetaDisplay::onInitialize()
 	frame_->pub_jog = nh_.advertise<cobot_msgs::Jog>("/cobot/cobot_jog", 100);
 	frame_->pub_pick_en = nh_.advertise<std_msgs::Bool>("/cobot/image2pose/enable", 10);
 	frame_->pub_pick_cmd = nh_.advertise<std_msgs::String>("/cobot/image2pose/cmd", 10);
-	frame_->srv_teach_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach/enable");
-	frame_->srv_jog_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_jog/enable");
-	frame_->srv_fk = nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
-	frame_->srv_edit_js_file = nh_.serviceClient<cobot_msgs::EditJointStateFile>("/cobot/cobot_core/edit_js_file");
-	frame_->srv_read_point_file = nh_.serviceClient<cobot_msgs::ReadJointStateFile>("/cobot/cobot_core/read_js_file");
-	frame_->srv_cobot_planning = nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
+	// frame_->srv_teach_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach/enable");
+	// frame_->srv_jog_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_jog/enable");
+	// frame_->srv_fk = nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
+	// frame_->srv_edit_js_file = nh_.serviceClient<cobot_msgs::EditJointStateFile>("/cobot/cobot_core/edit_js_file");
+	// frame_->srv_read_point_file = nh_.serviceClient<cobot_msgs::ReadJointStateFile>("/cobot/cobot_core/read_js_file");
+	// frame_->srv_cobot_planning = nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 
 	sub_js = nh_.subscribe("/cobot/joint_states", 100, callback_js);
 	sub_pppa = nh_.subscribe("cobot/image2pose/pickplace_array", 100, callback_pppa);
+
+	pub_vacuum = nh_.advertise<std_msgs::Bool>("/cobot/message", 10);
 	frame_->updatePointsTable();
 }
 

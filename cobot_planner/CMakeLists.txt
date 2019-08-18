@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   message_generation
   std_msgs
+  sensor_msgs
   geometry_msgs
   trajectory_msgs
   moveit_core
@@ -22,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Boost REQUIRED system filesystem date_time thread)
-
 
 ## msg, stv ###
 
@@ -35,11 +35,10 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
   geometry_msgs
   trajectory_msgs
 )
-
-
 
 catkin_package(
   INCLUDE_DIRS include
@@ -48,6 +47,7 @@ catkin_package(
     roscpp
     rospy
     std_msgs
+    sensor_msgs
     geometry_msgs
     trajectory_msgs
     moveit_core

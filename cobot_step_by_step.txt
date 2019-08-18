@@ -16,3 +16,12 @@ roslaunch cobot_showcase set1.launch
 
 Terminal 6
 roslaunch cobot_showcase set2.launch
+
+-------------------------
+xrandr --output DP-1 --mode 1280x720 --pos 1280x720
+xrandr --output HDMI-2 --same-as DP-1 --pos 1280x720
+
+xinput set-prop "WaveShare WS170120" --type=float "Coordinate Transformation Matrix" -1 0 1 0 -1 1 0 0 1
+
+-------------------------
+grep -rnw . -e "base_link"

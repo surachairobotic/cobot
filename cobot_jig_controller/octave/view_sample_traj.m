@@ -1,7 +1,7 @@
 clear all;
 
 %s = load('../results/traj_original_Tong.txt');
-s = load('../results/traj_original.txt');
+s = load('/home/mtec/catkin_ws/src/cobot/cobot_plan_control/traj4.txt');
 
 t = s(:,1);
 q = s(:,2:7);

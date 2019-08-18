@@ -26,6 +26,8 @@ namespace cobot_interface
 			sensor_msgs::JointState js;
 			cobot_msgs::PickPlacePoseArray pppa;
 
+			ros::NodeHandle nh_;
+
 		Q_SIGNALS:
 			void jsUpdate();
 			void pppaUpdate();
@@ -43,7 +45,6 @@ namespace cobot_interface
 			virtual void onDisable();
 			virtual void fixedFrameChanged();
 
-			ros::NodeHandle nh_;
 			ros::AsyncSpinner spinner;
 
 			CobotInterfaceBetaWidget *frame_;
@@ -51,6 +52,7 @@ namespace cobot_interface
 
 		private:
 			ros::Subscriber sub_js, sub_pppa;
+			ros::Publisher pub_vacuum;
 
 		private Q_SLOTS:
 		  void cobotPanelVisibilityChange(bool enable);

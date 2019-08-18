@@ -4,12 +4,11 @@
     <param    name ="audio_device_idx" value="7" />
   </node>
 
-<!--
   <node name="cobot_speech2text_th" pkg="cobot_speech" type="cobot_speech2text_th.py" output="screen">
     <param    name ="audio_device_idx" value="7" />
   </node>
 
-
+<!--
   <node name="cobot_text2speech" pkg="cobot_speech" type="cobot_text2speech.py" output="screen">
   </node>
 -->

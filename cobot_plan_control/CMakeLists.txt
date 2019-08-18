@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   cobot_planner
   visualization_msgs
 )
@@ -124,6 +125,7 @@ catkin_package(
     roscpp
     rospy
     std_msgs
+    sensor_msgs
     moveit_core
     moveit_ros_planning_interface
     interactive_markers

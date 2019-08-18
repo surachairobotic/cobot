@@ -140,6 +140,9 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
   trajectory = plan.trajectory_;
   return true;
   */
+
+  move_group.setPlannerId("KPIECEkConfigDefault");
+  // move_group.setPlanningTime(10);
   for(int i=0;i<10;i++){
     if( move_group.plan(plan) ){
       trajectory = plan.trajectory_;
@@ -151,6 +154,22 @@ bool cControl::plan_p2p(const geometry_msgs::Pose &p1, const geometry_msgs::Pose
   return false;
 }
 
+bool cControl::plan_line(const sensor_msgs::JointState &js, const geometry_msgs::Pose &p2, double step){
+  std::vector< geometry_msgs::Pose > wp;
+  wp.push_back(p2);
+
+  const robot_state::RobotStatePtr state = get_robot_state(p2);
+  sensor_msgs::JointState joint_state;
+  for(int i=0; i<js.name.size(); i++) {
+    const std::string joint_name = js.name[i];
+    const double position = js.position[i];
+    state->setJointPositions(joint_name, &position);
+  }
+  move_group.setStartState(*state);
+  return plan_line(wp, step);
+
+  // void setJointPositions(const std::string& joint_name, const double* position)
+}
 
 bool cControl::plan_line(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2, double step){
   std::vector< geometry_msgs::Pose > wp;
@@ -313,6 +332,7 @@ void cControl::get_cartesian_velocity(const std::vector<double> &joint_pos
 
 
 void cControl::replan_velocity(double velo, double acc){
+  ROS_WARN("void cControl::replan_velocity(double velo, double acc)");
   if( acc<=0.0 || velo<=0.0){
     ROS_ERROR("Invalid acc or velo : %.3lf, %.3lf\n", acc, velo);
     return;

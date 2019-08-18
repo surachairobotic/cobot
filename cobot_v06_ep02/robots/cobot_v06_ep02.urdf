@@ -153,7 +153,7 @@
     <limit
       effort="0"
       lower="-1.05"
-      upper="0.52"
+      upper="1.0"
       velocity="0" />
   </joint>
   <link
@@ -211,7 +211,7 @@
     <limit
       effort="0"
       lower="-2.36"
-      upper="0.79"
+      upper="1.08"
       velocity="0" />
   </joint>
   <link
@@ -268,8 +268,8 @@
       xyz="0 0 1" />
     <limit
       effort="0"
-      lower="-2.36"
-      upper="2.36"
+      lower="-2.87979"
+      upper="2.87979"
       velocity="0" />
   </joint>
   <link

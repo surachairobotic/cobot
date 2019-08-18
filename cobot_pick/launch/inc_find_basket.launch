@@ -1,11 +1,11 @@
 <launch>
-  <arg name="tf_world2camera" default="0.438283 -0.327150 0.381184 0.643091 0.643526 -0.280848 -0.305667" />
+  <arg name="tf_world2camera" default="0.439775 -0.326018 0.380219 0.642387 0.643229 -0.283034 -0.305755" />
   <arg name="mode" default="action" />
   <arg name="object_type" default="basket" />
   <arg name="camera_frame_id" default="camera_basket" />
   <arg name="save_file_prefix" default="tmp" />
   <arg name="show_result" default="false" />
-  <arg name="save_result" default="false" />
+  <arg name="save_result" default="true" />
   <arg name="launch_prefix" default="" />
 
   <node name="cobot_find_basket" pkg="cobot_pick" type="cobot_find_object" respawn="false"
@@ -65,11 +65,13 @@
     <param name="text_ransac_repeat_time" value="100"/>
     <param name="text_ransac_th_error" value="0.5"/>
 
-    <param name="th_region_color" value="5000"/>
+    <param name="th_region_color" value="8000"/>
 
     <param name="tf_world2camera" value="$(arg tf_world2camera)"/>
 
   </node>
   <node name="tf_realsense_basket" pkg="tf" type="static_transform_publisher"
     args="$(arg tf_world2camera) world camera_basket 100" respawn="false" output="screen" />
+  <node name="tf_realsense_basket2" pkg="tf" type="static_transform_publisher"
+    args="$(arg tf_world2camera) world camera_basket_color_optical_frame 100" respawn="false" output="screen" />
 </launch>

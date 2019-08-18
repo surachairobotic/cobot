@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "sensor_msgs/JointState.h"
 #include "cobot_planner/cControl.h"
 #include "cobot_planner/CobotPlanning.h"
 #include "geometry_msgs/PoseArray.h"
@@ -8,6 +9,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include "cobot_msgs/ExecuteAction.h"
 #include "cobot_msgs/ChangeMode.h"
+#include "moveit_msgs/GetPositionIK.h"
 
 #include <visualization_msgs/Marker.h>
 
@@ -47,14 +49,27 @@ Container& split(
   return result;
 }
 
+class ROSNode
+{
+public:
+  ROSNode(ros::NodeHandle &_n) {
+    n = &_n;
+  };
+
+  ros::NodeHandle *n;
+};
+ROSNode *rn;
+
 void pose_callback(const geometry_msgs::PoseArray& msg);
 void execute_callback(const std_msgs::Bool exe);
 bool func_plan_line(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
+bool func_plan_line(const sensor_msgs::JointState &p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
 bool func_plan_p2p(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
 bool move_trajectory_1(cControl &control);
 bool move_trajectory_2(cControl &control);
 bool move_trajectory_3(cControl &control);
 double distance_point(geometry_msgs::Pose &p1, geometry_msgs::Pose &p2);
+double distance_quat(std::vector<double> &p1, std::vector<double> &p2);
 //void print_move_cartesian(FILE *fp, double t_wp, const geometry_msgs::Point &wp, const std::vector<double> &wp_velo, double t_mv, const geometry_msgs::Point &mv, const std::vector<double> &mv_velo);
 void print_move_cartesian(FILE *fp, double t_wp, const geometry_msgs::Point &wp, const std::vector<double> &wp_velo, double t_mv, const geometry_msgs::Point &mv, const std::vector<double> &mv_velo, const geometry_msgs::Point &desp, const std::vector<double> &des_velo, double t_lastPt, double err_dist);
 void print_move_joint_1(FILE *fp, double t, const std::vector<double> &p_wp, const std::vector<double> &v_wp, const std::vector<double> &p_jnt, const std::vector<double> &v_jnt);
@@ -63,6 +78,7 @@ void print_trajectory(cControl &control, const std::string &file_name);
 void print_info(int wp, const geometry_msgs::Pose &p, const geometry_msgs::Pose &cr);
 void torque_callback(const std_msgs::Bool msg);
 bool cobot_planning(cobot_planner::CobotPlanning::Request  &req, cobot_planner::CobotPlanning::Response &res);
+sensor_msgs::JointState getIK(geometry_msgs::Pose &_ps, const sensor_msgs::JointState &_js);
 
 void executeCB(const cobot_msgs::ExecuteGoalConstPtr &goal, actionlib::SimpleActionServer<cobot_msgs::ExecuteAction> *as);
 
@@ -75,6 +91,7 @@ geometry_msgs::PoseArray p;
 bool tq_over = false;
 bool execute = false;
 bool b_plan = false;
+int sq = 0;
 actionlib::SimpleActionServer<cobot_msgs::ExecuteAction>* as_ = NULL;
 
 moveit_msgs::DisplayTrajectory dis_traj;
@@ -83,6 +100,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "cobot_plan_control");
   ros::NodeHandle n;
+  rn = new ROSNode(n);
 
   ros::Rate loop_rate(10);
 
@@ -95,7 +113,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_pose = n.subscribe("/cobot/pose_to_control", 1000, pose_callback);
     ros::Subscriber sub_execute = n.subscribe("/cobot/execute", 1000, execute_callback);
     pub_plan = n.advertise<moveit_msgs::DisplayTrajectory>("/cobot/display_planned_path", 1, true);
-    pub_message = n.advertise<std_msgs::Bool>("/cobot/message", 100);
+    pub_message = n.advertise<std_msgs::Bool>("/cobot/core_message", 10);
     ros::Subscriber sub_tq = n.subscribe("/cobot/torque_detection", 10, torque_callback);
     ros::ServiceClient srv_mode = n.serviceClient<cobot_msgs::ChangeMode>("/cobot/cobot_core/change_mode");
 //    actionlib::SimpleActionServer<cobot_msgs::ExecuteAction> as_;
@@ -164,6 +182,17 @@ void pose_callback(const geometry_msgs::PoseArray& msg) {
 bool func_plan_line(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj) {
   bool result = false;
   result = p_control->plan_line(p1, p2, step);
+  if(!result)
+    return false;
+  p_control->replan_velocity(velo, acc);
+  traj = p_control->get_robot_trajectory();
+  return result;
+}
+bool func_plan_line(const sensor_msgs::JointState &p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj) {
+  bool result = false;
+  result = p_control->plan_line(p1, p2, step);
+  if(!result)
+    return false;
   p_control->replan_velocity(velo, acc);
   traj = p_control->get_robot_trajectory();
   return result;
@@ -172,6 +201,8 @@ bool func_plan_line(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2
 bool func_plan_p2p(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, double velo, double acc, moveit_msgs::RobotTrajectory &traj) {
   bool result = false;
   result = p_control->plan_p2p(p1, p2);
+  if(!result)
+    return false;
   p_control->replan_velocity(velo, acc);
   traj = p_control->get_robot_trajectory();
   return result;
@@ -186,20 +217,38 @@ bool cobot_planning(cobot_planner::CobotPlanning::Request  &req, cobot_planner::
     }
   }
 
+  sensor_msgs::JointState joint_state;
   moveit_msgs::DisplayTrajectory dis_traj;
   dis_traj.trajectory.clear();
   moveit_msgs::RobotTrajectory robot_traj;
   bool ret;
   res.error_code = 0;
   for(int i=1 ; i<req.pose_array.size(); i++) {
-    if( req.type=="line" )
-      ret = func_plan_line(req.pose_array[i-1], req.pose_array[i], req.step_time, req.max_velocity, req.max_acceleration, robot_traj);
-    else if( req.type=="p2p" )
-      ret = func_plan_p2p(req.pose_array[i-1], req.pose_array[i], req.max_velocity, req.max_acceleration, robot_traj);
+    ROS_INFO("Plan [%d-%d]", i-1, i);
+    // if( i == req.pose_array.size()-1 )
+    if(i == 1)
+      joint_state = req.seed;
     else {
-      ROS_ERROR("Invalid plan type : %s", req.type.c_str());
-      return false;
+      int sz1 = dis_traj.trajectory.size()-1;
+      int sz2 = dis_traj.trajectory[sz1].joint_trajectory.points.size()-1;
+      joint_state.name = {"J1", "J2", "J3", "J4", "J5", "J6"};
+      joint_state.position = dis_traj.trajectory[sz1].joint_trajectory.points[sz2].positions;
+      joint_state.velocity = dis_traj.trajectory[sz1].joint_trajectory.points[sz2].velocities;
+      joint_state.effort = dis_traj.trajectory[sz1].joint_trajectory.points[sz2].effort;
     }
+    sensor_msgs::JointState a = getIK(req.pose_array[i-1], joint_state);
+    sensor_msgs::JointState b = getIK(req.pose_array[i], joint_state);
+    ret = func_plan_line(a, req.pose_array[i], req.step_time, req.max_velocity, req.max_acceleration, robot_traj);
+
+    ROS_INFO("P[%d-%d] A | %lf, %lf, %lf, %lf, %lf, %lf", i-1, i, a.position[0], a.position[1], a.position[2], a.position[3], a.position[4], a.position[5]);
+    ROS_INFO("B | %lf, %lf, %lf, %lf, %lf, %lf", b.position[0], b.position[1], b.position[2], b.position[3], b.position[4], b.position[5]);
+    // else if( req.type=="line" )
+    //   ret = func_plan_p2p(req.pose_array[i-1], req.pose_array[i], req.max_velocity, req.max_acceleration, robot_traj);
+    // else {
+      // ret = func_plan_p2p(req.pose_array[i-1], req.pose_array[i], req.max_velocity, req.max_acceleration, robot_traj);
+      // ROS_ERROR("Invalid plan type : %s", req.type.c_str());
+      // return false;
+    // }
     if(ret) {
       dis_traj.trajectory.push_back(robot_traj);
     }
@@ -207,6 +256,15 @@ bool cobot_planning(cobot_planner::CobotPlanning::Request  &req, cobot_planner::
       res.error_code = -1;
       return ret;
     }
+  }
+
+  for(int j=0; j<req.pose_array.size(); j++) {
+    getIK(req.pose_array[j], joint_state);
+  }
+
+  for(int i=1; i<dis_traj.trajectory.size(); i++) {
+    dis_traj.trajectory[i-1].joint_trajectory.points.pop_back();
+    dis_traj.trajectory[i].joint_trajectory.points.erase(dis_traj.trajectory[i].joint_trajectory.points.begin());
   }
 
   ros::Duration ex(0, 0);
@@ -225,7 +283,35 @@ bool cobot_planning(cobot_planner::CobotPlanning::Request  &req, cobot_planner::
       traj.points.push_back(dis_traj.trajectory[i].joint_trajectory.points[j]);
     }
   }
+
+  for(int i=1;i<traj.points.size();i++){
+    // ROS_INFO("[%d]", i);
+    for(int k=0; k<traj.points[i].positions.size(); k++) {
+      int index = 0;
+      double v[] = {traj.points[i].positions[k], traj.points[i].positions[k]+(M_PI*2.0), traj.points[i].positions[k]-(M_PI*2.0)};
+      double d[] = {fabs(traj.points[i-1].positions[k]-v[0]),
+                    fabs(traj.points[i-1].positions[k]-v[1]),
+                    fabs(traj.points[i-1].positions[k]-v[2])};
+
+      for(int g=1; g<3; g++){
+        if(d[index] > d[g]) {
+          index = g;
+        }
+      }
+      if(index != 0) {
+        ROS_ERROR("[%d] : [%lf, %lf, (i-1)%lf]", k, traj.points[i].positions[k], v[index], traj.points[i-1].positions[k]);
+      }
+      // ROS_WARN(" [%d] : (i)%.3lf, %.3lf, (i-1)%.3lf]", k, traj.points[i].positions[k], v[index], traj.points[i-1].positions[k]);
+      traj.points[i].positions[k] = v[index];
+    }
+  }
+  // ROS_WARN("END cControl::replan_velocity(double velo, double acc)");
+
   p_control->set_trajectory(traj);
+  std::string f_name;
+  f_name = "/home/mtec/catkin_ws/src/cobot/cobot_plan_control/traj" + std::to_string(sq) + ".txt";
+  sq++;
+  print_trajectory(*p_control, f_name);
   pub_plan.publish(dis_traj);
 /*
   if( !p_control->is_valid_pose(req.start_pose) ){
@@ -288,6 +374,8 @@ void executeCB(const cobot_msgs::ExecuteGoalConstPtr &goal, actionlib::SimpleAct
 /////////////////////////////////////////////////////////////////////////////////////////
 bool move_trajectory_1(cControl &control) {
   printf("move_trajectory\n");
+  FILE *fp1 = fopen( (dir + "move_cartesian.txt").c_str() , "wt");
+  FILE *fp2 = fopen( (dir + "move_joint.txt").c_str() , "wt");
   const trajectory_msgs::JointTrajectory &traj = control.get_trajectory();
   int i=0;
   trajectory_msgs::JointTrajectoryPoint p = traj.points[i];
@@ -295,7 +383,7 @@ bool move_trajectory_1(cControl &control) {
   // set acc to 3.14 rad/sec^2
   std::vector<double> acc(6);
   for(int j=0;j<acc.size();j++)
-    acc[j] = M_PI;
+    acc[j] = M_PI*2.0;
   control.set_acc(acc);
 
   sensor_msgs::JointState joint_state;
@@ -310,6 +398,7 @@ bool move_trajectory_1(cControl &control) {
 
 //  dt = p.time_from_start.toSec() - d_time_move;
 
+  ROS_INFO("WP : %d/%d", i, traj.points.size()-1);
   bool stop = false;
   while( !stop && ros::ok() ) {
     if( !control.wait_new_joint_state(&joint_state, 1.0) ) {
@@ -326,24 +415,39 @@ bool move_trajectory_1(cControl &control) {
       p.velocities[k] = (s*2/tt)-v0;
     }
 */
+    p.velocities[5] = M_PI/3.0;
+    const double TH_DQ = M_PI/8.0;
+    if( i == traj.points.size()-1 )
+      for(int k=0; k<p.velocities.size(); k++)
+  //      if(p.velocities[k] == 0.0)
+  //      p.velocities[k] = M_PI/8.0;
+        if( fabs(p.velocities[k]) < TH_DQ ){
+          p.velocities[k] = p.velocities[k] >= 0.0 ? TH_DQ : -TH_DQ;
+        }
     control.move_pos_velo(p.positions, p.velocities);
 
     control.get_cartesian_position(joint_state.position, jnt_pose);
-    if( distance_point(jnt_pose, wp_pose) < 0.015 ) {
+    if( i == traj.points.size()-1 ) {
+      int count = 0;
+      for(int k=0; k<joint_state.velocity.size(); k++) {
+        if( joint_state.velocity[k] < 0.005 )
+          count++;
+      }
+      if( count == 6 ) {
+        stop = true;
+      }
+    }
+    else if( distance_point(jnt_pose, wp_pose) < 0.015 /*&& distance_quat(joint_state.position, p.positions) < 0.1*/ ) {
       if( i < traj.points.size()-1 ) {
         i++;
+        ROS_INFO("WP : %d/%d", i, traj.points.size()-1);
         p = traj.points[i];
         control.get_cartesian_position(p.positions, wp_pose);
       }
-      else
-        stop = true;
     }
   }
 
 LB_EXIT_MOVE:
-	for(int j=0; j<p.velocities.size(); j++)
-	  p.velocities[j] = 0.0;
-	control.move_velo(p.velocities);
   printf("move_traj end\n");
 
 	return true;
@@ -530,6 +634,13 @@ double distance_point(geometry_msgs::Pose &p1, geometry_msgs::Pose &p2) {
 	    + (p1.position.y-p2.position.y)*(p1.position.y-p2.position.y)
 	    + (p1.position.z-p2.position.z)*(p1.position.z-p2.position.z));
 }
+double distance_quat(std::vector<double> &p1, std::vector<double> &p2) {
+  double sum = 0.0;
+  for(int i=0; i<6; i++) {
+    sum += fabs(p1[i]-p2[i]);
+  }
+  return sum;
+}
 
 /*
 void print_move_cartesian(FILE *fp, double t_wp, const geometry_msgs::Point &wp, const std::vector<double> &wp_velo, double t_mv, const geometry_msgs::Point &mv, const std::vector<double> &mv_velo)
@@ -591,8 +702,8 @@ void print_trajectory(cControl &control, const std::string &file_name) {
   if( !fp )
     ROS_ERROR("Cannot create file result file : %s", file_name.c_str());
 
-  for(int i=0; i<traj.joint_names.size(); i++)
-    printf("joint : %s\n", traj.joint_names[i].c_str());
+  // for(int i=0; i<traj.joint_names.size(); i++)
+  //   printf("joint : %s\n", traj.joint_names[i].c_str());
 
   for(int i=0; i<traj.points.size(); i++) {
     const trajectory_msgs::JointTrajectoryPoint &p = traj.points[i];
@@ -600,24 +711,24 @@ void print_trajectory(cControl &control, const std::string &file_name) {
     std::vector<double> velo;
     control.get_cartesian_position(p.positions, pose);
     control.get_cartesian_velocity(p.positions, p.velocities, velo );
-    printf("point [%d]  time : %lf\n", i, p.time_from_start.toSec() );
-    printf("angle :");
+    // printf("point [%d]  time : %lf\n", i, p.time_from_start.toSec() );
+    // printf("angle :");
     if( fp )
         fprintf(fp, "%lf", p.time_from_start.toSec());
     for(int j=0; j<p.positions.size(); j++) {
-      printf(" %.3lf", p.positions[j]);
+      // printf(" %.3lf", p.positions[j]);
       if( fp )
         fprintf(fp, " %lf", p.positions[j]);
     }
-    printf("\nangular velo :");
+    // printf("\nangular velo :");
     for(int j=0; j<p.velocities.size(); j++) {
-      printf(" %.3lf", p.velocities[j]);
+      // printf(" %.3lf", p.velocities[j]);
       if( fp )
         fprintf(fp, " %lf", p.velocities[j]);
     }
-    printf("\nangular acc :");
+    // printf("\nangular acc :");
     for(int j=0; j<p.accelerations.size(); j++) {
-      printf(" %.3lf", p.accelerations[j]);
+      // printf(" %.3lf", p.accelerations[j]);
       if( fp )
         fprintf(fp, " %lf", p.accelerations[j]);
     }
@@ -627,12 +738,13 @@ void print_trajectory(cControl &control, const std::string &file_name) {
       if( fp )
         fprintf(fp, " %lf", p.effort[j]);
     }*/
-    printf("\nxyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
-    printf("quart : %.3lf %.3lf %.3lf %.3lf\n", pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-    printf("velo : ");
-    for(int i=0; i<velo.size(); i++)
-      printf(" %.3lf", velo[i]);
-    printf("\n");
+
+    // printf("\nxyz : %.3lf %.3lf %.3lf\n", pose.position.x, pose.position.y, pose.position.z);
+    // printf("quart : %.3lf %.3lf %.3lf %.3lf\n", pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+    // printf("velo : ");
+    // for(int i=0; i<velo.size(); i++)
+    //   printf(" %.3lf", velo[i]);
+    // printf("\n");
     if( fp ){
       fprintf(fp, " %lf %lf %lf %lf %lf %lf %lf"
         , pose.position.x, pose.position.y, pose.position.z
@@ -645,16 +757,16 @@ void print_trajectory(cControl &control, const std::string &file_name) {
   if(fp)
     fclose(fp);
 
-  printf("\nstart - end point\n");
-  const int ii[] = { 0, (int)traj.points.size()-1 };
-  for(int i=0; i<2; i++){
-    const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
-    geometry_msgs::Pose pose;
-    control.get_cartesian_position(p.positions, pose);
-    printf("xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
-      , pose.position.x, pose.position.y, pose.position.z
-      , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-  }
+  // printf("\nstart - end point\n");
+  // const int ii[] = { 0, (int)traj.points.size()-1 };
+  // for(int i=0; i<2; i++){
+  //   const trajectory_msgs::JointTrajectoryPoint &p = traj.points[ii[i]];
+  //   geometry_msgs::Pose pose;
+  //   control.get_cartesian_position(p.positions, pose);
+  //   printf("xyz : %.3lf %.3lf %.3lf, w : %.3lf, %.3lf, %.3lf, %.3lf\n"
+  //     , pose.position.x, pose.position.y, pose.position.z
+  //     , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+  // }
 }
 
 void print_info(int wp, const geometry_msgs::Pose &p, const geometry_msgs::Pose &cr) {
@@ -818,6 +930,7 @@ bool move_trajectory_3(cControl &control) {
     }
     else{
       control.move_velo_acc(vel_command, acc);
+      ROS_WARN("acc : %.3lf %.3lf %.3lf %.3lf %.3lf %.3lf", acc[0], acc[1], acc[2], acc[3], acc[4], acc[5]);
 //      control.move_velo(vel_command);
     }
 
@@ -896,4 +1009,30 @@ LB_EXIT_MOVE:
   printf("move_traj end\n");
 
 	return !b_jnt_state;
+}
+
+sensor_msgs::JointState getIK(geometry_msgs::Pose &_ps, const sensor_msgs::JointState &_js) {
+	moveit_msgs::GetPositionIK msg;
+  msg.request.ik_request.group_name = "arm";
+  msg.request.ik_request.robot_state.joint_state = _js;
+  msg.request.ik_request.pose_stamped.pose = _ps;
+  // msg.request.ik_request.timeout = 1;
+  msg.request.ik_request.attempts = 0;
+
+  ros::ServiceClient srv_ik = rn->n->serviceClient<moveit_msgs::GetPositionIK>("/compute_ik");
+	if(srv_ik.call(msg))
+	{
+		; //msg.response.solution.joint_state;
+	}
+	else {
+		ROS_ERROR("Failed to call service compute_fk");
+	}
+
+  ROS_INFO("JS : %.3f, %.3f, %.3f, %.3f, %.3f, %.3f", msg.response.solution.joint_state.position[0]
+                                                    , msg.response.solution.joint_state.position[1]
+                                                    , msg.response.solution.joint_state.position[2]
+                                                    , msg.response.solution.joint_state.position[3]
+                                                    , msg.response.solution.joint_state.position[4]
+                                                    , msg.response.solution.joint_state.position[5]);
+  return msg.response.solution.joint_state;
 }
