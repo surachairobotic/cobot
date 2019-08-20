@@ -195,7 +195,8 @@ def main():
     # for a list of supported languages.
     language_code = 'th-TH' #'en-US'  # a BCP-47 language tag
 
-    cobot_phrases = ['บันทึกจุดที่', 'ไปจุดที่', 'กล่องที่', 'เริ่มได้', 'หยุด', 'หนึ่ง', 'สอง', 'สาม']
+    cobot_phrases = ['หยิบกล่องที่หนึ่ง', 'หยิบกล่องที่สอง']
+    # cobot_phrases = ['บันทึกจุดที่', 'ไปจุดที่', 'กล่องที่', 'เริ่มได้', 'หยุด', 'หนึ่ง', 'สอง', 'สาม']
 
     #cobot_phrases = ['teach mode']
     cobot_boost = 20
@@ -228,7 +229,7 @@ def main():
 
     rospy.loginfo('cobot_speech2text')
     # while not rospy.is_shutdown():
-        # try:
+    #     try:
     rospy.loginfo('start')
     with MicrophoneStream(RATE, CHUNK) as stream:
         audio_generator = stream.generator()
@@ -250,6 +251,10 @@ if __name__ == '__main__':
     global node_name
     node_name = rospy.get_name()
     rospy.loginfo(node_name)
-    pub_text = rospy.Publisher('/cobot/speech/stt', String, queue_size=10)
-    main()
+    pub_text = rospy.Publisher('/cobot/speech/stt/th', String, queue_size=10)
+    while not rospy.is_shutdown():
+        try:
+            main()
+        except:
+            rospy.loginfo('end : %s' % str(sys.exc_info()[0]))
 # [END speech_transcribe_streaming_mic]

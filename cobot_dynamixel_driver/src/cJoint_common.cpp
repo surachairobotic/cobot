@@ -155,10 +155,17 @@ std::string cJoint::get_joint_name(int id){
     return std::string("joint_") + tostr(id);
   }
   else{
+    for(int i=joints.size()-1;i>=0;i--){
+      if( id==joints[i].get_id() )
+        return joint_names[i];
+    }
+    mythrow(std::string("Invalid joint number : ") + tostr(id));
+    /*
     if( id<=0 || id>joint_names.size()){
       mythrow(std::string("Invalid joint number : ") + tostr(id));
     }
     return joint_names[id-1];
+    */
   }
 }
 

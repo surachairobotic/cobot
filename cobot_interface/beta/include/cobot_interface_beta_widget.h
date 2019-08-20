@@ -35,6 +35,7 @@ namespace cobot_interface {
 			void enable();
 			void disable();
 			geometry_msgs::Pose jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, std::string &error);
+			bool jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, geometry_msgs::Pose &ps);
 			void updatePointsTable();
 
 //		protected:
@@ -58,7 +59,7 @@ namespace cobot_interface {
 //			void updateJointStateUI();
 
 			// Jog
-			ros::Publisher pub_jog, pub_pick_en, pub_pick_cmd;
+			ros::Publisher pub_jog, pub_pick_en, pub_pick_cmd, pub_stop;
 			void changeColor(QPushButton* button, int color);
 
 		private Q_SLOTS:
@@ -74,6 +75,7 @@ namespace cobot_interface {
 
 			void planClicked();
 			void execClicked();
+			void stopClicked();
 
 			void pick_en_Clicked();
 			void pickHandle(const std::string &msg);

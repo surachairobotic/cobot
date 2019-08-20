@@ -24,7 +24,7 @@ from time import sleep
 from tf.transformations import *
 #euler_from_quaternion, quaternion_from_euler, quaternion_multiply
 
-import geometry_msgs.msg 
+import geometry_msgs.msg
 ## END_SUB_TUTORIAL
 
 from std_msgs.msg import String
@@ -63,7 +63,7 @@ def get_joints(xyz, xyzw=None):
   elif type(xyz) is geometry_msgs.msg._Pose.Pose:
     target.pose = xyz
 
-  
+
   ik_request = moveit_msgs.msg.PositionIKRequest()
   ik_request.group_name = 'arm'
   ik_request.ik_link_name = 'tool0'
@@ -76,7 +76,7 @@ def get_joints(xyz, xyzw=None):
       print('error : ' + str(resp.error_code.val))
     return resp.solution.joint_state.position
   except rospy.ServiceException, e:
-    print "Service call failed: %s"%e  
+    print "Service call failed: %s"%e
 
 def test_fik(joints):
   pose = get_pose(joints)
@@ -102,7 +102,7 @@ def test_ik():
   xyzw = [0.832026040222,-0.554736575651,-5.0938709911e-06,-1.01850365978e-06]
 #  xyz = [0.100, -0.200, 0.656]
 #  xyzw = [0.832, -0.556, 0,0]
-  
+
   get_joints(xyz, xyzw)
 
 def cap_ang(q):
@@ -120,10 +120,10 @@ def create_1_test_data(q):
     , pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w
     , q[0], q[1], q[2], q[3], q[4]) + '}};'
   print(s)
-  
+
   ang, q5 = get_ang_q5(pose)
   ang = -cap_ang(pi * 2 - q[1] - q[2] - q[3])
-  
+
   B = 0.3
   A = 0.4
 #  ang = pi * 2 - q[1] - q[2] - q[3]
@@ -140,11 +140,11 @@ def create_1_test_data(q):
   q[1] = pi*0.5 - (math.atan2(z2,x2) + a)
   q[2] = pi*0.5 - (pi - a - b)
   q[3] = ang + (pi*2 - q[1] - q[2])
-  
+
   q[4] = q5
   for i in range(len(q)):
     q[i] = cap_ang(q[i])
-    
+
   print('ang : {0}\nC : {1}\nxz2 : {2} , {3}\nab : {4} , {5}'.format(ang,C,x2,z2,a,b))
 #  print('q0 : {0}\nq1 : {1}\nq2 : {2}\nq3 : {3}\nq4 : {4}'.format(q[0],q[1],q[2],q[3],q[4]))
   print(q)
@@ -152,14 +152,14 @@ def create_1_test_data(q):
   print('cos err : {0},{1}'.format(cos_a - math.cos(a), cos_b-math.cos(b)))
 
 
-  
+
 def create_test_data(num):
   random.seed()
   pi = math.pi
   q = []
-  
+
   print('{')
-  
+
   for i in range(num):
     while 1:
       q = []
@@ -183,9 +183,9 @@ def create_test_data(num):
       s+= ','
     print(s)
   print('};')
-  
-  
-  
+
+
+
 ##################
 
 def get_ang_q5(pose):
@@ -195,11 +195,11 @@ def get_ang_q5(pose):
   x0 = 0.1
   y0 = 0.1
   print('qt : ' + str(q))
-  
+
   x1 = np.array(R[0:3,2])
   x2 = np.array([pose.position.x - x0, pose.position.y - y0, 0])
   x3 = np.cross(x1,x2)
-  
+
   # when ee direction is parallel to the ground
   if abs(np.linalg.norm(x3))<0.00001:
     x4 = np.array([0.0,0.0,-1.0])
@@ -209,7 +209,7 @@ def get_ang_q5(pose):
     x4/= np.linalg.norm(x4)
   print('x1 : ' + str(x1))
   print('x4 : ' + str(x4))
- 
+
   n = [0,0,-1]
   dd = (R[0][2]*n[0] + R[1][2]*n[1] + R[2][2]*n[2])
   cos_ang = R[0][2]*n[0] + R[1][2]*n[1] + R[2][2]*n[2]
@@ -233,8 +233,8 @@ def get_ang_q5(pose):
   else:
     ang = -abs(ang)
   return ang, q5
-  
-  
+
+
 
 def test_quat():
   '''
@@ -253,10 +253,10 @@ def test_quat():
   y = R[0:3,1]
   z = R[0:3,2]
   n = [0,0,-1]
-  
+
   x0 = 0.1
   y0 = 0.1
-  
+
   x1 = np.array(R[0:3,2])
   x2 = np.array([pose.position.x - x0, pose.position.y - y0, 0])
   x3 = np.cross(x1,x2)
@@ -278,11 +278,11 @@ def test_quat():
   print(q4)
   print(q5)
   return
-  
-  
+
+
   for i in range(3):
     print(math.acos(R[0][i]*n[0] + R[1][i]*n[1] + R[2][i]*n[2]))
-  
+
   print(euler_from_quaternion(q))
   '''
   qq = math.sqrt(q[0]*q[0] + q[2]*q[2] + q[3]*q[3])
@@ -296,7 +296,7 @@ def test_quat():
   print(yaw)
   '''
 ##################
-  
+
 
 if __name__=='__main__':
   try:
@@ -306,7 +306,9 @@ if __name__=='__main__':
     compute_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
     rospy.wait_for_service('compute_ik')
     compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
     
+
 #    test_quat()
     create_1_test_data([0.000000, 0.000000, 0.000000, -0.200000, 0.400000])
 #    create_1_test_data([-2.44991581808,0.603187322526,0.854758954576,-0.37473148284,0])
@@ -316,4 +318,3 @@ if __name__=='__main__':
 #    test_start_goal([-0.001,-0.511,0.339,0.000,0.000])
   except rospy.ROSInterruptException:
     pass
-

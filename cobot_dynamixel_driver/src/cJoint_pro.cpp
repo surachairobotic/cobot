@@ -104,6 +104,9 @@ void cJoint::load_settings(const std::string &xml_file){
           if( strcmp( "joint", p_joint->Value())!=0 )
             continue;
           cJoint j(joints.size() + 1);
+          // change 1st motor id to 9 to check if any motors'id are reset
+          if( j.id==1 )
+            j.id = 9;
           TiXmlNode *p_motor = p_joint->FirstChild("motor");
           if( !p_motor ){
             throw std::string("No motor found in joint node : ") + tostr(j.get_id());
@@ -200,7 +203,6 @@ bool cJoint::set_goal_velo_acc(double _velo, double _acc){
 }
 
 bool cJoint::set_goal_pos_velo(double _pos, double _velo){
-  ROS_INFO("cJoint::set_goal_pos_velo()");
   int p = _pos * rad2val, v = _velo * velo2val;
   b_goal_velo = b_goal_velo_acc = b_goal_pos_velo_acc = b_goal_torque = false;
   if( p<this->cw_angle_limit || p>this->ccw_angle_limit){
@@ -215,13 +217,15 @@ bool cJoint::set_goal_pos_velo(double _pos, double _velo){
     return false;
   }
   else if( v==0 ){
-    p = pos * rad2val;
-    v = velo * velo2val;
+//    p = pos * rad2val;
+//    v = velo * velo2val;
+    v = (_velo > 0.0 ? 1.0 : -1.0) * 0.2 * velo2val;
   }
 //  ROS_WARN("pos  : %.3lf, %d\nvelo : %.3lf, %d", _pos, p, _velo, v);
   goal_pos = p;
   goal_velo = v;
   b_goal_pos_velo = true;
+  ROS_INFO("cJoint::set_goal_pos_velo [%d] : %.2lf, %.2lf : %d, %d : %d, %d", id, _pos, _velo, goal_pos, goal_velo, pos, velo);
 //  printf("goal pos : %.3lf / %d , velo : %.3lf / %d\n", _pos, goal_pos, _velo, goal_velo);
   return true;
 }
@@ -663,10 +667,10 @@ std::vector<cJoint> &cJoint::init(){
   }
 
   // ping
-  int num_joint = 0;
+  int num_joint = 1;
   uint8_t dxl_error;
   uint16_t dxl_model_number;
-  for(;num_joint<250;num_joint++){
+/*  for(;num_joint<250;num_joint++){
     int j = 3;
     for(;j>=0;j--){
       int dxl_comm_result = packetHandler->ping(portHandler, num_joint + 1, &dxl_model_number, &dxl_error);
@@ -698,31 +702,51 @@ std::vector<cJoint> &cJoint::init(){
     if( j<0 )
       break;
   }
+
   if( num_joint==0 ){
     ROS_WARN("no motor found\n");
     throw 0;
   }
+
   ROS_INFO("motor num founded : %d\n", num_joint);
-/*  int dxl_comm_result = packetHandler->broadcastPing(portHandler,id_list);
-  if (dxl_comm_result != COMM_SUCCESS ){
-    packetHandler->printTxRxResult(dxl_comm_result);
-    printf("Fail to ping : %d , list : %d\n", dxl_comm_result, id_list.size());
-    throw 0;
-  }
-  if( id_list.empty() ){
-    printf("Cannot find any motor\n");
-    throw 0;
-  }
-  for(int i=0;i<id_list.size();i++){
-    if( id_list[i]!=i+1 ){
-      printf("invalid motor ID [%d] : %d\n", i, id_list[i] );
-      throw 0;
-    }
-  }*/
 
   for(int i=joints.size()-1;i>=num_joint;i--)
     joints.pop_back();
+  */
 
+  for(int i=joints.size()-1;i>=0;i--){
+    int j = 3;
+    for(;j>=0;j--){
+      //ROS_WARN("id : %d",  joints[i].get_id());
+      int dxl_comm_result = packetHandler->ping(portHandler, joints[i].get_id(), &dxl_model_number, &dxl_error);
+      if (dxl_comm_result != COMM_SUCCESS ){
+        if( j==0 ){
+          j = -1;
+          if( dxl_comm_result==COMM_RX_TIMEOUT ){
+            ROS_WARN("ping timeout\n");
+            throw "ping timeout";
+          }
+          //packetHandler->printTxRxResult(dxl_comm_result);
+          ROS_ERROR("Fail to ping : %d , motor_num : %d\n", dxl_comm_result, num_joint);
+          mythrow(packetHandler->getTxRxResult(dxl_comm_result));
+          //throw 0;
+        }
+      }
+      else if( dxl_error != 0 ){
+        if( j==0 ){
+          //packetHandler->printRxPacketError(dxl_error);
+          ROS_ERROR("Fail to ping 2 : %d , motor_num : %d\n", dxl_error, num_joint);
+          mythrow(packetHandler->getRxPacketError(dxl_error));
+          //throw 0;
+        }
+      }
+      else{
+        break;
+      }
+    }
+    if( j<0 )
+      break;
+  }
 
   for(int i=0;i<joints.size();i++) {
     joints[i].setup();
@@ -731,18 +755,6 @@ std::vector<cJoint> &cJoint::init(){
 
 //  mode = MODE_VELOCITY_CONTROL;
   ROS_INFO("motor num used : %d\n", (int)joints.size());
-/*
-  for(int i=0;i<joints.size();i++) {
-    ROS_INFO("motor a : %d", i);
-    joints[i].write( P_TORQUE_ENABLE, 0 );
-    ROS_INFO("motor b : %d", i);
-    joints[i].write( P_BAUD_RATE, 3 );
-    ROS_INFO("motor c : %d", i);
-    joints[i].write( P_TORQUE_ENABLE, 1 );
-    ROS_INFO("motor d : %d", i);
-  }
-  throw std::string("ABC");
-*/
   return joints;
 }
 
@@ -793,8 +805,6 @@ void cJoint::sync_torque(){
     bool dxl_addparam_result = false;
     if( !j.b_goal_torque )
       continue;
-		if( j.mode != MODE_TORQUE_CONTROL )
-		  j.change_mode(MODE_TORQUE_CONTROL);
     j.b_goal_torque = false;
     data_lh[0] = DXL_LOBYTE(DXL_LOWORD(j.goal_torque));
     data_lh[1] = DXL_HIBYTE(DXL_LOWORD(j.goal_torque));
@@ -815,6 +825,11 @@ void cJoint::sync_torque(){
     mythrow(packetHandler->getTxRxResult(dxl_comm_result));
   }
   group_write_goal_torque->clearParam();
+  for(int i=0; i<joints.size(); i++) {
+    cJoint &j = joints[i];
+		if( j.mode != MODE_TORQUE_CONTROL )
+		  j.change_mode(MODE_TORQUE_CONTROL);
+  }
 }
 
 
@@ -938,6 +953,7 @@ void cJoint::sync_pos_velo(){
   ROS_INFO("cJoint::sync_pos_velo()");
   uint8_t lh[8];
 
+
   for(int i=0;i<joints.size();i++) {
     cJoint &j = joints[i];
 		if( j.mode != MODE_POSITION_CONTROL )
@@ -946,11 +962,18 @@ void cJoint::sync_pos_velo(){
 
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
-    if( fabs(j.goal_velo / j.velo2val) > VELOCITY_LIMIT ){
-      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, j.goal_velo / j.velo2val );
+    double v = j.goal_velo / j.velo2val;
+    if( fabs(v) > VELOCITY_LIMIT ){
+      ROS_WARN("Goal velo exceeded the limit [%d] : %.3lf", i, v );
       return;
     }
+    if( fabs(v) < 0.2 ){
+      j.goal_velo = (v>=0 ? 1.0 : -1.0 ) * 0.2 * j.velo2val;
+    }
   }
+  printf("pos  : %d, %d, %d, %d, %d, %d\n", joints[0].goal_pos, joints[1].goal_pos, joints[2].goal_pos, joints[3].goal_pos, joints[4].goal_pos, joints[5].goal_pos);
+  printf("velo : %d, %d, %d, %d, %d, %d\n", joints[0].goal_velo, joints[1].goal_velo, joints[2].goal_velo, joints[3].goal_velo, joints[4].goal_velo, joints[5].goal_velo);
+
   for(int i=0;i<joints.size();i++){
     cJoint &j = joints[i];
     bool dxl_addparam_result = false;
@@ -1077,7 +1100,7 @@ bool cJoint::sync_read(){
 }
 
 void cJoint::change_mode(int _mode){
-  ROS_INFO("cJoint::change_mode()");
+  ROS_INFO("cJoint::change_mode [%d] : ", id, _mode);
   if( mode == _mode ) {
     ROS_WARN("same cotrol mode : %d / %d\n", _mode, mode);
     return;
@@ -1095,7 +1118,7 @@ void cJoint::change_mode(int _mode){
 }
 
 void cJoint::change_mode_2(int _mode){
-  ROS_INFO("cJoint::change_mode_2()");
+  ROS_INFO("cJoint::change_mode_2 [%d] : ", id, _mode);
 
   write( P_TORQUE_ENABLE, 0 );
   usleep(5000);

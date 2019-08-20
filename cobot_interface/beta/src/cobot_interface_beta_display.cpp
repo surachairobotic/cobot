@@ -33,8 +33,10 @@ CobotInterfaceBetaDisplay::~CobotInterfaceBetaDisplay()
 {
 	ROS_INFO("CobotInterfaceBetaDisplay::~CobotInterfaceBetaDisplay()");
 	sub_js.shutdown();
+	sub_pppa.shutdown();
+	sub_update_table.shutdown();
 	if (frame_dock_)
-    delete frame_dock_;
+    	delete frame_dock_;
 }
 
 void CobotInterfaceBetaDisplay::onInitialize()
@@ -56,6 +58,7 @@ void CobotInterfaceBetaDisplay::onInitialize()
 	frame_->pub_jog = nh_.advertise<cobot_msgs::Jog>("/cobot/cobot_jog", 100);
 	frame_->pub_pick_en = nh_.advertise<std_msgs::Bool>("/cobot/image2pose/enable", 10);
 	frame_->pub_pick_cmd = nh_.advertise<std_msgs::String>("/cobot/image2pose/cmd", 10);
+	frame_->pub_stop = nh_.advertise<std_msgs::Bool>("/cobot/control/stop", 10);
 	// frame_->srv_teach_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_teach/enable");
 	// frame_->srv_jog_enable = nh_.serviceClient<cobot_msgs::EnableNode>("/cobot/cobot_jog/enable");
 	// frame_->srv_fk = nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
@@ -65,8 +68,9 @@ void CobotInterfaceBetaDisplay::onInitialize()
 
 	sub_js = nh_.subscribe("/cobot/joint_states", 100, callback_js);
 	sub_pppa = nh_.subscribe("cobot/image2pose/pickplace_array", 100, callback_pppa);
+	sub_update_table = nh_.subscribe("cobot/update_ui", 10, callback_update_table);
 
-	pub_vacuum = nh_.advertise<std_msgs::Bool>("/cobot/message", 10);
+	// pub_vacuum = nh_.advertise<std_msgs::Bool>("/cobot/message", 10);
 	frame_->updatePointsTable();
 }
 
@@ -78,6 +82,10 @@ void CobotInterfaceBetaDisplay::callback_js(const sensor_msgs::JointState &_js) 
 void CobotInterfaceBetaDisplay::callback_pppa(const cobot_msgs::PickPlacePoseArray &_msg) {
 	md->pppa = _msg;
 	Q_EMIT md->pppaUpdate();
+}
+
+void CobotInterfaceBetaDisplay::callback_update_table(const std_msgs::Bool &msg) {
+	md->frame_->updatePointsTable();
 }
 
 void CobotInterfaceBetaDisplay::cobotPanelVisibilityChange(bool enable)

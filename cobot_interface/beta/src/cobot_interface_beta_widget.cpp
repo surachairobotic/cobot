@@ -29,7 +29,7 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
   ui_->setupUi(this);
 
 	ui_->lineEdit_res->setText(QString::number(0.025, 'f', 2));
-	ui_->lineEdit_velo->setText(QString::number(0.1, 'f', 2));
+	ui_->lineEdit_velo->setText(QString::number(0.3, 'f', 2));
 	teach_status = jog_status = pick_status = false;
 	changeColor(ui_->btn_teach, -1);
 	changeColor(ui_->btn_jog, -1);
@@ -72,6 +72,7 @@ CobotInterfaceBetaWidget::CobotInterfaceBetaWidget( CobotInterfaceBetaDisplay* p
 
 	connect(ui_->btn_plan, SIGNAL(clicked()), this, SLOT(planClicked()));
 	connect(ui_->btn_exec, SIGNAL(clicked()), this, SLOT(execClicked()));
+	connect(ui_->btn_stop, SIGNAL(clicked()), this, SLOT(stopClicked()));
 
 	connect(ui_->btn_pick, SIGNAL(clicked()), this, SLOT(pick_en_Clicked()));
 	connect(ui_->btn_m1, &QPushButton::clicked, this, [this]{ pickHandle("M1"); });
@@ -115,8 +116,9 @@ void CobotInterfaceBetaWidget::updateJointStateUI() {
 
 	std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	std::string error_code = "";
-	geometry_msgs::Pose cartesian = jsCartesian(cobot_display_->js, rpy, error_code);
-	if(error_code == "OK") {
+	geometry_msgs::Pose cartesian;
+	bool error = jsCartesian(cobot_display_->js, rpy, cartesian);
+	if(error) {
 		ui_->lineEdit_x->setText(QString::number(cartesian.position.x, 'f', 4));
 		ui_->lineEdit_y->setText(QString::number(cartesian.position.y, 'f', 4));
 		ui_->lineEdit_z->setText(QString::number(cartesian.position.z, 'f', 4));
@@ -167,6 +169,33 @@ geometry_msgs::Pose CobotInterfaceBetaWidget::jsCartesian(const sensor_msgs::Joi
 		error = "Failed to call service compute_fk";
 	}
 	return msg.response.pose_stamped[0].pose;
+}
+bool CobotInterfaceBetaWidget::jsCartesian(const sensor_msgs::JointState &_js, std::vector<double> &_pose, geometry_msgs::Pose &ps) {
+	moveit_msgs::GetPositionFK msg;
+	msg.request.header.stamp = ros::Time::now();
+	msg.request.fk_link_names = {"tool0"};
+	msg.request.robot_state.joint_state = _js;
+	srv_fk = cobot_display_->nh_.serviceClient<moveit_msgs::GetPositionFK>("/compute_fk");
+	if(srv_fk.call(msg))
+	{
+		_pose[0] = msg.response.pose_stamped[0].pose.position.x;
+		_pose[1] = msg.response.pose_stamped[0].pose.position.y;
+		_pose[2] = msg.response.pose_stamped[0].pose.position.z;
+		tf::Quaternion q_ori;
+		tf::quaternionMsgToTF(msg.response.pose_stamped[0].pose.orientation , q_ori);
+		tf::Matrix3x3 m(q_ori);
+		double roll, pitch, yaw;
+		m.getRPY(roll, pitch, yaw);
+		_pose[3] = roll;
+		_pose[4] = pitch;
+		_pose[5] = yaw;
+		ps = msg.response.pose_stamped[0].pose;
+	}
+	else {
+		ROS_ERROR("Failed to call service compute_fk");
+		return false;
+	}
+	return true;
 }
 
 void CobotInterfaceBetaWidget::enableTeachClicked() {
@@ -255,11 +284,12 @@ void CobotInterfaceBetaWidget::updatePointsTable() {
 //		updatePointsTable();
 		ui_->listWidget_points->clear();
 	  for(int i=0; i<js_points.size(); i++) {
-
 			std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 			std::string error_code = "";
-			geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
-			if(error_code == "OK") {
+			geometry_msgs::Pose cartesian;
+			bool error = jsCartesian(js_points[i], rpy, cartesian);
+			// geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
+			if(error) {
 				QString str;
 				str.sprintf("P%d| X:%.4lf, Y:%.4lf, Z:%.4lf", i, cartesian.position.x, cartesian.position.y, cartesian.position.z);
 				ui_->listWidget_points->addItem(str);
@@ -275,8 +305,10 @@ void CobotInterfaceBetaWidget::planClicked() {
 	for(int i=0; i<js_points.size(); i++) {
 		std::vector<double> rpy = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		std::string error_code = "";
-		geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
-		if(error_code == "OK")
+		geometry_msgs::Pose cartesian;
+		bool error = jsCartesian(js_points[i], rpy, cartesian);
+		// geometry_msgs::Pose cartesian = jsCartesian(js_points[i], rpy, error_code);
+		if(error)
 			req_plan.request.pose_array.push_back(cartesian);
 		else
 			ROS_INFO("cartesian pose is false");
@@ -284,9 +316,12 @@ void CobotInterfaceBetaWidget::planClicked() {
 
 	req_plan.request.joint_names = {"J1", "J2", "J3", "J4", "J5", "J6"};
 	req_plan.request.type = "line";
-	req_plan.request.max_velocity = 0.1;
-	req_plan.request.max_acceleration = 0.1;
-	req_plan.request.step_time = 0.01;
+	req_plan.request.max_velocity = 0.05;
+	req_plan.request.max_acceleration = M_PI/2.0;
+	req_plan.request.step_time = 0.05;
+	// req_plan.request.max_velocity = 0.1;
+	// req_plan.request.max_acceleration = 0.1;
+	// req_plan.request.step_time = 0.01;
 
 	srv_cobot_planning = cobot_display_->nh_.serviceClient<cobot_planner::CobotPlanning>("/cobot/planning");
 	if (srv_cobot_planning.call(req_plan))
@@ -320,6 +355,13 @@ void CobotInterfaceBetaWidget::execClicked() {
     ROS_INFO("Action did not finish before the time out.");
 	ROS_INFO("execClicked is done.");
 }
+void CobotInterfaceBetaWidget::stopClicked() {
+	ROS_INFO("CobotInterfaceBetaWidget::stopClicked");
+	std_msgs::Bool msg;
+	msg.data = true;
+	pub_stop.publish(msg);
+}
+
 
 void CobotInterfaceBetaWidget::pick_en_Clicked() {
 	ROS_INFO("CobotInterfaceBetaWidget::pick_en_Clicked");

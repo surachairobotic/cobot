@@ -640,6 +640,7 @@ bool cControl::wait_new_joint_state(sensor_msgs::JointState *p_joint_state, doub
   ros::Time t = ros::Time::now();
   ros::Rate r(1000.0);
   while(1){
+    ros::spinOnce();
     if( get_new_joint_state(p_joint_state) ){
       return true;
     }
@@ -647,7 +648,6 @@ bool cControl::wait_new_joint_state(sensor_msgs::JointState *p_joint_state, doub
       ROS_WARN("cControl::wait_new_joint_state() : timeout");
       return false;
     }
-    ros::spinOnce();
     r.sleep();
   }
 }

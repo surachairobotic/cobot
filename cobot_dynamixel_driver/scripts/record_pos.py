@@ -66,13 +66,13 @@ def key_press(key):
 def callback_joint(joints):
   global fname, b_save
   if b_save:
-		b_save = False
+    b_save = False
     with open(fname, 'at') as f:
-      s = ''
-      for p in joints.position:
-        s+= str(p) + ' '
-      f.write(s + '\n')
-      print(s)
+        s = ''
+        for p in joints.position:
+            s+= str(p) + ','
+        f.write(s + '\n')
+        print(s)
 
 if __name__ == "__main__":
   try:
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     except:
       pass
     rospy.init_node('record_pos')
-    sub_joint = rospy.Subscriber("/joint_states", JointState, callback_joint)
+    sub_joint = rospy.Subscriber("/cobot/joint_states", JointState, callback_joint)
 #    keyboard.on_press(key_press)
     getch = _Getch()
     while not rospy.is_shutdown():
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         b_save = True
       elif c=='c':
         with open(fname, 'at') as f:
-          f.write('--\n')
+          f.write('\n')
       rospy.sleep(0.01)
   except KeyboardInterrupt:
     print('SIGINT')

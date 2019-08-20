@@ -192,7 +192,9 @@ def main():
     # for a list of supported languages.
     language_code = 'en-US'  # a BCP-47 language tag
 
-    cobot_phrases = ['easy mode', 'jog mode', 'automatic mode', 'box', 'object', 'start','go home', 'go to point', 'save point number', 'one', 'two', 'three']
+    cobot_phrases = ['easy mode', 'save point']
+    # cobot_phrases = ['pick box number one', 'pick box number two']
+    # cobot_phrases = ['easy mode', 'jog mode', 'automatic mode', 'box', 'object', 'start','go home', 'go to point', 'save point number', 'one', 'two', 'three']
 
     #cobot_phrases = ['teach mode']
     cobot_boost = 20
@@ -223,9 +225,9 @@ def main():
         config=config,
         interim_results=True)
 
-    rospy.loginfo('cobot_speech2text')
+    # rospy.loginfo('cobot_speech2text')
     # while not rospy.is_shutdown():
-        # try:
+    #     try:
     rospy.loginfo('start')
     with MicrophoneStream(RATE, CHUNK) as stream:
         audio_generator = stream.generator()
@@ -246,6 +248,10 @@ if __name__ == '__main__':
     global node_name
     node_name = rospy.get_name()
     rospy.loginfo(node_name)
-    pub_text = rospy.Publisher('/cobot/speech/stt', String, queue_size=10)
-    main()
+    pub_text = rospy.Publisher('/cobot/speech/stt/en', String, queue_size=10)
+    while not rospy.is_shutdown():
+        try:
+            main()
+        except:
+            rospy.loginfo('end : %s' % str(sys.exc_info()[0]))
 # [END speech_transcribe_streaming_mic]

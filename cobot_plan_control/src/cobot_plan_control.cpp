@@ -62,6 +62,7 @@ ROSNode *rn;
 
 void pose_callback(const geometry_msgs::PoseArray& msg);
 void execute_callback(const std_msgs::Bool exe);
+void stop_callback(const std_msgs::Bool msg);
 bool func_plan_line(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
 bool func_plan_line(const sensor_msgs::JointState &p1, const geometry_msgs::Pose& p2, float step, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
 bool func_plan_p2p(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2, double velo, double acc, moveit_msgs::RobotTrajectory &traj);
@@ -93,6 +94,7 @@ bool execute = false;
 bool b_plan = false;
 int sq = 0;
 actionlib::SimpleActionServer<cobot_msgs::ExecuteAction>* as_ = NULL;
+bool stop = false;
 
 moveit_msgs::DisplayTrajectory dis_traj;
 
@@ -112,6 +114,7 @@ int main(int argc, char **argv)
     ros::ServiceServer service = n.advertiseService("/cobot/planning", cobot_planning);
     ros::Subscriber sub_pose = n.subscribe("/cobot/pose_to_control", 1000, pose_callback);
     ros::Subscriber sub_execute = n.subscribe("/cobot/execute", 1000, execute_callback);
+    ros::Subscriber sub_stop = n.subscribe("/cobot/control/stop", 10, stop_callback);
     pub_plan = n.advertise<moveit_msgs::DisplayTrajectory>("/cobot/display_planned_path", 1, true);
     pub_message = n.advertise<std_msgs::Bool>("/cobot/core_message", 10);
     ros::Subscriber sub_tq = n.subscribe("/cobot/torque_detection", 10, torque_callback);
@@ -146,9 +149,11 @@ int main(int argc, char **argv)
         execute = false;
         ROS_INFO("A");
         move_trajectory_1(*p_control);
-        std_msgs::Bool send;
-        send.data = true;
-        pub_message.publish(send);
+        if(!tq_over) {
+          std_msgs::Bool send;
+          send.data = true;
+          pub_message.publish(send);
+        }
       }
 
       ros::spinOnce();
@@ -169,6 +174,10 @@ void execute_callback(const std_msgs::Bool exe)
   ROS_INFO("execute_callback");
   if(exe.data and !execute)
     execute = true;
+}
+
+void stop_callback(const std_msgs::Bool msg) {
+  stop = msg.data;
 }
 
 void pose_callback(const geometry_msgs::PoseArray& msg) {
@@ -383,7 +392,7 @@ bool move_trajectory_1(cControl &control) {
   // set acc to 3.14 rad/sec^2
   std::vector<double> acc(6);
   for(int j=0;j<acc.size();j++)
-    acc[j] = M_PI*2.0;
+    acc[j] = M_PI*4.0;
   control.set_acc(acc);
 
   sensor_msgs::JointState joint_state;
@@ -399,45 +408,51 @@ bool move_trajectory_1(cControl &control) {
 //  dt = p.time_from_start.toSec() - d_time_move;
 
   ROS_INFO("WP : %d/%d", i, traj.points.size()-1);
-  bool stop = false;
-  while( !stop && ros::ok() ) {
+  stop = false;
+  while( !stop && ros::ok() && !tq_over) {
     if( !control.wait_new_joint_state(&joint_state, 1.0) ) {
 			goto LB_EXIT_MOVE; // exit program if the new state does not come
 		}
 
-/*
-    for(int k=0; k<joint_state.position.size(); k++) {
-      // s = (v0+v1)/2*t;
-      // v1 = (s*2/t)-v0;
-      double s  = fabs(joint_state.position[k]-p.positions[k]);
-      double v0 = joint_state.velocity[k];
-      double tt  = p.time_from_start.toSec() - (ros::Time::now()-t).toSec();
-      p.velocities[k] = (s*2/tt)-v0;
-    }
-*/
-    p.velocities[5] = M_PI/3.0;
-    const double TH_DQ = M_PI/8.0;
-    if( i == traj.points.size()-1 )
-      for(int k=0; k<p.velocities.size(); k++)
-  //      if(p.velocities[k] == 0.0)
-  //      p.velocities[k] = M_PI/8.0;
-        if( fabs(p.velocities[k]) < TH_DQ ){
-          p.velocities[k] = p.velocities[k] >= 0.0 ? TH_DQ : -TH_DQ;
-        }
+    // for(int k=0; k<joint_state.position.size(); k++) {
+    //   double s  = fabs(joint_state.position[k]-p.positions[k]);
+    //   double v0 = joint_state.velocity[k];
+      // double tt  = p.time_from_start.toSec() - (ros::Time::now()-t).toSec();
+    //
+    //   // s = (v0+v1)/2*t;
+    //   // v1 = (s*2/t)-v0;
+    //   // p.velocities[k] = (s*2/tt)-v0;
+    //
+    //   // s = (ut + 0.5g(t^2))
+    //   // u = ( 0.5*a*(t^2) + s ) / t
+    //   p.velocities[k] = ( 0.5 * acc[k] * (tt * tt) + s ) / tt;
+    // }
+
+    ROS_INFO("TIME : %lf", p.time_from_start.toSec() - (ros::Time::now()-t).toSec());
+
+    // p.velocities[5] = M_PI/3.0;
+    const double TH_DQ[] = {M_PI/6.0, M_PI/8.0, M_PI/8.0, M_PI/8.0, M_PI/4.0, M_PI/4.0};
+    // if( i == traj.points.size()-1 )
+    for(int k=0; k<p.velocities.size(); k++)
+//      if(p.velocities[k] == 0.0)
+//      p.velocities[k] = M_PI/8.0;
+      if( fabs(p.velocities[k]) < TH_DQ[k] ){
+        p.velocities[k] = p.velocities[k] >= 0.0 ? TH_DQ[k] : -TH_DQ[k];
+      }
     control.move_pos_velo(p.positions, p.velocities);
 
     control.get_cartesian_position(joint_state.position, jnt_pose);
     if( i == traj.points.size()-1 ) {
       int count = 0;
       for(int k=0; k<joint_state.velocity.size(); k++) {
-        if( joint_state.velocity[k] < 0.005 )
+        if( joint_state.velocity[k] < 0.005 && distance_point(jnt_pose, wp_pose) < 0.005 && distance_quat(joint_state.position, p.positions) < 0.1 )
           count++;
       }
       if( count == 6 ) {
         stop = true;
       }
     }
-    else if( distance_point(jnt_pose, wp_pose) < 0.015 /*&& distance_quat(joint_state.position, p.positions) < 0.1*/ ) {
+    else if( distance_point(jnt_pose, wp_pose) < 0.05 /*&& distance_quat(joint_state.position, p.positions) < 0.1*/ ) {
       if( i < traj.points.size()-1 ) {
         i++;
         ROS_INFO("WP : %d/%d", i, traj.points.size()-1);
@@ -492,7 +507,8 @@ bool move_trajectory_2(cControl &control) {
 /////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Loop  ////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
-  bool stop = false, b_jnt_state = false;
+  stop = false;
+  bool b_jnt_state = false;
 	double dis_min, dt, limit_vel = M_PI / 4.0, sum, d_lab, d_time_move;
 	int j, k;
   while( !stop && ros::ok() ) {
@@ -838,7 +854,8 @@ bool move_trajectory_3(cControl &control) {
 /////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Loop  ////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
-  bool stop = false, b_jnt_state = false;
+  stop = false;
+  bool b_jnt_state = false;
 	double dis_min, dt, limit_vel = M_PI / 2.0, sum, d_lab, d_time_move, kp=0.3, kpp=0.7, ki=0.01, kd=0.0;
 	double last_t_nextPt = 0.0;
 	int j, k, count = 0;

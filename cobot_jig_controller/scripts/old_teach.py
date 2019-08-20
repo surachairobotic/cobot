@@ -7,20 +7,12 @@ from sensor_msgs.msg import JointState
 from dynamic import *
 from cobot_msgs.srv import EnableNode, EnableNodeResponse, ChangeMode
 from std_msgs.msg import String
-import copy
 
 arm_state = JointState()
 jntSend = JointState()
 ABC = []
 curr = [0.0]*6
 enable = False
-
-### for holding torque when enable ###
-prev_enable = False
-b_hold_first = False
-b_get_current_state = False
-######################################
-
 DRIVER_KEY = ""
 get_key = rospy.ServiceProxy('/cobot/cobot_core/change_mode', ChangeMode)
 
@@ -30,7 +22,7 @@ def main():
   sub = rospy.Subscriber("/cobot/joint_states", JointState, callback)
   sub_ = rospy.Subscriber("/cobot/cobot_teach", JointState, callback)
 
-  global ABC, curr, arm_state, jntSend, enable, DRIVER_KEY, get_key, b_hold_first, prev_enable, b_get_current_state
+  global ABC, curr, arm_state, jntSend, enable, DRIVER_KEY, get_key
   rate = rospy.Rate(50)
 
   ABC = [ [ 355.0, 1240.0,  245.0],
@@ -51,36 +43,20 @@ def main():
 
   rospy.wait_for_service('/cobot/cobot_core/change_mode')
 
-#  enable = True
+  enable = True
   t_start = time.time()
   while not rospy.is_shutdown():
 #    rospy.loginfo("%s : [%s]" % (jntSend.header.frame_id, enable))
-
-    ### hold current torque when enable ###
-
-    if not prev_enable and enable:
-      b_hold_first = True
-    prev_enable = enable
-
-    #######################################
-
-    if len(arm_state.velocity) >= 5 and enable and b_get_current_state:
-      for i in range(5):
-        eff[i] = curr[i]
-        if arm_state.velocity[i] > 0.01:
-          eff[i] = eff[i] + eff_offset[i]
-          if b_hold_first:
-              b_hold_first = False
-              rospy.loginfo('release hold')
-
-        elif arm_state.velocity[i] < -0.01:
-          eff[i] = eff[i] - eff_offset[i]
-          if b_hold_first:
-              b_hold_first = False
-              rospy.loginfo('release hold')
-      jntSend.header.frame_id = DRIVER_KEY
-      jntSend.effort = eff
-      set_jnt(jntSend, pub)
+    if len(arm_state.velocity) >= 5 and enable:
+        for i in range(5):
+          eff[i] = curr[i];
+          if arm_state.velocity[i] > 0.01:
+            eff[i] = eff[i] + eff_offset[i];
+          elif arm_state.velocity[i] < -0.01:
+            eff[i] = eff[i] - eff_offset[i];
+        jntSend.header.frame_id = DRIVER_KEY
+        jntSend.effort = eff;
+        set_jnt(jntSend, pub)
     rate.sleep()
   rospy.loginfo("step 2 : OK")
 
@@ -121,21 +97,12 @@ def set_jnt(jnt, pub):
   return True;
 
 def callback(data):
-  global arm_state, b_hold_first, enable, b_get_current_state
-
+  global arm_state
   arm_state = data
-
-  ### hold current torque when enable ###
-
-  if enable and not b_hold_first:
-    check_tq()
-  else:
-    curr = copy.deepcopy(arm_state.effort)
-    b_get_current_state = True
-
+  check_tq()
 
 def handle_enable_node(req):
-    global enable, DRIVER_KEY, b_get_current_state
+    global enable, DRIVER_KEY
     error = String()
     error.data = "OK"
     enable = False
@@ -143,7 +110,6 @@ def handle_enable_node(req):
     if req.enable:
         resp = get_key("TEACH_MODE")
         if resp.error == "OK":
-            b_get_current_state = False
             enable = req.enable
             DRIVER_KEY = resp.key
             rospy.loginfo("DRIVER_KEY is %s", DRIVER_KEY)

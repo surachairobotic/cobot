@@ -6,6 +6,7 @@
 
 #include <cobot_interface_beta_widget.h>
 #include "cobot_msgs/PickPlacePoseArray.h"
+#include "std_msgs/Bool.h"
 
 #include "ui_cobot_interface_beta.h"
 
@@ -23,6 +24,7 @@ namespace cobot_interface
 
 			static void callback_js(const sensor_msgs::JointState &js);
 			static void callback_pppa(const cobot_msgs::PickPlacePoseArray &_msg);
+			static void callback_update_table(const std_msgs::Bool &msg);
 			sensor_msgs::JointState js;
 			cobot_msgs::PickPlacePoseArray pppa;
 
@@ -48,11 +50,10 @@ namespace cobot_interface
 			ros::AsyncSpinner spinner;
 
 			CobotInterfaceBetaWidget *frame_;
-      rviz::PanelDockWidget* frame_dock_;
+			rviz::PanelDockWidget* frame_dock_;
 
 		private:
-			ros::Subscriber sub_js, sub_pppa;
-			ros::Publisher pub_vacuum;
+			ros::Subscriber sub_js, sub_pppa, sub_update_table;
 
 		private Q_SLOTS:
 		  void cobotPanelVisibilityChange(bool enable);

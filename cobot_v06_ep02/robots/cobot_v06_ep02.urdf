@@ -430,7 +430,7 @@
     name="J_tool"
     type="fixed">
     <origin
-      xyz="0 0 0.081"
+      xyz="0 0 0.05"
       rpy="0 0 0" />
     <parent
       link="L6" />

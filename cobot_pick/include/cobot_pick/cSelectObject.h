@@ -532,16 +532,18 @@ public:
     vn.normalize();
     tf::Quaternion q(vn, acos(v.dot(vx)));
     */
-//    assert(0);
-    const double DIS2CENTER_BASEKET = (config.basket_size_x + config.box_size_x)*0.5 
-      - config.box_label_shift_x ;
+
+//    const double DIS2CENTER_BASEKET = (config.basket_size_x + config.box_size_x)*0.5 - config.box_label_shift_x ;
+    const double DIS2CENTER_BASEKET = (config.basket_size_x - config.box_size_x)*0.5 + config.box_label_shift_x ;
     tf::Vector3 c = config.tf_cam( tf::Vector3(
       center.x + normal.x * DIS2CENTER_BASEKET, 
       center.y + normal.y * DIS2CENTER_BASEKET, 
       center.z + normal.z * DIS2CENTER_BASEKET));
     c.setZ(config.basket_size_z);
     tf::Quaternion q2 = config.tf_cam.getRotation() * q 
-      * tf::Quaternion( tf::Vector3( 0.0, 1.0, 0.0 ), -M_PI*0.5 );
+      * tf::Quaternion( tf::Vector3( 0.0, 1.0, 0.0 ), -M_PI*0.5 )
+      * tf::Quaternion( tf::Vector3( 0.0, 0.0, 1.0 ), M_PI );
+//      * tf::Quaternion( tf::Vector3( 0.0, 1.0, 0.0 ), -M_PI*0.5 );
     
     pick_pose.pose.position.x = c.x();
     pick_pose.pose.position.y = c.y();

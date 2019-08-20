@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
       req_plan.request.joint_names = {"J1", "J2", "J3", "J4", "J5", "J6"};
       req_plan.request.seed = js;
       req_plan.request.type = "line";
-      req_plan.request.max_velocity = 0.1;
+      req_plan.request.max_velocity = 0.05;
       req_plan.request.max_acceleration = M_PI/2.0;
       req_plan.request.step_time = 0.05;
 

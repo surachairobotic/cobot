@@ -1,5 +1,5 @@
 <launch>
-  <arg name="debug" default="true" />
+  <arg name="debug" default="false" />
   <arg name="use_gui" default="false" />
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
@@ -22,6 +22,6 @@
     <arg name="debug" value="$(arg debug)"/>
   </include>
 
-  <node name="cobot_core_node" pkg="cobot_core" type="cobot_core_node" respawn="false" output="screen" launch-prefix="gdb --ex run --args" >
+  <node name="cobot_core_node" pkg="cobot_core" type="cobot_core_node" respawn="false" output="screen">
   </node>
 </launch>

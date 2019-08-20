@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <limits.h>
 
-std::string DRIVER_KEY = "NOT SET";
+std::string DRIVER_KEY = "NOT_SET";
 bool b_change_key = false;
 std::string iso_time_str = "";
 int num_log = 0;
@@ -40,10 +40,11 @@ FILE *_cmd;
 //std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
 //std::vector<double> offset_2{-0.04363323,  0.038048,-0.00384,-0.036303,0.011519,0.0};
 std::vector<double> offset_2{0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000};
-std::vector<double> offset{-0.042760, 0.014835, -0.012218, -0.008727, 0.008727, 0.000000};
+std::vector<double> offset{0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000};
 bool debug = false;
 bool tq_over = false;
 bool b_emergency = false;
+sensor_msgs::JointState joint_state;
 
 void control_callback(const sensor_msgs::JointState::ConstPtr& msg);
 bool get_motor_number(cobot_dynamixel_driver::get_motor_number::Request  &req, cobot_dynamixel_driver::get_motor_number::Response &res);
@@ -174,7 +175,6 @@ int main(int argc, char **argv)
     ros::Time t_prev = ros::Time::now();
     t_push = ros::Time::now();
 
-    sensor_msgs::JointState joint_state;
 		double dt;
 		int i;
     double voltage[joint_num];
@@ -324,7 +324,7 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
   if(chk != 0)
     return;
   if(tq_over) {
-    msg.position.clear();
+    msg.position = joint_state.position;
     msg.effort.clear();
     msg.velocity = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   }
@@ -395,8 +395,8 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
                 break;
               }
             }
-            //else
-            //  ROS_ERROR("joint not found : %s", msg->name[i].c_str());
+            else
+              ROS_ERROR("joint not found : %s", msg.name[i].c_str());
           }
           if( b_ok ) {
             cJoint::sync_pos_velo_acc();
@@ -562,15 +562,19 @@ void control_callback(const sensor_msgs::JointState::ConstPtr& data) {
 }
 
 bool get_offset(std::string name, double* offs){
-	if(name.size() != 2 || name[0] != 'J')
+	if(name.size() != 2 || name[0] != 'J') {
+    ROS_ERROR("get_offset : name : %s", name.c_str());
 		return false;
+  }
 	char txt;
 	txt = name[1];
 	char* pTxt;
 	pTxt = &txt;
 	int indx = std::atoi(pTxt)-1;
-	if(indx < 0 || indx >= 6)
+	if(indx < 0 || indx >= 6) {
+    ROS_ERROR("get_offset : %d", indx);
 		return false;
+  }
 	*offs = offset[indx] + offset_2[indx];
 //	ROS_INFO("in:%s, txt:%c, indx:%d, out:%lf", name.c_str(), txt, indx, *offs);
 	return true;

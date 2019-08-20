@@ -157,6 +157,7 @@ if __name__ == '__main__':
   while (time.time()-t_send) < 2.5 and not rospy.is_shutdown():
     a=0
   count = 0
+  send_tq = Bool(False);
   while not rospy.is_shutdown():
     tg = False
     if b_new_state:
@@ -168,14 +169,16 @@ if __name__ == '__main__':
         if stat.effort[i] >= err_max[i] and abs(arm_state.velocity[i]) > 0.0 and (time.time()-t[i]) > 0.5:
           print("stat.effort[%d] is over : %lf" % (i, stat.effort[i]))
           tg = True
+          send_tq.data = True
           t_send = time.time()
           break
         elif abs(arm_state.velocity[i]) < 0.001:
           t[i] = time.time()
-    if (time.time()-t_send) < 2.0:
-      pub_tq.publish(Bool(True))
-    else:
-      pub_tq.publish(Bool(False))
+    # if (time.time()-t_send) < 2.0:
+    #   pub_tq.publish(Bool(True))
+    # else:
+    #   pub_tq.publish(Bool(False))
+    pub_tq.publish(send_tq)
     rate.sleep()
 
   sub.unregister()
