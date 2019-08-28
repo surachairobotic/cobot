@@ -32,7 +32,11 @@ from __future__ import division
 import re
 import sys
 import os
+#########
 
+import lib_speech
+
+#########
 homedir = os.path.expanduser("~")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]=homedir+('/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json')
 
@@ -177,11 +181,18 @@ def listen_print_loop(responses):
         for i in range(s):
             transcript = result.alternatives[i].transcript
 
+
+            #########
+
+            lib_speech.process_sentence(transcript.encode('utf-8'), pub_text)
+
+            #########
+
             if not result.is_final:
                 rospy.loginfo('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
             elif i is 0:
                 rospy.logwarn('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
-                pub_text.publish(String(transcript))
+                # pub_text.publish(String(transcript))
             else:
                 rospy.loginfo('TH[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
 
@@ -251,7 +262,7 @@ if __name__ == '__main__':
     global node_name
     node_name = rospy.get_name()
     rospy.loginfo(node_name)
-    pub_text = rospy.Publisher('/cobot/speech/stt/th', String, queue_size=10)
+    pub_text = rospy.Publisher('/cobot/speech/stt/en', String, queue_size=10)
     while not rospy.is_shutdown():
         try:
             main()

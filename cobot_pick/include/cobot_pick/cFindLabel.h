@@ -601,7 +601,7 @@ public:
 
           for(int i=0;i<ocr.confs.size();i++){
             const char *str = ocr.texts[i].c_str();
-            ROS_INFO("text flip [%d][%d]: %s, %.3f\n", ir, k, str, ocr.confs[i]);
+            ROS_INFO("text flip [%d][%d]: %s, %.3f", ir, k, str, ocr.confs[i]);
             if( str && str[0]=='M' && i<ocr.confs.size()-1 ){
               const char *str2 = ocr.texts[i+1].c_str();
               if( !str2 )

@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.379948 -0.132475 0.472950 0.971608 0.142506 -0.040211 -0.184534" />
+  <arg name="tf_world2camera" default="0.409013 -0.111463 0.466731 0.978736 0.095466 -0.051188 -0.174190" />
   <arg name="mode" default="action" />
   <arg name="camera_frame_id" default="camera_object" />
   <arg name="object_type" default="box" />
@@ -27,7 +27,7 @@
 
     <param name="object_type" value="$(arg object_type)"/>
     <param name="min_label_pix_num" value="800"/>
-    <param name="max_label_pix_num" value="3000"/>
+    <param name="max_label_pix_num" value="4000"/>
     <param name="min_label_ratio" value="1.0"/>
     <param name="max_label_ratio" value="3.0"/>
     <param name="dis_remove_edge" value="2.0"/>

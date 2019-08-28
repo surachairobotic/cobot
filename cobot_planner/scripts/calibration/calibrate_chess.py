@@ -169,10 +169,10 @@ def load_data(fname):
           p = []
       else:
         a = s.split(' ')
-        if len(a)!=6:
+        if len(a)<6:
           print('Invalid string : ' + s)
           exit()
-        p.append(np.array([float(b) for b in a]))
+        p.append(np.array([float(b) for b in a[0:6]]))
     if len(p)>0:
       pos.append(p)
   return pos
@@ -194,10 +194,10 @@ def load_data_chess(fname):
           pos.append(p)
         p = []
         continue
-      elif len(a)!=13:
+      elif len(a)<6:
         print('invalid data : '+s+' / '+str(len(a)))
         exit()
-      p2 = np.array([float(a[i]) for i in range(9)])
+      p2 = np.array([float(a[i]) for i in range(6)])
       
       b_0 = True
       for p3 in p2[0:6]:
@@ -208,6 +208,7 @@ def load_data_chess(fname):
         pos.append(p)
         p = []
       else:
+        '''
         # check xyz
         xyz = [float(a[i]) for i in range(6, 9)]
         xyz2 = get_xyz(np.array(p2))
@@ -215,8 +216,9 @@ def load_data_chess(fname):
           print('Too large xyz error')
           print('xyz : '+str(xyz)+'\nxyz2 : '+str(xyz2))
           exit()
+        '''
         p.append(p2)
-        if len(p)==5:
+        if len(p)==4:
           pos.append(p)
           p = []
     if len(p)>0:
@@ -404,12 +406,17 @@ if __name__ == "__main__":
     pos = []
     xyz_ref = []
     
+    '''
     old_off_1 = np.array([0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0])
     old_off_2 = np.array([-0.04363323,  0.038048,-0.00384,-0.036303,0.011519,0.0])
-    for level in ['down', 'mid','up']:
+    '''
+    old_off_1 = np.array([0.0]*6)
+    old_off_2 = np.array([0.0]*6)
+    
+    for level in ['down']: #, 'mid','up']:
 #    for level in ['down', 'mid', 'up']:
-      pos2 = load_data_chess('./190308/chess_'+level+'.txt')
-      xyz_ref+= load_ref_chess('./190308/chess-ref_'+level+'.txt')
+      pos2 = load_data_chess('./190820/chess_'+level+'.txt')
+      xyz_ref+= load_ref_chess('./190820/chess-ref_'+level+'.txt')
       '''
       if level=='down':
         for p1 in pos:
@@ -429,7 +436,7 @@ if __name__ == "__main__":
     off_x = np.array([0.0]*3)
     off_bq = np.array([0.0]*3)
 
-    
+    '''
     # plot off
 
     off_q = np.array([-0.042760, 0.014835, -0.012218, -0.008727, 0.008727, 0.000000])
@@ -437,7 +444,7 @@ if __name__ == "__main__":
     off_bq = np.array([0.001309, 0.007854, 0.000000])
     plot_pos(pos, xyz_ref, off_q, off_x, off_bq)
     exit()
-
+    '''
     
     '''
     print(xyz_ref)
@@ -466,34 +473,35 @@ if __name__ == "__main__":
     
     # find q2-q5
     '''
-    off_q = np.array([0.000000, 0.010472, -0.012218, -0.008727, 0.008727, 0.000000])
-    off_q = find_q2q5_multithread(get_xyz, pos, off_q, deg2rad*0.2, deg2rad*1.0)
+    off_q = np.array([0.000000, -0.017453, -0.008727, 0.000000, 0.000000, 0.000000])
+    off_q = find_q2q5_multithread(get_xyz, pos, off_q, deg2rad*0.1, deg2rad*1.0)
     '''
     
     
     # find q1, xyz, bq
     '''
-    off_q = np.array([0.000000, 0.010472, -0.012218, -0.008727, 0.008727, 0.000000])
-#    off_x = np.array([0.0006, 0.0002, -0.001 ])
+    off_q = np.array([0.000000, -0.013962, -0.008727, -0.001745, -0.001745, 0.000000])
+    off_x = np.array([0.000000, 0.000000, 0.000000])
     off_q, off_x, off_bq = find_q1xyz_multithread( get_xyz, pos, xyz_ref, off_q, off_x, off_bq
-      , deg2rad*0.2, deg2rad*5.0
+      , deg2rad*0.1, deg2rad*5.0
       , 0.002, 0.02*0
-      , deg2rad*0.2, deg2rad*1.0)
+      , deg2rad*0.1, deg2rad*1.0)
+    
+    
     '''
-    
-    
     # find all
-    '''
-    off_q = np.array([-0.038397, 0.010472, -0.012218, -0.008727, 0.008727, 0.000000])
-    off_bq = np.array([0.003491, 0.013963, 0.000000])
+    
+    off_q = np.array([-0.019199, -0.013962, -0.008727, -0.001745, -0.001745, 0.000000])
+    off_bq = np.array([-0.001745, 0.015708, 0.000000])
     off_q, off_x, off_bq = find_err_all_multithread( get_xyz, pos, xyz_ref, off_q, off_x, off_bq
       , deg2rad*0.25, deg2rad*0.5
       , 0.0005, 0.001
-      , deg2rad*0.025, deg2rad*0.5 )
-    '''
+      , deg2rad*0.25, deg2rad*0.5 )
+    
+    
     
     print('q : [%f, %f, %f, %f, %f, %f]' % (off_q[0],off_q[1],off_q[2],off_q[3],off_q[4],off_q[5]))
-    print(off_q * (180.0/3.14))
+    print('q deg : ' + str(off_q * (180.0/3.14)))
     print(off_x)
     print('x : [%f, %f, %f]' % (off_x[0],off_x[1],off_x[2]))
     print('b : [%f, %f, %f]' % (off_bq[0],off_bq[1],off_bq[2]))

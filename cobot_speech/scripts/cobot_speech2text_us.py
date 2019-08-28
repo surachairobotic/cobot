@@ -33,6 +33,12 @@ import re
 import sys
 import os
 
+#########
+
+import lib_speech
+
+#########
+
 homedir = os.path.expanduser("~")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]=homedir+('/catkin_ws/src/cobot/cobot_speech/cobot-speech-260419-fb5001458a83.json')
 
@@ -174,11 +180,17 @@ def listen_print_loop(responses):
         for i in range(s):
             transcript = result.alternatives[i].transcript
 
+            #########
+
+            lib_speech.process_sentence(transcript.encode('utf-8'), pub_text)
+
+            #########
+
             if not result.is_final:
                 rospy.loginfo('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
             elif i is 0:
                 rospy.logwarn('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
-                pub_text.publish(String(transcript))
+                # pub_text.publish(String(transcript))
             else:
                 rospy.loginfo('US[%d/%d] : %s' % (i, s, transcript.encode('utf-8')))
 
@@ -192,8 +204,7 @@ def main():
     # for a list of supported languages.
     language_code = 'en-US'  # a BCP-47 language tag
 
-    cobot_phrases = ['easy mode', 'save point']
-    # cobot_phrases = ['pick box number one', 'pick box number two']
+    cobot_phrases = ['learn mode', 'save point', 'pick box number one', 'pick box number two']
     # cobot_phrases = ['easy mode', 'jog mode', 'automatic mode', 'box', 'object', 'start','go home', 'go to point', 'save point number', 'one', 'two', 'three']
 
     #cobot_phrases = ['teach mode']

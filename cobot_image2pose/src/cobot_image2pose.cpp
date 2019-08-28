@@ -153,7 +153,7 @@ void doneBas(const actionlib::SimpleClientGoalState& state, const cobot_pick::Co
       }
     }
     if(chk != result->labels.size())
-      ;//ROS_WARN("doneObj : chk != result->labels.size()");
+      ROS_WARN("doneObj : chk != result->labels.size()");
     objStatus = 0;
   }
 }

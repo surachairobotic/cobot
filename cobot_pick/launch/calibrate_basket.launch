@@ -2,9 +2,9 @@
   <node name="cobot_pick_calibrate" pkg="cobot_pick" type="cobot_pick_calibrate" respawn="false"
          output="screen"  launch-prefix="gdb -ex run --args">
     <param name="load_mode" value="true"/>
-    <param name="save_file_prefix"
-      value="$(find cobot_pick)/data/hotel_basket_01"/>
-    <param name="result_save_path"
+    <param name="save_file_prefix" 
+      value="$(find cobot_pick)/data/hotel_calib_basket_01"/>
+    <param name="result_save_path" 
       value="$(find cobot_pick)/results_basket/"/>
     <param name="show_result" value="true"/>
 

@@ -2,7 +2,7 @@
   <node name="cobot_pick_save_basket" pkg="cobot_pick" type="cobot_find_object" respawn="false" output="screen" >
     <param name="mode" value="save"/>
     <param name="object_type" value="basket" />
-    <param name="save_file_prefix" value="hotel_basket"/>
+    <param name="save_file_prefix" value="hotel_calib_basket"/>
     <param name="data_save_path" value="$(find cobot_pick)/data/"/>
     <param name="result_save_path" value="$(find cobot_pick)/results/"/>
   </node>

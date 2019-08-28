@@ -17,7 +17,7 @@ b_send = False
 mode = String()
 
 def cb_en(msg):
-    global b_send
+    global b_send, mode
     if "one" in msg.data or "1" in msg.data:
         print("EN : ONE")
         mode.data = 'M1'
@@ -26,10 +26,10 @@ def cb_en(msg):
         print("EN : TWO")
         mode.data = 'M2'
         b_send = True
-    elif "easy" in msg.data or "easy mode" in msg.data:
-        mode.data = 'easy mode'
+    elif "learn mode" in msg.data:
+        mode.data = 'learn mode'
         b_send = True
-    elif "save" in msg.data or "save point" in msg.data:
+    elif "save point" in msg.data:
         mode.data = 'save point'
         b_send = True
 
@@ -50,16 +50,18 @@ if __name__ == '__main__':
     sub_en = rospy.Subscriber("/cobot/speech/stt/en", String, cb_en)
     sub_th = rospy.Subscriber("/cobot/speech/stt/th", String, cb_th)
     # pub = rospy.Publisher("/cobot/goal", JointState, queue_size=10)
-    rospy.wait_for_service('/cobot/cobot_teach/enable')
+    # print('waiting service')
+    # rospy.wait_for_service('/cobot/cobot_teach/enable')
+    print('start')
 
-    global b_send
     rate = rospy.Rate(50) # 50hz
-
     while not rospy.is_shutdown():
         if b_send is True:
+            print('b_send = %d' % b_send)
             if "M1" in mode.data or "M2" in mode.data:
+                print('aaaa')
                 pub_pick_cmd.publish(mode)
-            elif "easy mode" in mode.data:
+            elif "learn mode" in mode.data:
                 srv_enable_node = rospy.ServiceProxy('/cobot/cobot_teach/enable', EnableNode)
                 res = srv_enable_node(True)
                 print(res.error.data)

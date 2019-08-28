@@ -1,5 +1,5 @@
 <launch>
-  <arg name="tf_world2camera" default="0.439775 -0.326018 0.380219 0.642387 0.643229 -0.283034 -0.305755" />
+  <arg name="tf_world2camera" default="0.446030 -0.328429 0.381524 0.625450 0.657077 -0.319329 -0.274028" />
   <arg name="mode" default="action" />
   <arg name="object_type" default="basket" />
   <arg name="camera_frame_id" default="camera_basket" />

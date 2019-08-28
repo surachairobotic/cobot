@@ -55,20 +55,21 @@ def set_jnt(jnt, pub):
 
 def callback(data):
   global arm_state, t_callback, b_new_state, b_lock
-  if not b_lock:
-    arm_state = data
-    b_new_state = True
+  # if not b_lock:
+  arm_state = data
+  b_new_state = True
 #    print("calback time : %s" % (time.time()-t_callback))
 #    t_callback = time.time()
 #  check_tq()
 
 def check_tq():
   global arm_state, first, dt, tq1, tq2, b2, a2, old_vel, pub_status, tq_over, old_state, ABC, stat, b_lock, b_new_state
-  b_lock = True
+  # b_lock = True
   state = arm_state
   b_new_state = False
-  b_lock = False
+  # b_lock = False
   if first:
+    print("first is true in tq")
     pos = np.array(state.position)
     vel = np.array(state.velocity)
     eff = np.array(state.effort)
@@ -123,17 +124,17 @@ def check_tq():
   first = True
 
 def callback_return(jnt_re):
-  global jntReturn
+  global jntReturn, en_fb
 #  rospy.loginfo("callback num : %s", jnt_re.header.frame_id)
   if en_fb is True:
     rospy.loginfo("callback_return")
-  if not b_lock:
-    jntReturn = jnt_re
+  # if not b_lock:
+  #   jntReturn = jnt_re
 
 if __name__ == '__main__':
   rospy.init_node('cobot_torque_detection', anonymous=True)
 
-  global arm_state, ABC, first, list_current_cal, list_current, stat
+  #global arm_state, ABC, first, list_current_cal, list_current, stat
 
   ABC = [ [ 355.0, 1240.0,  245.0],
           [-177.0, -690.0, -650.0],
@@ -161,8 +162,10 @@ if __name__ == '__main__':
   while not rospy.is_shutdown():
     tg = False
     if b_new_state:
+      print("b_new_state is true")
       check_tq()
     if len(arm_state.position) is 6 and first is True and len(stat.effort) is 6:
+      print("len(arm_state.position) is 6 and first is True and len(stat.effort) is 6")
       if jnt_over_limit(arm_state):
         print("jnt_over_limit(arm_state)")
       for i in range(6):

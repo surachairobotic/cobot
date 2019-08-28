@@ -40,7 +40,7 @@ FILE *_cmd;
 //std::vector<double> offset{0.0, -0.016406, -0.009949, 0.028798, -0.000698, 0.0};
 //std::vector<double> offset_2{-0.04363323,  0.038048,-0.00384,-0.036303,0.011519,0.0};
 std::vector<double> offset_2{0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000};
-std::vector<double> offset{0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.0000000};
+std::vector<double> offset{-0.014836, -0.009599, -0.004364, -0.001745, -0.006108, 0.000000};
 bool debug = false;
 bool tq_over = false;
 bool b_emergency = false;
