@@ -1,27 +1,32 @@
 cd catkin_ws
+
 Terminal 1
 roscore
 
 Terminal 2
-roslaunch my_ui cobot_demo_model.launch
+roslaunch cobot_core cobot_core.launch
 
 Terminal 3
 roslaunch cobot_dynamixel_driver pro.launch
 
 Terminal 4
-sudo ~/catkin_ws/devel/lib/cobot_plan_control/gpio_server_multi_client
+roslaunch cobot_jog cobot_jog.launch
 
 Terminal 5
-roslaunch cobot_showcase set1.launch
+roslaunch cobot_plan_control cobot_plan_control.launch
 
 Terminal 6
-roslaunch cobot_showcase set2.launch
+python ~/catkin_ws/src/cobot/cobot_jig_controller/scripts/teach.py
+
+Terminal 7
+rviz rviz
 
 -------------------------
-xrandr --output DP-1 --mode 1280x720 --pos 1280x720
-xrandr --output HDMI-2 --same-as DP-1 --pos 1280x720
+# extend screen and touch mapping
 
-xinput set-prop "WaveShare WS170120" --type=float "Coordinate Transformation Matrix" -1 0 1 0 -1 1 0 0 1
+xrandr --output DP-1 --mode 1920x1080
+xrandr --output HDMI-2 --left-of DP-1 --mode 1280x800
+xinput map-to-output "WaveShare WS170120" "HDMI-2"
 
 -------------------------
 grep -rnw . -e "base_link"

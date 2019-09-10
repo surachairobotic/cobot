@@ -982,7 +982,7 @@ bool move_trajectory_3(cControl &control) {
 		if (i == 1)
 		  treshold = 0.008;
 		else
-		  treshold = 0.008;
+		  treshold = 0.005;
 
     double dist_pnt = distance_point(current_pose, wp_pose);
     if( dist_pnt < treshold ) {
